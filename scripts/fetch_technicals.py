@@ -266,6 +266,35 @@ def main():
                 print(f"  ✗ [retry {i}/{len(failed)}] {ticker}  ERROR: {e}")
             time.sleep(2)
         failed = retry_failed
+    # BSE fallback for tickers that consistently fail on NSE
+    if retry_failed:
+        bse_tickers = [item["Ticker"] for item in retry_failed if item["Ticker"].endswith(".NS")]
+        if bse_tickers:
+            print(f"\n🔄 Trying BSE fallback for {len(bse_tickers)} tickers (30s cooldown)...\n")
+            time.sleep(30)
+            bse_still_failed = []
+            for i, ticker in enumerate(bse_tickers, 1):
+                bse_ticker = ticker.replace(".NS", ".BO")
+                try:
+                    data, fail = get_stock_data(bse_ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret)
+                    if data:
+                        data["Symbol"] = ticker  # keep original .NS symbol
+                        results.append(data)
+                        print(f"  ✓ [BSE {i}/{len(bse_tickers)}] {ticker} via {bse_ticker}")
+                    else:
+                        bse_still_failed.append({"Ticker": ticker, "Reason": "BSE also failed"})
+                        print(f"  – [BSE {i}/{len(bse_tickers)}] {ticker}  (skipped)")
+                except Exception as e:
+                    bse_still_failed.append({"Ticker": ticker, "Reason": str(e)})
+                    print(f"  ✗ [BSE {i}/{len(bse_tickers)}] {ticker}  ERROR: {e}")
+                time.sleep(2)
+            # Replace retry_failed with only the ones that failed BSE too
+            non_nse = [item for item in retry_failed if not item["Ticker"].endswith(".NS")]
+            failed = non_nse + bse_still_failed
+        else:
+            failed = retry_failed
+    else:
+        failed = retry_failed
    # Save
     if results:
         df = pd.DataFrame(results)
