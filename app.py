@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
+import os
+from datetime import datetime
 
 from config import (
     OVERVIEW_COLS, TECHNICAL_COLS, RETURNS_COLS, RISK_COLS, FUNDAMENTAL_COLS,
@@ -10,6 +12,16 @@ from config import (
 from scoring import add_scores
 from styling import style_dataframe
 from screens import run_screen
+
+
+def get_data_timestamp():
+    """Get last modified time of technicals.csv as data freshness indicator."""
+    for path in ['data/technicals.csv', 'technicals.csv']:
+        if os.path.exists(path):
+            mtime = os.path.getmtime(path)
+            dt = datetime.fromtimestamp(mtime)
+            return dt.strftime('%d %b %Y, %I:%M %p')
+    return 'Unknown'
 
 # ────────────────────────────────────────────────
 # PAGE CONFIG & STYLES
@@ -46,6 +58,19 @@ st.markdown("""
     div[data-testid="stSelectbox"] label, div[data-testid="stMultiSelect"] label, div[data-testid="stSlider"] label { font-size: 0.72rem; color: #777; font-family: 'IBM Plex Mono', monospace; }
     .index-click-hint { font-size: 0.7rem; color: #444; font-family: 'IBM Plex Mono', monospace; margin-top: 0.4rem; }
     .filter-active { font-size: 0.7rem; color: #00d4aa; font-family: 'IBM Plex Mono', monospace; padding: 0.2rem 0.5rem; background: #0d2e1f; border-radius: 4px; display: inline-block; margin-bottom: 0.5rem; }
+    .data-timestamp { font-size: 0.65rem; color: #444; font-family: 'IBM Plex Mono', monospace; margin-top: 0.1rem; }
+    .stock-card { background: #16181f; border: 1px solid #2a2a2a; border-radius: 10px; padding: 1.2rem; margin-bottom: 0.8rem; }
+    .stock-card-header { font-family: 'IBM Plex Mono', monospace; font-size: 1.1rem; font-weight: 600; color: #00d4aa; margin-bottom: 0.3rem; }
+    .stock-card-sub { font-size: 0.75rem; color: #777; font-family: 'IBM Plex Mono', monospace; margin-bottom: 0.8rem; }
+    .stock-card-section { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: #00d4aa; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 1rem; margin-bottom: 0.4rem; border-bottom: 1px solid #2a2a2a; padding-bottom: 0.2rem; }
+    .stock-card-row { display: flex; justify-content: space-between; padding: 0.2rem 0; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; }
+    .stock-card-label { color: #888; }
+    .stock-card-val { color: #e0e0e0; font-weight: 600; }
+    .stock-card-val.green { color: #00d4aa; }
+    .stock-card-val.red { color: #ff4d4d; }
+    .score-bar-container { background: #0f1117; border-radius: 4px; height: 8px; margin-top: 0.2rem; overflow: hidden; }
+    .score-bar { height: 100%; border-radius: 4px; }
+    .compare-highlight { background: #0d2e1f; border: 1px solid #00d4aa33; border-radius: 6px; padding: 0.3rem 0.6rem; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -392,10 +417,12 @@ for col, val in [('RSI 14', rsi_range), ('Trend Consistency (12M)', trend_cons_r
 # ────────────────────────────────────────────────
 # HEADER & MARKET PULSE
 # ────────────────────────────────────────────────
-st.markdown("""
+data_ts = get_data_timestamp()
+st.markdown(f"""
 <div class="screener-header">
     <p class="screener-title">▸ STOCKRADAR INDIA</p>
     <p class="screener-subtitle">Technical + Fundamental · 880+ Stocks · 50 Indices · Daily refresh</p>
+    <p class="data-timestamp">Data as of: {data_ts}</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -447,9 +474,15 @@ sort_asc = sort_order == "Ascending"
 
 
 # ────────────────────────────────────────────────
+# SCORE ONCE (reuse across all tabs)
+# ────────────────────────────────────────────────
+scored = add_scores(filtered.copy(), universe_df=filtered)
+
+
+# ────────────────────────────────────────────────
 # MAIN TABS
 # ────────────────────────────────────────────────
-main_tab1, main_tab2 = st.tabs(["📊 Stocks", "📈 Index Dashboard"])
+main_tab1, main_tab2, main_tab3 = st.tabs(["📊 Stocks", "📈 Index Dashboard", "🔍 Tools"])
 
 
 # ══════════════════════════════════════════════
@@ -475,38 +508,34 @@ with main_tab1:
                                   default=[c for c in default_cols if c in filtered.columns], key=key)
 
         with ov_tab:
-            scored = add_scores(filtered.copy(), universe_df=filtered)
             cc1, cc2 = st.columns([5, 1])
             with cc2:
                 export_btn(scored, OVERVIEW_COLS, 'overview.csv', 'dl_ov')
             show_table(scored, OVERVIEW_COLS, sort_by, sort_asc, 'ov')
 
         with tech_tab:
-            scored_tech = add_scores(filtered.copy(), universe_df=filtered)
             cc1, cc2 = st.columns([5, 1])
             with cc2:
-                export_btn(scored_tech, TECHNICAL_COLS, 'technicals.csv', 'dl_tech')
-            show_table(scored_tech, TECHNICAL_COLS, sort_by, sort_asc, 'tech')
+                export_btn(scored, TECHNICAL_COLS, 'technicals.csv', 'dl_tech')
+            show_table(scored, TECHNICAL_COLS, sort_by, sort_asc, 'tech')
 
         with ret_tab:
-            scored_ret = add_scores(filtered.copy(), universe_df=filtered)
             cc1, cc2 = st.columns([5, 1])
             with cc2:
-                export_btn(scored_ret, RETURNS_COLS, 'returns.csv', 'dl_ret')
-            show_table(scored_ret, RETURNS_COLS, sort_by, sort_asc, 'ret')
+                export_btn(scored, RETURNS_COLS, 'returns.csv', 'dl_ret')
+            show_table(scored, RETURNS_COLS, sort_by, sort_asc, 'ret')
 
         with risk_tab:
             cc1, cc2 = st.columns([5, 1])
             with cc2:
-                export_btn(filtered, RISK_COLS, 'risk.csv', 'dl_risk')
-            show_table(filtered, RISK_COLS, sort_by, sort_asc, 'risk')
+                export_btn(scored, RISK_COLS, 'risk.csv', 'dl_risk')
+            show_table(scored, RISK_COLS, sort_by, sort_asc, 'risk')
 
         with fund_tab:
-            scored_fund = add_scores(filtered.copy(), universe_df=filtered)
             cc1, cc2 = st.columns([5, 1])
             with cc2:
-                export_btn(scored_fund, FUNDAMENTAL_COLS, 'fundamentals.csv', 'dl_fund')
-            show_table(scored_fund, FUNDAMENTAL_COLS, sort_by, sort_asc, 'fund')
+                export_btn(scored, FUNDAMENTAL_COLS, 'fundamentals.csv', 'dl_fund')
+            show_table(scored, FUNDAMENTAL_COLS, sort_by, sort_asc, 'fund')
 
         with custom_tab:
             custom_cols = col_selector(
@@ -514,11 +543,10 @@ with main_tab1:
                 'custom_cols'
             )
             if custom_cols:
-                scored_custom = add_scores(filtered.copy(), universe_df=filtered)
                 cc1, cc2 = st.columns([5, 1])
                 with cc2:
-                    export_btn(scored_custom, custom_cols, 'custom_view.csv', 'dl_custom_view')
-                show_table(scored_custom, custom_cols, sort_by, sort_asc, 'custom_view')
+                    export_btn(scored, custom_cols, 'custom_view.csv', 'dl_custom_view')
+                show_table(scored, custom_cols, sort_by, sort_asc, 'custom_view')
 
     # ── PRE-BUILT SCREENS ───────────────────────
     with stocks_sub2:
@@ -756,3 +784,395 @@ with main_tab2:
                 key='glob_table'
             )
             st.markdown('<div class="index-click-hint">Global indices and commodities — technical analysis only</div>', unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════
+# TAB 3 — TOOLS (Stock Card, Compare, Watchlist)
+# ══════════════════════════════════════════════
+with main_tab3:
+    tools_sub1, tools_sub2, tools_sub3 = st.tabs(["🪪 Stock Card", "⚖ Compare", "📌 Watchlist"])
+
+    # Build stock lookup list
+    stock_options = []
+    if has_col(scored, 'Name'):
+        stock_options = sorted(
+            scored.apply(lambda r: f"{r[sym_col]} — {r['Name']}", axis=1).tolist()
+        )
+
+    def get_stock_row(selection):
+        """Extract symbol from 'SYMBOL — Name' format and return the row."""
+        sym = selection.split(" — ")[0].strip()
+        match = scored[scored[sym_col] == sym]
+        if match.empty:
+            return None
+        return match.iloc[0]
+
+    def fmt_val(val, fmt=".2f", suffix="", prefix=""):
+        """Format a value, return '—' for NaN."""
+        if pd.isna(val):
+            return "—"
+        try:
+            return f"{prefix}{val:{fmt}}{suffix}"
+        except (ValueError, TypeError):
+            return str(val)
+
+    def color_class(val):
+        """Return CSS class based on sign."""
+        try:
+            v = float(val)
+            if v > 0: return "green"
+            if v < 0: return "red"
+        except (ValueError, TypeError):
+            pass
+        return ""
+
+    def score_bar_html(score, label):
+        """Render a score bar with label."""
+        s = float(score) if not pd.isna(score) else 0
+        color = "#00d4aa" if s >= 60 else "#ffaa33" if s >= 40 else "#ff4d4d"
+        return f"""
+        <div class="stock-card-row">
+            <span class="stock-card-label">{label}</span>
+            <span class="stock-card-val">{fmt_val(score, '.1f')}</span>
+        </div>
+        <div class="score-bar-container">
+            <div class="score-bar" style="width:{min(s, 100):.0f}%; background:{color}"></div>
+        </div>
+        """
+
+    def render_stock_card(row):
+        """Render a comprehensive stock card."""
+        sym = row[sym_col]
+        name = row.get('Name', sym)
+        price = row.get('Current Price', np.nan)
+        day_chg = row.get('Day Change %', np.nan)
+        sector = row.get('Sector', '—')
+        industry = row.get('Industry', '—')
+        cap_cat = row.get('Cap Category', '—')
+        mcap = row.get('Market Cap (Cr)', np.nan)
+        regime = row.get('Market Regime', '—')
+        dd_status = row.get('Drawdown Status', '—')
+        chg_class = color_class(day_chg)
+
+        # Header
+        st.markdown(f"""
+        <div class="stock-card">
+            <div class="stock-card-header">{sym}</div>
+            <div class="stock-card-sub">{name} · {sector} · {industry} · {cap_cat}</div>
+            <div style="display:flex; gap:2rem; align-items:baseline; margin-bottom:0.5rem;">
+                <span style="font-size:1.6rem; font-weight:700; color:#e0e0e0; font-family:'IBM Plex Mono',monospace">₹{fmt_val(price, ',.2f')}</span>
+                <span class="stock-card-val {chg_class}" style="font-size:0.9rem">{fmt_val(day_chg, '.2f', '%')}</span>
+                <span style="font-size:0.75rem; color:#888; font-family:'IBM Plex Mono',monospace">Mkt Cap: ₹{fmt_val(mcap, ',.0f')} Cr</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Scores
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.markdown(f"""
+            <div class="stock-card">
+                <div class="stock-card-section">Scores & Regime</div>
+                {score_bar_html(row.get('Technical Score', np.nan), 'Technical')}
+                {score_bar_html(row.get('Momentum Score', np.nan), 'Momentum')}
+                {score_bar_html(row.get('Fundamental Score', np.nan), 'Fundamental')}
+                {score_bar_html(row.get('Composite Score', np.nan), 'Composite')}
+                <div class="stock-card-row" style="margin-top:0.6rem">
+                    <span class="stock-card-label">Universe Rank</span>
+                    <span class="stock-card-val">{fmt_val(row.get('Universe Rank', np.nan), '.0f')}</span>
+                </div>
+                <div class="stock-card-row">
+                    <span class="stock-card-label">Market Regime</span>
+                    <span class="stock-card-val">{regime}</span>
+                </div>
+                <div class="stock-card-row">
+                    <span class="stock-card-label">Drawdown Status</span>
+                    <span class="stock-card-val">{dd_status}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_b:
+            st.markdown(f"""
+            <div class="stock-card">
+                <div class="stock-card-section">Technical Signals</div>
+                <div class="stock-card-row"><span class="stock-card-label">EMA 50 / 200</span><span class="stock-card-val">{fmt_val(row.get('EMA 50', np.nan))} / {fmt_val(row.get('EMA 200', np.nan))}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">EMA Cross</span><span class="stock-card-val">{row.get('EMA Cross', '—')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">RSI 14</span><span class="stock-card-val">{fmt_val(row.get('RSI 14', np.nan))}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">MACD</span><span class="stock-card-val">{row.get('MACD Signal', '—')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Supertrend</span><span class="stock-card-val">{row.get('Supertrend', '—')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Trend Consistency</span><span class="stock-card-val">{fmt_val(row.get('Trend Consistency (12M)', np.nan), '.0f')}/12</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Vol Trend</span><span class="stock-card-val">{row.get('Vol Trend', '—')}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Row 2: Momentum + Risk
+        col_c, col_d = st.columns(2)
+        with col_c:
+            rs1 = row.get('RS vs Nifty 1M %', np.nan)
+            rs3 = row.get('RS vs Nifty 3M %', np.nan)
+            rs6 = row.get('RS vs Nifty 6M %', np.nan)
+            st.markdown(f"""
+            <div class="stock-card">
+                <div class="stock-card-section">Returns & Momentum</div>
+                <div class="stock-card-row"><span class="stock-card-label">ROC 1M</span><span class="stock-card-val {color_class(row.get('ROC 1M %', np.nan))}">{fmt_val(row.get('ROC 1M %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">ROC 3M</span><span class="stock-card-val {color_class(row.get('ROC 3M %', np.nan))}">{fmt_val(row.get('ROC 3M %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">ROC 6M</span><span class="stock-card-val {color_class(row.get('ROC 6M %', np.nan))}">{fmt_val(row.get('ROC 6M %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">1Y CAGR</span><span class="stock-card-val {color_class(row.get('1Y CAGR %', np.nan))}">{fmt_val(row.get('1Y CAGR %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">3Y CAGR</span><span class="stock-card-val {color_class(row.get('3Y CAGR %', np.nan))}">{fmt_val(row.get('3Y CAGR %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">RS vs Nifty 1M/3M/6M</span><span class="stock-card-val">{fmt_val(rs1, '.1f')} / {fmt_val(rs3, '.1f')} / {fmt_val(rs6, '.1f')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Momentum Quality</span><span class="stock-card-val">{fmt_val(row.get('Momentum Quality', np.nan))}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_d:
+            st.markdown(f"""
+            <div class="stock-card">
+                <div class="stock-card-section">Risk</div>
+                <div class="stock-card-row"><span class="stock-card-label">Beta 1Y</span><span class="stock-card-val">{fmt_val(row.get('Beta 1Y (Daily)', np.nan), '.2f')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">SD 1Y</span><span class="stock-card-val">{fmt_val(row.get('SD 1Y %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">ATR %</span><span class="stock-card-val">{fmt_val(row.get('ATR % (14D)', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Max Drawdown 1Y</span><span class="stock-card-val red">{fmt_val(row.get('1Y Max Drawdown %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">52W High / Low</span><span class="stock-card-val">₹{fmt_val(row.get('52W High', np.nan), ',.2f')} / ₹{fmt_val(row.get('52W Low', np.nan), ',.2f')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">From 52W High</span><span class="stock-card-val {color_class(row.get('% from 52W High', np.nan))}">{fmt_val(row.get('% from 52W High', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Capture Ratio</span><span class="stock-card-val">{fmt_val(row.get('Capture Ratio', np.nan))}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Row 3: Fundamentals + Ownership
+        col_e, col_f = st.columns(2)
+        with col_e:
+            st.markdown(f"""
+            <div class="stock-card">
+                <div class="stock-card-section">Valuation & Profitability</div>
+                <div class="stock-card-row"><span class="stock-card-label">PE / Sector PE</span><span class="stock-card-val">{fmt_val(row.get('PE Ratio', np.nan))} / {fmt_val(row.get('Sector PE', np.nan))}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">PB / Sector PB</span><span class="stock-card-val">{fmt_val(row.get('PB Ratio', np.nan))} / {fmt_val(row.get('Sector PB', np.nan))}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">EV/EBITDA</span><span class="stock-card-val">{fmt_val(row.get('EV/EBITDA', np.nan))}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">PEG Ratio</span><span class="stock-card-val">{fmt_val(row.get('PEG Ratio', np.nan))}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">ROE / ROCE</span><span class="stock-card-val">{fmt_val(row.get('ROE %', np.nan))}% / {fmt_val(row.get('ROCE %', np.nan))}%</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Net Profit Margin</span><span class="stock-card-val">{fmt_val(row.get('Net Profit Margin %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">D/E Ratio</span><span class="stock-card-val">{fmt_val(row.get('Debt/Equity', np.nan))}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_f:
+            st.markdown(f"""
+            <div class="stock-card">
+                <div class="stock-card-section">Growth & Ownership</div>
+                <div class="stock-card-row"><span class="stock-card-label">Sales Growth 1Y / 3Y</span><span class="stock-card-val">{fmt_val(row.get('Sales Growth 1Y %', np.nan))}% / {fmt_val(row.get('Sales Growth 3Y %', np.nan))}%</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Profit Growth 1Y / 3Y</span><span class="stock-card-val">{fmt_val(row.get('Profit Growth 1Y %', np.nan))}% / {fmt_val(row.get('Profit Growth 3Y %', np.nan))}%</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">EPS Growth 1Y</span><span class="stock-card-val {color_class(row.get('EPS Growth 1Y %', np.nan))}">{fmt_val(row.get('EPS Growth 1Y %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">FCF Yield</span><span class="stock-card-val">{fmt_val(row.get('FCF Yield %', np.nan), '.4f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Div Yield / Payout</span><span class="stock-card-val">{fmt_val(row.get('Dividend Yield %', np.nan))}% / {fmt_val(row.get('Dividend Payout %', np.nan))}%</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Promoter Holding</span><span class="stock-card-val">{fmt_val(row.get('Promoter Holding %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">Pledge %</span><span class="stock-card-val">{fmt_val(row.get('Pledge %', np.nan), '.2f', '%')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">FII / DII Change</span><span class="stock-card-val {color_class(row.get('FII Change %', np.nan))}">{fmt_val(row.get('FII Change %', np.nan), '.2f', '%')}</span> / <span class="stock-card-val {color_class(row.get('DII Change %', np.nan))}">{fmt_val(row.get('DII Change %', np.nan), '.2f', '%')}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Index membership
+        idx_mem = row.get('Index Membership', '—')
+        if not pd.isna(idx_mem) and idx_mem != '—':
+            st.markdown(f"""
+            <div class="stock-card">
+                <div class="stock-card-section">Index Membership</div>
+                <div style="font-size:0.78rem; color:#aaa; font-family:'IBM Plex Mono',monospace">{idx_mem}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+    # ── STOCK CARD ──────────────────────────────
+    with tools_sub1:
+        st.markdown("<p style='color:#888;font-size:0.8rem;font-family:IBM Plex Mono,monospace'>Select a stock to see its complete profile.</p>", unsafe_allow_html=True)
+
+        selected_stock = st.selectbox(
+            "Select stock",
+            ["— Select a stock —"] + stock_options,
+            key='card_stock'
+        )
+
+        if selected_stock != "— Select a stock —":
+            row = get_stock_row(selected_stock)
+            if row is not None:
+                render_stock_card(row)
+
+    # ── COMPARE ─────────────────────────────────
+    with tools_sub2:
+        st.markdown("<p style='color:#888;font-size:0.8rem;font-family:IBM Plex Mono,monospace'>Select 2-4 stocks to compare side by side.</p>", unsafe_allow_html=True)
+
+        compare_selections = st.multiselect(
+            "Select stocks to compare",
+            stock_options,
+            max_selections=4,
+            key='compare_stocks'
+        )
+
+        if len(compare_selections) >= 2:
+            compare_rows = []
+            for sel in compare_selections:
+                row = get_stock_row(sel)
+                if row is not None:
+                    compare_rows.append(row)
+
+            if len(compare_rows) >= 2:
+                compare_df = pd.DataFrame(compare_rows)
+
+                # Metrics to compare (label, column, format, higher_is_better)
+                compare_metrics = [
+                    ("Price", "Current Price", "₹{:,.2f}", None),
+                    ("Day Change %", "Day Change %", "{:.2f}%", True),
+                    ("Market Cap (Cr)", "Market Cap (Cr)", "₹{:,.0f}", None),
+                    ("Market Regime", "Market Regime", "{}", None),
+                    ("─── Scores ───", None, None, None),
+                    ("Technical Score", "Technical Score", "{:.1f}", True),
+                    ("Momentum Score", "Momentum Score", "{:.1f}", True),
+                    ("Fundamental Score", "Fundamental Score", "{:.1f}", True),
+                    ("Composite Score", "Composite Score", "{:.1f}", True),
+                    ("Universe Rank", "Universe Rank", "{:.0f}", False),
+                    ("─── Momentum ───", None, None, None),
+                    ("ROC 1M %", "ROC 1M %", "{:.2f}%", True),
+                    ("ROC 3M %", "ROC 3M %", "{:.2f}%", True),
+                    ("ROC 6M %", "ROC 6M %", "{:.2f}%", True),
+                    ("1Y CAGR %", "1Y CAGR %", "{:.2f}%", True),
+                    ("RS vs Nifty 3M", "RS vs Nifty 3M %", "{:.2f}%", True),
+                    ("─── Technicals ───", None, None, None),
+                    ("RSI 14", "RSI 14", "{:.2f}", None),
+                    ("MACD", "MACD Signal", "{}", None),
+                    ("Supertrend", "Supertrend", "{}", None),
+                    ("EMA Cross", "EMA Cross", "{}", None),
+                    ("─── Risk ───", None, None, None),
+                    ("Beta 1Y", "Beta 1Y (Daily)", "{:.2f}", None),
+                    ("SD 1Y %", "SD 1Y %", "{:.2f}%", False),
+                    ("Max Drawdown 1Y", "1Y Max Drawdown %", "{:.2f}%", False),
+                    ("% from 52W High", "% from 52W High", "{:.2f}%", True),
+                    ("─── Fundamentals ───", None, None, None),
+                    ("PE Ratio", "PE Ratio", "{:.2f}", False),
+                    ("PB Ratio", "PB Ratio", "{:.2f}", False),
+                    ("ROE %", "ROE %", "{:.2f}%", True),
+                    ("ROCE %", "ROCE %", "{:.2f}%", True),
+                    ("D/E Ratio", "Debt/Equity", "{:.2f}", False),
+                    ("Net Profit Margin", "Net Profit Margin %", "{:.2f}%", True),
+                    ("Sales Growth 3Y", "Sales Growth 3Y %", "{:.2f}%", True),
+                    ("Profit Growth 3Y", "Profit Growth 3Y %", "{:.2f}%", True),
+                    ("─── Ownership ───", None, None, None),
+                    ("Promoter Holding", "Promoter Holding %", "{:.2f}%", True),
+                    ("Pledge %", "Pledge %", "{:.2f}%", False),
+                    ("Dividend Yield", "Dividend Yield %", "{:.2f}%", True),
+                ]
+
+                # Build comparison table HTML
+                symbols = [r[sym_col] for r in compare_rows]
+                header = "<tr><th style='text-align:left;padding:0.4rem 0.8rem;color:#888;font-size:0.7rem;font-family:IBM Plex Mono,monospace;border-bottom:1px solid #2a2a2a'>METRIC</th>"
+                for sym in symbols:
+                    header += f"<th style='text-align:center;padding:0.4rem 0.8rem;color:#00d4aa;font-size:0.78rem;font-family:IBM Plex Mono,monospace;border-bottom:1px solid #2a2a2a'>{sym}</th>"
+                header += "</tr>"
+
+                rows_html = ""
+                for label, col, fmt, higher_better in compare_metrics:
+                    if col is None:
+                        # Section separator
+                        rows_html += f"<tr><td colspan='{len(symbols)+1}' style='padding:0.6rem 0.8rem 0.2rem;color:#00d4aa;font-size:0.65rem;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #1a1a2e'>{label}</td></tr>"
+                        continue
+
+                    rows_html += f"<tr><td style='padding:0.3rem 0.8rem;color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>{label}</td>"
+
+                    # Get values for comparison highlighting
+                    vals = []
+                    for r in compare_rows:
+                        v = r.get(col, np.nan)
+                        vals.append(v)
+
+                    # Find best value for highlighting
+                    numeric_vals = [v for v in vals if not pd.isna(v) and isinstance(v, (int, float, np.integer, np.floating))]
+                    best_val = None
+                    if higher_better is not None and numeric_vals:
+                        best_val = max(numeric_vals) if higher_better else min(numeric_vals)
+
+                    for v in vals:
+                        try:
+                            if pd.isna(v):
+                                display = "—"
+                            else:
+                                display = fmt.format(v)
+                        except (ValueError, TypeError):
+                            display = str(v) if not pd.isna(v) else "—"
+
+                        # Highlight best
+                        is_best = (best_val is not None and not pd.isna(v) and isinstance(v, (int, float, np.integer, np.floating)) and abs(v - best_val) < 0.001)
+                        style = "text-align:center;padding:0.3rem 0.8rem;font-size:0.78rem;font-family:IBM Plex Mono,monospace;"
+                        if is_best:
+                            style += "color:#00d4aa;font-weight:600;"
+                        else:
+                            style += "color:#ccc;"
+
+                        rows_html += f"<td style='{style}'>{display}</td>"
+                    rows_html += "</tr>"
+
+                st.markdown(f"""
+                <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;background:#16181f;border:1px solid #2a2a2a;border-radius:8px">
+                {header}
+                {rows_html}
+                </table>
+                </div>
+                """, unsafe_allow_html=True)
+
+        elif len(compare_selections) == 1:
+            st.info("Select at least 2 stocks to compare.")
+
+    # ── WATCHLIST ────────────────────────────────
+    with tools_sub3:
+        st.markdown("<p style='color:#888;font-size:0.8rem;font-family:IBM Plex Mono,monospace'>Build your watchlist. Select stocks to track in one view.</p>", unsafe_allow_html=True)
+
+        watchlist_selections = st.multiselect(
+            "Add stocks to watchlist",
+            stock_options,
+            key='watchlist_stocks'
+        )
+
+        if watchlist_selections:
+            watchlist_syms = [s.split(" — ")[0].strip() for s in watchlist_selections]
+            watchlist_df = scored[scored[sym_col].isin(watchlist_syms)].copy()
+
+            if not watchlist_df.empty:
+                st.markdown(f"**{len(watchlist_df)} stocks** in watchlist")
+
+                # Quick stats
+                wc1, wc2, wc3, wc4 = st.columns(4)
+                with wc1:
+                    avg_score = pd.to_numeric(watchlist_df['Composite Score'], errors='coerce').mean()
+                    st.markdown(f'<div class="metric-card"><div class="metric-label">Avg Composite</div><div class="metric-value">{avg_score:.1f}</div></div>', unsafe_allow_html=True)
+                with wc2:
+                    bull_count = (watchlist_df.get('Market Regime', pd.Series()).isin(['Bull', 'Strong Bull'])).sum()
+                    st.markdown(f'<div class="metric-card"><div class="metric-label">Bullish</div><div class="metric-value">{bull_count}/{len(watchlist_df)}</div></div>', unsafe_allow_html=True)
+                with wc3:
+                    avg_roc3 = pd.to_numeric(watchlist_df.get('ROC 3M %', pd.Series()), errors='coerce').mean()
+                    st.markdown(f'<div class="metric-card"><div class="metric-label">Avg ROC 3M</div><div class="metric-value">{avg_roc3:.1f}%</div></div>', unsafe_allow_html=True)
+                with wc4:
+                    avg_rsi = pd.to_numeric(watchlist_df.get('RSI 14', pd.Series()), errors='coerce').mean()
+                    st.markdown(f'<div class="metric-card"><div class="metric-label">Avg RSI</div><div class="metric-value">{avg_rsi:.1f}</div></div>', unsafe_allow_html=True)
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                # Watchlist tabs
+                wl_ov, wl_tech, wl_ret, wl_risk, wl_fund = st.tabs([
+                    "Overview", "Technicals", "Returns", "Risk", "Fundamentals"
+                ])
+
+                wl_sort_col1, wl_sort_col2 = st.columns([3, 1])
+                with wl_sort_col1:
+                    wl_sort_opts = [c for c in ['Composite Score', 'ROC 3M %', 'Market Cap (Cr)', 'RSI 14', 'ROCE %'] if c in watchlist_df.columns]
+                    wl_sort = st.selectbox("Sort watchlist by", wl_sort_opts, key='wl_sort')
+                with wl_sort_col2:
+                    wl_order = st.selectbox("Order", ["Descending", "Ascending"], key='wl_order')
+                wl_asc = wl_order == "Ascending"
+
+                cc1, cc2 = st.columns([5, 1])
+                with cc2:
+                    export_btn(watchlist_df, OVERVIEW_COLS, 'watchlist.csv', 'dl_watchlist')
+
+                with wl_ov:   show_table(watchlist_df, OVERVIEW_COLS, wl_sort, wl_asc, 'wl_ov')
+                with wl_tech: show_table(watchlist_df, TECHNICAL_COLS, wl_sort, wl_asc, 'wl_tech')
+                with wl_ret:  show_table(watchlist_df, RETURNS_COLS, wl_sort, wl_asc, 'wl_ret')
+                with wl_risk: show_table(watchlist_df, RISK_COLS, wl_sort, wl_asc, 'wl_risk')
+                with wl_fund: show_table(watchlist_df, FUNDAMENTAL_COLS, wl_sort, wl_asc, 'wl_fund')
