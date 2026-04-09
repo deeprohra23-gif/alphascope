@@ -55,7 +55,7 @@ def get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret):
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
-        hist = stock.history(period="max")
+        hist = stock.history(period="6y")
 
         if hist.empty or len(hist) < 30:
             return None, ticker
