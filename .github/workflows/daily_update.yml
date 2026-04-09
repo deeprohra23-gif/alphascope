@@ -1,0 +1,40 @@
+name: Daily Data Update
+
+on:
+  schedule:
+    # Run at 5:30 PM IST (12:00 UTC) — after Indian market close (3:30 PM)
+    # plus buffer for Yahoo Finance to update
+    - cron: '0 12 * * 1-5'   # Mon-Fri only
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements-scripts.txt
+
+      - name: Run daily pipeline
+        working-directory: scripts
+        run: python run_daily.py
+        timeout-minutes: 90
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/technicals.csv data/indices_technicals.csv data/global_technicals.csv
+          git diff --staged --quiet || git commit -m "Daily data update $(date -u +%Y-%m-%d)"
+          git push
