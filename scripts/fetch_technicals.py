@@ -220,6 +220,7 @@ def main():
     print(f"Nifty history: {len(nifty_hist)} rows\n")
 
     # Parallel fetch
+  # Parallel fetch
     results = []
     failed = []
 
@@ -238,15 +239,34 @@ def main():
                     results.append(data)
                     print(f"  ✓ [{i:3d}/{len(tickers)}] {ticker}")
                 else:
-                    failed.append({"Ticker": fail or ticker, "Reason": "No data / insufficient history"})
+                    failed.append(fail or ticker)
                     print(f"  – [{i:3d}/{len(tickers)}] {ticker}  (skipped)")
             except Exception as e:
-                failed.append({"Ticker": ticker, "Reason": str(e)})
+                failed.append(ticker)
                 print(f"  ✗ [{i:3d}/{len(tickers)}] {ticker}  ERROR: {e}")
 
             time.sleep(SLEEP_BETWEEN / MAX_WORKERS)
 
-    # Save
+    # Retry failed stocks (rate-limited ones often succeed on second pass)
+    if failed:
+        print(f"\n🔄 Retrying {len(failed)} failed stocks (30s cooldown)...\n")
+        time.sleep(30)
+        retry_failed = []
+        for i, ticker in enumerate(failed, 1):
+            try:
+                data, fail = get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret)
+                if data:
+                    results.append(data)
+                    print(f"  ✓ [retry {i}/{len(failed)}] {ticker}")
+                else:
+                    retry_failed.append({"Ticker": fail or ticker, "Reason": "No data"})
+                    print(f"  – [retry {i}/{len(failed)}] {ticker}  (skipped)")
+            except Exception as e:
+                retry_failed.append({"Ticker": ticker, "Reason": str(e)})
+                print(f"  ✗ [retry {i}/{len(failed)}] {ticker}  ERROR: {e}")
+            time.sleep(2)
+        failed = retry_failed
+   # Save
     if results:
         df = pd.DataFrame(results)
         df = df.sort_values("Market Cap (Cr)", ascending=False, na_position="last").reset_index(drop=True)
@@ -258,10 +278,9 @@ def main():
 
     if failed:
         pd.DataFrame(failed).to_csv(FAILED_CSV, index=False)
-        print(f"⚠️  {len(failed)} failed → {FAILED_CSV}")
+        print(f"⚠️  {len(failed)} still failed → {FAILED_CSV}")
 
     print("\nDone.")
-
 
 if __name__ == "__main__":
     main()
