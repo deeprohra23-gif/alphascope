@@ -830,15 +830,7 @@ with main_tab3:
         """Render a score bar with label."""
         s = float(score) if not pd.isna(score) else 0
         color = "#00d4aa" if s >= 60 else "#ffaa33" if s >= 40 else "#ff4d4d"
-        return f"""
-        <div class="stock-card-row">
-            <span class="stock-card-label">{label}</span>
-            <span class="stock-card-val">{fmt_val(score, '.1f')}</span>
-        </div>
-        <div class="score-bar-container">
-            <div class="score-bar" style="width:{min(s, 100):.0f}%; background:{color}"></div>
-        </div>
-        """
+        return f'<div class="stock-card-row"><span class="stock-card-label">{label}</span><span class="stock-card-val">{fmt_val(score, ".1f")}</span></div><div class="score-bar-container"><div class="score-bar" style="width:{min(s, 100):.0f}%; background:{color}"></div></div>'
 
     def render_stock_card(row):
         """Render a comprehensive stock card."""
