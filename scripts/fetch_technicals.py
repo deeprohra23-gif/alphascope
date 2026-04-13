@@ -264,6 +264,7 @@ def main():
             print(f"\n  ⏳ Cooling down {BATCH_COOLDOWN}s before next batch...\n")
             time.sleep(BATCH_COOLDOWN)
     # Retry failed stocks (rate-limited ones often succeed on second pass)
+    retry_failed = []
     if failed:
         print(f"\n🔄 Retrying {len(failed)} failed stocks (30s cooldown)...\n")
         time.sleep(120)
