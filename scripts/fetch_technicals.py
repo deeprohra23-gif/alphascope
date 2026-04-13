@@ -221,36 +221,52 @@ def main():
 
     # Parallel fetch
   # Parallel fetch
+    # Batched parallel fetch — avoids rate limiting
     results = []
     failed = []
+    BATCH_SIZE = 200
+    BATCH_COOLDOWN = 120  # seconds between batches
 
-    print(f"Fetching {len(tickers)} stocks with {MAX_WORKERS} workers...\n")
+    total_batches = (len(tickers) + BATCH_SIZE - 1) // BATCH_SIZE
+    print(f"Fetching {len(tickers)} stocks in {total_batches} batches of {BATCH_SIZE} ({MAX_WORKERS} workers)...\n")
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        future_map = {
-            executor.submit(get_stock_data, t, nifty_close, nifty_daily_ret, nifty_monthly_ret): t
-            for t in tickers
-        }
-        for i, future in enumerate(as_completed(future_map), 1):
-            ticker = future_map[future]
-            try:
-                data, fail = future.result()
-                if data:
-                    results.append(data)
-                    print(f"  ✓ [{i:3d}/{len(tickers)}] {ticker}")
-                else:
-                    failed.append(fail or ticker)
-                    print(f"  – [{i:3d}/{len(tickers)}] {ticker}  (skipped)")
-            except Exception as e:
-                failed.append(ticker)
-                print(f"  ✗ [{i:3d}/{len(tickers)}] {ticker}  ERROR: {e}")
+    for batch_num in range(total_batches):
+        batch_start = batch_num * BATCH_SIZE
+        batch_end = min(batch_start + BATCH_SIZE, len(tickers))
+        batch = tickers[batch_start:batch_end]
 
-            time.sleep(SLEEP_BETWEEN / MAX_WORKERS)
+        print(f"── Batch {batch_num + 1}/{total_batches} ({len(batch)} stocks) ──")
 
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_map = {
+                executor.submit(get_stock_data, t, nifty_close, nifty_daily_ret, nifty_monthly_ret): t
+                for t in batch
+            }
+            for i, future in enumerate(as_completed(future_map), 1):
+                ticker = future_map[future]
+                global_idx = batch_start + i
+                try:
+                    data, fail = future.result()
+                    if data:
+                        results.append(data)
+                        print(f"  ✓ [{global_idx:3d}/{len(tickers)}] {ticker}")
+                    else:
+                        failed.append(fail or ticker)
+                        print(f"  – [{global_idx:3d}/{len(tickers)}] {ticker}  (skipped)")
+                except Exception as e:
+                    failed.append(ticker)
+                    print(f"  ✗ [{global_idx:3d}/{len(tickers)}] {ticker}  ERROR: {e}")
+
+                time.sleep(SLEEP_BETWEEN / MAX_WORKERS)
+
+        # Cooldown between batches (skip after last batch)
+        if batch_num < total_batches - 1:
+            print(f"\n  ⏳ Cooling down {BATCH_COOLDOWN}s before next batch...\n")
+            time.sleep(BATCH_COOLDOWN)
     # Retry failed stocks (rate-limited ones often succeed on second pass)
     if failed:
         print(f"\n🔄 Retrying {len(failed)} failed stocks (30s cooldown)...\n")
-        time.sleep(30)
+        time.sleep(120)
         retry_failed = []
         for i, ticker in enumerate(failed, 1):
             try:
@@ -271,7 +287,7 @@ def main():
         bse_tickers = [item["Ticker"] for item in retry_failed if item["Ticker"].endswith(".NS")]
         if bse_tickers:
             print(f"\n🔄 Trying BSE fallback for {len(bse_tickers)} tickers (30s cooldown)...\n")
-            time.sleep(30)
+            time.sleep(120)
             bse_still_failed = []
             for i, ticker in enumerate(bse_tickers, 1):
                 bse_ticker = ticker.replace(".NS", ".BO")
