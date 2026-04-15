@@ -95,7 +95,7 @@ def read_csv_safe(filename):
     return None
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def load_stock_data(version=1):
     tech = read_csv_safe('data/technicals.csv')
     if tech is None:
@@ -144,12 +144,12 @@ def load_stock_data(version=1):
     return tech
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def load_index_data(version=1):
     return read_csv_safe('data/indices_technicals.csv')
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def load_global_data(version=1):
     return read_csv_safe('data/global_technicals.csv')
 
