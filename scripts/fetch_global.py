@@ -176,8 +176,25 @@ def main():
     out = out.sort_values(["_sort", "Name"]).drop(columns="_sort").reset_index(drop=True)
 
     OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
-    out.to_csv(OUTPUT_CSV, index=False)
 
+    # Merge with previous data — keep old rows for instruments that failed today
+    if OUTPUT_CSV.exists():
+        try:
+            prev = pd.read_csv(OUTPUT_CSV)
+            # Get names that succeeded today
+            new_names = set(out['Name'].tolist())
+            # Keep old rows for instruments NOT in today's results
+            old_kept = prev[~prev['Name'].isin(new_names)]
+            out = pd.concat([out, old_kept], ignore_index=True)
+        except Exception:
+            pass
+
+    # Re-sort
+    cat_order = {"Commodity": 0, "Currency": 1, "Global Index": 2}
+    out["_sort"] = out["Category"].map(cat_order)
+    out = out.sort_values(["_sort", "Name"]).drop(columns="_sort").reset_index(drop=True)
+
+    out.to_csv(OUTPUT_CSV, index=False)
     print(f"\n✅ Done — {len(out)} instruments saved to {OUTPUT_CSV}")
     if failed:
         print(f"⚠️  Failed ({len(failed)}): {', '.join(failed)}")
