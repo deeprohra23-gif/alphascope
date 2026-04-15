@@ -16,14 +16,13 @@ from screens import run_screen
 
 def get_data_timestamp():
     """Get last modified time of technicals.csv as data freshness indicator."""
-    from datetime import timezone, timedelta
-    IST = timezone(timedelta(hours=5, minutes=30))
     for path in ['data/technicals.csv', 'technicals.csv']:
         if os.path.exists(path):
             mtime = os.path.getmtime(path)
-            dt = datetime.fromtimestamp(mtime, tz=IST)
-            return dt.strftime('%d %b %Y, %I:%M %p IST')
+            dt = datetime.fromtimestamp(mtime)
+            return dt.strftime('%d %b %Y, %I:%M %p')
     return 'Unknown'
+
 # ────────────────────────────────────────────────
 # PAGE CONFIG & STYLES
 # ────────────────────────────────────────────────
@@ -72,6 +71,22 @@ st.markdown("""
     .score-bar-container { background: #0f1117; border-radius: 4px; height: 8px; margin-top: 0.2rem; overflow: hidden; }
     .score-bar { height: 100%; border-radius: 4px; }
     .compare-highlight { background: #0d2e1f; border: 1px solid #00d4aa33; border-radius: 6px; padding: 0.3rem 0.6rem; text-align: center; }
+    .dash-section { margin-bottom: 1.5rem; }
+    .dash-section-title { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; font-weight: 600; color: #00d4aa; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.8rem; border-bottom: 1px solid #2a2a2a; padding-bottom: 0.3rem; }
+    .breadth-bar { background: #16181f; border: 1px solid #2a2a2a; border-radius: 6px; overflow: hidden; height: 22px; display: flex; margin-bottom: 0.3rem; }
+    .breadth-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+    .sector-row { background: #16181f; border: 1px solid #2a2a2a; border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 0.5rem; }
+    .sector-name { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: #e0e0e0; font-weight: 600; }
+    .sector-stat { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+    .signal-card { background: #16181f; border: 1px solid #2a2a2a; border-left: 3px solid #00d4aa; border-radius: 0 6px 6px 0; padding: 0.5rem 0.8rem; margin-bottom: 0.4rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; }
+    .signal-card.bearish { border-left-color: #ff4d4d; }
+    .signal-card.neutral { border-left-color: #ffaa33; }
+    .top5-card { background: #16181f; border: 1px solid #2a2a2a; border-radius: 8px; padding: 0.8rem; margin-bottom: 0.6rem; }
+    .top5-header { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: #00d4aa; font-weight: 600; margin-bottom: 0.5rem; }
+    .top5-row { display: flex; justify-content: space-between; padding: 0.15rem 0; font-family: 'IBM Plex Mono', monospace; font-size: 0.73rem; }
+    .top5-rank { color: #555; width: 1.5rem; }
+    .top5-sym { color: #e0e0e0; flex: 1; }
+    .top5-val { font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -95,7 +110,7 @@ def read_csv_safe(filename):
     return None
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def load_stock_data(version=1):
     tech = read_csv_safe('data/technicals.csv')
     if tech is None:
@@ -144,12 +159,12 @@ def load_stock_data(version=1):
     return tech
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def load_index_data(version=1):
     return read_csv_safe('data/indices_technicals.csv')
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def load_global_data(version=1):
     return read_csv_safe('data/global_technicals.csv')
 
@@ -483,7 +498,371 @@ scored = add_scores(filtered.copy(), universe_df=filtered)
 # ────────────────────────────────────────────────
 # MAIN TABS
 # ────────────────────────────────────────────────
-main_tab1, main_tab2, main_tab3 = st.tabs(["📊 Stocks", "📈 Index Dashboard", "🔍 Tools"])
+main_tab0, main_tab1, main_tab2, main_tab3 = st.tabs(["🏠 Dashboard", "📊 Stocks", "📈 Index Dashboard", "🔍 Tools"])
+
+
+# ══════════════════════════════════════════════
+# TAB 0 — DASHBOARD
+# ══════════════════════════════════════════════
+with main_tab0:
+    dash_sub1, dash_sub2, dash_sub3, dash_sub4 = st.tabs([
+        "📊 Market Overview", "🔄 Sector Rotation", "⚡ Signals", "🏅 Sector Top 5"
+    ])
+
+    # Helper for dashboard
+    def pct_of(series, condition):
+        total = len(series.dropna())
+        if total == 0:
+            return 0
+        return round(condition.sum() / total * 100, 1)
+
+    # ── MARKET OVERVIEW ─────────────────────────
+    with dash_sub1:
+        st.markdown('<div class="dash-section">', unsafe_allow_html=True)
+        st.markdown('<div class="dash-section-title">Market Breadth</div>', unsafe_allow_html=True)
+
+        # Breadth metrics
+        price = pd.to_numeric(scored.get('Current Price', pd.Series()), errors='coerce')
+        ema50_vals = pd.to_numeric(scored.get('EMA 50', pd.Series()), errors='coerce')
+        ema200_vals = pd.to_numeric(scored.get('EMA 200', pd.Series()), errors='coerce')
+
+        above_ema50 = pct_of(price, price > ema50_vals) if 'EMA 50' in scored.columns else 0
+        above_ema200 = pct_of(price, price > ema200_vals) if 'EMA 200' in scored.columns else 0
+
+        bc1, bc2, bc3, bc4, bc5 = st.columns(5)
+        with bc1:
+            st.markdown(f'<div class="metric-card"><div class="metric-label">Above EMA 50</div><div class="metric-value">{above_ema50}%</div></div>', unsafe_allow_html=True)
+        with bc2:
+            st.markdown(f'<div class="metric-card"><div class="metric-label">Above EMA 200</div><div class="metric-value">{above_ema200}%</div></div>', unsafe_allow_html=True)
+        with bc3:
+            if has_col(scored, 'Supertrend'):
+                st_bull_pct = pct_of(scored['Supertrend'], scored['Supertrend'] == 'Bullish')
+                st.markdown(f'<div class="metric-card"><div class="metric-label">Supertrend Bullish</div><div class="metric-value">{st_bull_pct}%</div></div>', unsafe_allow_html=True)
+        with bc4:
+            if has_col(scored, 'MACD Signal'):
+                macd_bull_pct = pct_of(scored['MACD Signal'], scored['MACD Signal'] == 'Bullish')
+                st.markdown(f'<div class="metric-card"><div class="metric-label">MACD Bullish</div><div class="metric-value">{macd_bull_pct}%</div></div>', unsafe_allow_html=True)
+        with bc5:
+            if has_col(scored, 'EMA Cross'):
+                gc_pct = pct_of(scored['EMA Cross'], scored['EMA Cross'] == 'Golden Cross')
+                st.markdown(f'<div class="metric-card"><div class="metric-label">Golden Cross</div><div class="metric-value">{gc_pct}%</div></div>', unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Regime distribution bar
+        if has_col(scored, 'Market Regime'):
+            regime_counts = scored['Market Regime'].value_counts()
+            total_r = regime_counts.sum()
+            sb_n = regime_counts.get('Strong Bull', 0)
+            b_n = regime_counts.get('Bull', 0)
+            br_n = regime_counts.get('Bear', 0)
+            sbr_n = regime_counts.get('Strong Bear', 0)
+            sb_p = sb_n / total_r * 100 if total_r > 0 else 0
+            b_p = b_n / total_r * 100 if total_r > 0 else 0
+            br_p = br_n / total_r * 100 if total_r > 0 else 0
+            sbr_p = sbr_n / total_r * 100 if total_r > 0 else 0
+
+            st.markdown(f"""
+            <div class="dash-section-title">Regime Distribution</div>
+            <div class="breadth-bar">
+                <div class="breadth-seg" style="width:{sb_p}%;background:#00d4aa;color:#0f1117">SB {sb_n}</div>
+                <div class="breadth-seg" style="width:{b_p}%;background:#4da6ff;color:#0f1117">B {b_n}</div>
+                <div class="breadth-seg" style="width:{br_p}%;background:#ff6b6b;color:#0f1117">Br {br_n}</div>
+                <div class="breadth-seg" style="width:{sbr_p}%;background:#ff4444;color:#0f1117">SBr {sbr_n}</div>
+            </div>
+            <div style="display:flex;gap:1.5rem;font-size:0.65rem;font-family:IBM Plex Mono,monospace;color:#888;margin-top:0.2rem">
+                <span><span style="color:#00d4aa">●</span> Strong Bull {sb_p:.0f}%</span>
+                <span><span style="color:#4da6ff">●</span> Bull {b_p:.0f}%</span>
+                <span><span style="color:#ff6b6b">●</span> Bear {br_p:.0f}%</span>
+                <span><span style="color:#ff4444">●</span> Strong Bear {sbr_p:.0f}%</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Drawdown distribution
+        if has_col(scored, 'Drawdown Status'):
+            dd_counts = scored['Drawdown Status'].value_counts()
+            total_dd = dd_counts.sum()
+            ah_n = dd_counts.get('At High', 0)
+            rc_n = dd_counts.get('Recovering', 0)
+            co_n = dd_counts.get('Correcting', 0)
+            dm_n = dd_counts.get('Damaged', 0)
+            ah_p = ah_n / total_dd * 100 if total_dd > 0 else 0
+            rc_p = rc_n / total_dd * 100 if total_dd > 0 else 0
+            co_p = co_n / total_dd * 100 if total_dd > 0 else 0
+            dm_p = dm_n / total_dd * 100 if total_dd > 0 else 0
+
+            st.markdown(f"""
+            <div class="dash-section-title">Drawdown Status</div>
+            <div class="breadth-bar">
+                <div class="breadth-seg" style="width:{ah_p}%;background:#00d4aa;color:#0f1117">AH {ah_n}</div>
+                <div class="breadth-seg" style="width:{rc_p}%;background:#ffaa33;color:#0f1117">Rec {rc_n}</div>
+                <div class="breadth-seg" style="width:{co_p}%;background:#ff8844;color:#0f1117">Cor {co_n}</div>
+                <div class="breadth-seg" style="width:{dm_p}%;background:#ff4d4d;color:#0f1117">Dmg {dm_n}</div>
+            </div>
+            <div style="display:flex;gap:1.5rem;font-size:0.65rem;font-family:IBM Plex Mono,monospace;color:#888;margin-top:0.2rem">
+                <span><span style="color:#00d4aa">●</span> At High {ah_p:.0f}%</span>
+                <span><span style="color:#ffaa33">●</span> Recovering {rc_p:.0f}%</span>
+                <span><span style="color:#ff8844">●</span> Correcting {co_p:.0f}%</span>
+                <span><span style="color:#ff4d4d">●</span> Damaged {dm_p:.0f}%</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Cap-wise breakdown
+        if has_col(scored, 'Cap Category') and has_col(scored, 'Market Regime'):
+            st.markdown('<div class="dash-section-title">Regime by Market Cap</div>', unsafe_allow_html=True)
+            cap_cols = st.columns(3)
+            for i, cap in enumerate(['Large', 'Mid', 'Small']):
+                cap_df = scored[scored['Cap Category'] == cap]
+                if cap_df.empty:
+                    continue
+                cap_total = len(cap_df)
+                cap_bull = (cap_df['Market Regime'].isin(['Bull', 'Strong Bull'])).sum()
+                cap_bull_pct = round(cap_bull / cap_total * 100, 1) if cap_total > 0 else 0
+                avg_roc3 = pd.to_numeric(cap_df.get('ROC 3M %', pd.Series()), errors='coerce').mean()
+                avg_rsi_val = pd.to_numeric(cap_df.get('RSI 14', pd.Series()), errors='coerce').mean()
+                color = "#00d4aa" if cap_bull_pct >= 50 else "#ff6b6b"
+                with cap_cols[i]:
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-label">{cap} Cap ({cap_total})</div>
+                        <div class="metric-value" style="color:{color}">{cap_bull_pct}% Bullish</div>
+                        <div style="font-size:0.7rem;color:#888;font-family:IBM Plex Mono,monospace;margin-top:0.3rem">
+                            Avg ROC 3M: <span style="color:{'#00d4aa' if avg_roc3 > 0 else '#ff4d4d'}">{avg_roc3:.1f}%</span> · Avg RSI: {avg_rsi_val:.1f}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── SECTOR ROTATION ─────────────────────────
+    with dash_sub2:
+        if has_col(scored, 'Sector'):
+            st.markdown('<div class="dash-section-title">Sector Momentum Ranking</div>', unsafe_allow_html=True)
+            st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Sectors ranked by average 3M relative strength vs Nifty. Green = outperforming, Red = underperforming.</p>", unsafe_allow_html=True)
+
+            sector_stats = []
+            for sector in scored['Sector'].dropna().unique():
+                s_df = scored[scored['Sector'] == sector]
+                if len(s_df) < 3:
+                    continue
+                avg_rs3 = pd.to_numeric(s_df.get('RS vs Nifty 3M %', pd.Series()), errors='coerce').mean()
+                avg_roc3 = pd.to_numeric(s_df.get('ROC 3M %', pd.Series()), errors='coerce').mean()
+                avg_roc1 = pd.to_numeric(s_df.get('ROC 1M %', pd.Series()), errors='coerce').mean()
+                bull_pct = round((s_df.get('Market Regime', pd.Series()).isin(['Bull', 'Strong Bull'])).sum() / len(s_df) * 100, 1)
+                st_bull_pct = round((s_df.get('Supertrend', pd.Series()) == 'Bullish').sum() / len(s_df) * 100, 1) if has_col(s_df, 'Supertrend') else 0
+                avg_score = pd.to_numeric(s_df.get('Composite Score', pd.Series()), errors='coerce').mean()
+                sector_stats.append({
+                    'Sector': sector,
+                    'Stocks': len(s_df),
+                    'RS vs Nifty 3M': avg_rs3,
+                    'ROC 3M': avg_roc3,
+                    'ROC 1M': avg_roc1,
+                    'Bullish %': bull_pct,
+                    'ST Bullish %': st_bull_pct,
+                    'Avg Score': avg_score,
+                })
+
+            if sector_stats:
+                sector_df = pd.DataFrame(sector_stats).sort_values('RS vs Nifty 3M', ascending=False).reset_index(drop=True)
+
+                for _, row in sector_df.iterrows():
+                    rs3 = row['RS vs Nifty 3M']
+                    rs_color = "#00d4aa" if rs3 > 0 else "#ff4d4d"
+                    roc3_color = "#00d4aa" if row['ROC 3M'] > 0 else "#ff4d4d"
+                    roc1_color = "#00d4aa" if row['ROC 1M'] > 0 else "#ff4d4d"
+                    bull_color = "#00d4aa" if row['Bullish %'] >= 50 else "#ff6b6b"
+                    bar_width = min(abs(rs3) * 3, 100)
+                    bar_dir = "right" if rs3 >= 0 else "left"
+
+                    st.markdown(f"""
+                    <div class="sector-row" style="display:flex;align-items:center;gap:1rem">
+                        <div style="width:160px">
+                            <div class="sector-name">{row['Sector']}</div>
+                            <div style="font-size:0.65rem;color:#555;font-family:IBM Plex Mono,monospace">{row['Stocks']} stocks</div>
+                        </div>
+                        <div style="flex:1">
+                            <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+                                <span class="sector-stat">RS 3M: <span style="color:{rs_color};font-weight:600">{rs3:+.1f}%</span></span>
+                                <span class="sector-stat">ROC 3M: <span style="color:{roc3_color}">{row['ROC 3M']:+.1f}%</span></span>
+                                <span class="sector-stat">ROC 1M: <span style="color:{roc1_color}">{row['ROC 1M']:+.1f}%</span></span>
+                                <span class="sector-stat">Bullish: <span style="color:{bull_color}">{row['Bullish %']:.0f}%</span></span>
+                                <span class="sector-stat">ST Bull: {row['ST Bullish %']:.0f}%</span>
+                                <span class="sector-stat">Avg Score: {row['Avg Score']:.1f}</span>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.warning("Sector data not available.")
+
+    # ── SIGNAL DASHBOARD ────────────────────────
+    with dash_sub3:
+        st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Key signals detected in the current data snapshot.</p>", unsafe_allow_html=True)
+
+        sig_col1, sig_col2 = st.columns(2)
+
+        with sig_col1:
+            # Fresh Golden Crosses (within last 5 trading days)
+            st.markdown('<div class="dash-section-title">🟢 Bullish Signals</div>', unsafe_allow_html=True)
+
+            if has_col(scored, 'EMA Cross') and has_col(scored, 'Days Since EMA Cross'):
+                fresh_gc = scored[
+                    (scored['EMA Cross'] == 'Golden Cross') &
+                    (pd.to_numeric(scored['Days Since EMA Cross'], errors='coerce') <= 5)
+                ]
+                if not fresh_gc.empty:
+                    st.markdown(f'<div class="signal-card">🔀 <strong>Fresh Golden Cross</strong> ({len(fresh_gc)} stocks)</div>', unsafe_allow_html=True)
+                    for _, r in fresh_gc.head(10).iterrows():
+                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]} — {r.get("Name", "")}</div>', unsafe_allow_html=True)
+                    if len(fresh_gc) > 10:
+                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(fresh_gc) - 10} more</div>', unsafe_allow_html=True)
+
+            # Strong Bull + Bullish Supertrend + Bullish MACD (full alignment)
+            if has_col(scored, 'Market Regime') and has_col(scored, 'Supertrend') and has_col(scored, 'MACD Signal'):
+                full_bull = scored[
+                    (scored['Market Regime'] == 'Strong Bull') &
+                    (scored['Supertrend'] == 'Bullish') &
+                    (scored['MACD Signal'] == 'Bullish')
+                ]
+                if not full_bull.empty:
+                    st.markdown(f'<div class="signal-card">🎯 <strong>Full Bullish Alignment</strong> ({len(full_bull)} stocks)<br><span style="color:#888;font-size:0.65rem">Strong Bull + Supertrend Bull + MACD Bull</span></div>', unsafe_allow_html=True)
+                    for _, r in full_bull.head(8).iterrows():
+                        score_val = r.get('Composite Score', '')
+                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]} — Score: {score_val}</div>', unsafe_allow_html=True)
+                    if len(full_bull) > 8:
+                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(full_bull) - 8} more</div>', unsafe_allow_html=True)
+
+            # Near 52W High (within 5%)
+            if has_col(scored, '% from 52W High'):
+                near_high = scored[
+                    pd.to_numeric(scored['% from 52W High'], errors='coerce') >= -5
+                ]
+                if not near_high.empty:
+                    st.markdown(f'<div class="signal-card">📈 <strong>Near 52W High</strong> ({len(near_high)} stocks)<br><span style="color:#888;font-size:0.65rem">Within 5% of 52-week high</span></div>', unsafe_allow_html=True)
+
+            # Volume Surge (Vol ROC 1M > 50%)
+            if has_col(scored, 'Vol ROC 1M %') and has_col(scored, 'MACD Signal'):
+                vol_surge = scored[
+                    (pd.to_numeric(scored['Vol ROC 1M %'], errors='coerce') > 50) &
+                    (scored['MACD Signal'] == 'Bullish')
+                ]
+                if not vol_surge.empty:
+                    st.markdown(f'<div class="signal-card">📊 <strong>Volume Surge + Bullish MACD</strong> ({len(vol_surge)} stocks)</div>', unsafe_allow_html=True)
+
+            # At High + Strong momentum
+            if has_col(scored, 'Drawdown Status') and has_col(scored, 'ROC 3M %'):
+                at_high_momentum = scored[
+                    (scored['Drawdown Status'] == 'At High') &
+                    (pd.to_numeric(scored['ROC 3M %'], errors='coerce') > 15)
+                ]
+                if not at_high_momentum.empty:
+                    st.markdown(f'<div class="signal-card">🚀 <strong>At High + Strong Momentum</strong> ({len(at_high_momentum)} stocks)<br><span style="color:#888;font-size:0.65rem">At 52W high with ROC 3M > 15%</span></div>', unsafe_allow_html=True)
+
+        with sig_col2:
+            st.markdown('<div class="dash-section-title">🔴 Bearish / Caution Signals</div>', unsafe_allow_html=True)
+
+            # Fresh Death Crosses
+            if has_col(scored, 'EMA Cross') and has_col(scored, 'Days Since EMA Cross'):
+                fresh_dc = scored[
+                    (scored['EMA Cross'] == 'Death Cross') &
+                    (pd.to_numeric(scored['Days Since EMA Cross'], errors='coerce') <= 5)
+                ]
+                if not fresh_dc.empty:
+                    st.markdown(f'<div class="signal-card bearish">🔀 <strong>Fresh Death Cross</strong> ({len(fresh_dc)} stocks)</div>', unsafe_allow_html=True)
+                    for _, r in fresh_dc.head(10).iterrows():
+                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]} — {r.get("Name", "")}</div>', unsafe_allow_html=True)
+                    if len(fresh_dc) > 10:
+                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(fresh_dc) - 10} more</div>', unsafe_allow_html=True)
+
+            # Full Bearish Alignment
+            if has_col(scored, 'Market Regime') and has_col(scored, 'Supertrend') and has_col(scored, 'MACD Signal'):
+                full_bear = scored[
+                    (scored['Market Regime'] == 'Strong Bear') &
+                    (scored['Supertrend'] == 'Bearish') &
+                    (scored['MACD Signal'] == 'Bearish')
+                ]
+                if not full_bear.empty:
+                    st.markdown(f'<div class="signal-card bearish">⚠ <strong>Full Bearish Alignment</strong> ({len(full_bear)} stocks)<br><span style="color:#888;font-size:0.65rem">Strong Bear + Supertrend Bear + MACD Bear</span></div>', unsafe_allow_html=True)
+                    for _, r in full_bear.head(8).iterrows():
+                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]}</div>', unsafe_allow_html=True)
+                    if len(full_bear) > 8:
+                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(full_bear) - 8} more</div>', unsafe_allow_html=True)
+
+            # Damaged stocks
+            if has_col(scored, 'Drawdown Status'):
+                damaged = scored[scored['Drawdown Status'] == 'Damaged']
+                if not damaged.empty:
+                    st.markdown(f'<div class="signal-card bearish">💔 <strong>Damaged</strong> ({len(damaged)} stocks)<br><span style="color:#888;font-size:0.65rem">Down 20%+ from 52W high</span></div>', unsafe_allow_html=True)
+
+            # RSI Overbought (>75)
+            if has_col(scored, 'RSI 14'):
+                overbought = scored[pd.to_numeric(scored['RSI 14'], errors='coerce') > 75]
+                if not overbought.empty:
+                    st.markdown(f'<div class="signal-card neutral">⚡ <strong>RSI Overbought (&gt;75)</strong> ({len(overbought)} stocks)</div>', unsafe_allow_html=True)
+
+            # RSI Oversold (<30)
+            if has_col(scored, 'RSI 14'):
+                oversold = scored[pd.to_numeric(scored['RSI 14'], errors='coerce') < 30]
+                if not oversold.empty:
+                    st.markdown(f'<div class="signal-card neutral">📉 <strong>RSI Oversold (&lt;30)</strong> ({len(oversold)} stocks)</div>', unsafe_allow_html=True)
+
+            # Rising volatility
+            if has_col(scored, 'Vol Trend'):
+                rising_vol = scored[scored['Vol Trend'] == 'Rising']
+                if not rising_vol.empty:
+                    st.markdown(f'<div class="signal-card bearish">📊 <strong>Rising Volatility</strong> ({len(rising_vol)} stocks)</div>', unsafe_allow_html=True)
+
+    # ── SECTOR TOP 5 ────────────────────────────
+    with dash_sub4:
+        if has_col(scored, 'Sector'):
+            st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Top 5 stocks in each sector by Composite Score.</p>", unsafe_allow_html=True)
+
+            sort_metric = st.selectbox(
+                "Rank by",
+                ['Composite Score', 'Momentum Score', 'Technical Score', 'Fundamental Score', 'ROC 3M %', 'RS vs Nifty 3M %'],
+                key='top5_metric'
+            )
+
+            sectors_sorted = sorted(scored['Sector'].dropna().unique().tolist())
+
+            # Display in 2-column grid
+            for i in range(0, len(sectors_sorted), 2):
+                cols = st.columns(2)
+                for j, col in enumerate(cols):
+                    idx = i + j
+                    if idx >= len(sectors_sorted):
+                        break
+                    sector = sectors_sorted[idx]
+                    s_df = scored[scored['Sector'] == sector].copy()
+
+                    if sort_metric in s_df.columns:
+                        s_df['_sort_val'] = pd.to_numeric(s_df[sort_metric], errors='coerce')
+                        top5 = s_df.nlargest(5, '_sort_val')
+                    else:
+                        top5 = s_df.head(5)
+
+                    rows_html = ""
+                    for rank, (_, r) in enumerate(top5.iterrows(), 1):
+                        val = r.get(sort_metric, np.nan)
+                        val_str = f"{val:.1f}" if not pd.isna(val) else "—"
+                        val_color = "#00d4aa" if not pd.isna(val) and float(val) > 0 else "#ff4d4d" if not pd.isna(val) and float(val) < 0 else "#ccc"
+                        regime = r.get('Market Regime', '')
+                        regime_dot = "🟢" if regime in ['Bull', 'Strong Bull'] else "🔴" if regime in ['Bear', 'Strong Bear'] else "🟡"
+                        rows_html += f'<div class="top5-row"><span class="top5-rank">{rank}.</span><span class="top5-sym">{regime_dot} {r[sym_col]}</span><span class="top5-val" style="color:{val_color}">{val_str}</span></div>'
+
+                    with col:
+                        st.markdown(f"""
+                        <div class="top5-card">
+                            <div class="top5-header">{sector} ({len(s_df)})</div>
+                            {rows_html}
+                        </div>
+                        """, unsafe_allow_html=True)
+        else:
+            st.warning("Sector data not available.")
 
 
 # ══════════════════════════════════════════════
