@@ -10,6 +10,7 @@ Usage:
 from pathlib import Path
 from datetime import datetime
 
+import time
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -133,12 +134,29 @@ def main():
         category = meta["category"]
         print(f"  Fetching {name} ({ticker})...", end=" ", flush=True)
         try:
-            hist = yf.Ticker(ticker).history(period="5y")
-            if hist.empty or len(hist) < 30:
-                print(f"SKIP — insufficient data ({len(hist)} rows)")
+            hist = None
+            for attempt in range(3):
+                try:
+                    hist = yf.Ticker(ticker).history(period="5y")
+                    if hist is not None and not hist.empty and len(hist) >= 30:
+                        break
+                except Exception:
+                    pass
+                if attempt < 2:
+                    print(f"retry {attempt + 1}...", end=" ", flush=True)
+                    time.sleep(10)
+
+            if hist is None or hist.empty or len(hist) < 30:
+                print(f"SKIP — insufficient data")
                 failed.append(name)
                 continue
 
+            row = calc_technicals(name, ticker, category, hist)
+            results.append(row)
+            print(f"{len(hist)} rows → Regime: {row['Market Regime']} ✓")
+        except Exception as e:
+            print(f"ERROR — {e}")
+            failed.append(name)
             row = calc_technicals(name, ticker, category, hist)
             results.append(row)
             print(f"{len(hist)} rows → Regime: {row['Market Regime']} ✓")
