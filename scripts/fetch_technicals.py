@@ -313,15 +313,29 @@ def main():
     else:
         failed = retry_failed
    # Save
+    # Save — merge with previous data to avoid losing stocks that failed today
     if results:
         df = pd.DataFrame(results)
         df = df.sort_values("Market Cap (Cr)", ascending=False, na_position="last").reset_index(drop=True)
         OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(OUTPUT_CSV, index=False)
-        print(f"\n✅ Saved {len(results)} stocks → {OUTPUT_CSV}")
-    else:
-        print("\n⚠️  No results to save.")
 
+        # Merge: keep old data for stocks that failed today
+        if OUTPUT_CSV.exists():
+            try:
+                prev = pd.read_csv(OUTPUT_CSV)
+                new_syms = set(df['Symbol'].tolist())
+                old_kept = prev[~prev['Symbol'].isin(new_syms)]
+                if not old_kept.empty:
+                    print(f"   Keeping {len(old_kept)} stocks from previous run (failed today)")
+                    df = pd.concat([df, old_kept], ignore_index=True)
+                    df = df.sort_values("Market Cap (Cr)", ascending=False, na_position="last").reset_index(drop=True)
+            except Exception:
+                pass
+
+        df.to_csv(OUTPUT_CSV, index=False)
+        print(f"\n✅ Saved {len(df)} stocks → {OUTPUT_CSV}")
+    else:
+        print("\n⚠️  No results to save. Keeping previous file.")
     if failed:
         pd.DataFrame(failed).to_csv(FAILED_CSV, index=False)
         print(f"⚠️  {len(failed)} still failed → {FAILED_CSV}")
