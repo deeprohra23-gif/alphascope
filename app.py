@@ -754,67 +754,67 @@ with main_tab0:
             st.warning("Sector data not available.")
 
     # ── SIGNAL DASHBOARD ────────────────────────
+    # ── SIGNAL DASHBOARD ────────────────────────
     with dash_sub3:
-        st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Key signals detected in the current data snapshot.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Key signals detected in the current data snapshot. Click any signal to expand the full list.</p>", unsafe_allow_html=True)
+
+        def render_signal(label, sig_df, extra_desc="", kind="bullish", cols_to_show=None):
+            """Render a signal card with expandable stock list."""
+            if sig_df is None or sig_df.empty:
+                return
+            icon_prefix = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}[kind]
+            header = f"{icon_prefix} **{label}** — {len(sig_df)} stocks"
+            if extra_desc:
+                header += f"  \n*{extra_desc}*"
+
+            with st.expander(header, expanded=False):
+                if cols_to_show is None:
+                    cols_to_show = [sym_col, 'Name', 'Sector', 'Current Price', 'Composite Score', 'ROC 3M %', 'Market Regime']
+                disp_cols = [c for c in cols_to_show if c in sig_df.columns]
+                show_table(sig_df, [c for c in disp_cols if c != sym_col], 'Composite Score', False, f'sig_{label[:12].replace(" ","")}')
 
         sig_col1, sig_col2 = st.columns(2)
 
         with sig_col1:
-            # Fresh Golden Crosses (within last 5 trading days)
             st.markdown('<div class="dash-section-title">🟢 Bullish Signals</div>', unsafe_allow_html=True)
 
+            # Fresh Golden Crosses
             if has_col(scored, 'EMA Cross') and has_col(scored, 'Days Since EMA Cross'):
                 fresh_gc = scored[
                     (scored['EMA Cross'] == 'Golden Cross') &
                     (pd.to_numeric(scored['Days Since EMA Cross'], errors='coerce') <= 5)
                 ]
-                if not fresh_gc.empty:
-                    st.markdown(f'<div class="signal-card">🔀 <strong>Fresh Golden Cross</strong> ({len(fresh_gc)} stocks)</div>', unsafe_allow_html=True)
-                    for _, r in fresh_gc.head(10).iterrows():
-                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]} — {r.get("Name", "")}</div>', unsafe_allow_html=True)
-                    if len(fresh_gc) > 10:
-                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(fresh_gc) - 10} more</div>', unsafe_allow_html=True)
+                render_signal("Fresh Golden Cross", fresh_gc, "EMA 50 crossed above EMA 200 in last 5 days", "bullish")
 
-            # Strong Bull + Bullish Supertrend + Bullish MACD (full alignment)
+            # Full Bullish Alignment
             if has_col(scored, 'Market Regime') and has_col(scored, 'Supertrend') and has_col(scored, 'MACD Signal'):
                 full_bull = scored[
                     (scored['Market Regime'] == 'Strong Bull') &
                     (scored['Supertrend'] == 'Bullish') &
                     (scored['MACD Signal'] == 'Bullish')
                 ]
-                if not full_bull.empty:
-                    st.markdown(f'<div class="signal-card">🎯 <strong>Full Bullish Alignment</strong> ({len(full_bull)} stocks)<br><span style="color:#888;font-size:0.65rem">Strong Bull + Supertrend Bull + MACD Bull</span></div>', unsafe_allow_html=True)
-                    for _, r in full_bull.head(8).iterrows():
-                        score_val = r.get('Composite Score', '')
-                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]} — Score: {score_val}</div>', unsafe_allow_html=True)
-                    if len(full_bull) > 8:
-                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(full_bull) - 8} more</div>', unsafe_allow_html=True)
+                render_signal("Full Bullish Alignment", full_bull, "Strong Bull + Supertrend Bull + MACD Bull", "bullish")
 
-            # Near 52W High (within 5%)
+            # Near 52W High
             if has_col(scored, '% from 52W High'):
-                near_high = scored[
-                    pd.to_numeric(scored['% from 52W High'], errors='coerce') >= -5
-                ]
-                if not near_high.empty:
-                    st.markdown(f'<div class="signal-card">📈 <strong>Near 52W High</strong> ({len(near_high)} stocks)<br><span style="color:#888;font-size:0.65rem">Within 5% of 52-week high</span></div>', unsafe_allow_html=True)
+                near_high = scored[pd.to_numeric(scored['% from 52W High'], errors='coerce') >= -5]
+                render_signal("Near 52W High", near_high, "Within 5% of 52-week high", "bullish")
 
-            # Volume Surge (Vol ROC 1M > 50%)
+            # Volume Surge
             if has_col(scored, 'Vol ROC 1M %') and has_col(scored, 'MACD Signal'):
                 vol_surge = scored[
                     (pd.to_numeric(scored['Vol ROC 1M %'], errors='coerce') > 50) &
                     (scored['MACD Signal'] == 'Bullish')
                 ]
-                if not vol_surge.empty:
-                    st.markdown(f'<div class="signal-card">📊 <strong>Volume Surge + Bullish MACD</strong> ({len(vol_surge)} stocks)</div>', unsafe_allow_html=True)
+                render_signal("Volume Surge + Bullish MACD", vol_surge, "Volume ROC 1M > 50% with bullish MACD", "bullish")
 
-            # At High + Strong momentum
+            # At High + Strong Momentum
             if has_col(scored, 'Drawdown Status') and has_col(scored, 'ROC 3M %'):
                 at_high_momentum = scored[
                     (scored['Drawdown Status'] == 'At High') &
                     (pd.to_numeric(scored['ROC 3M %'], errors='coerce') > 15)
                 ]
-                if not at_high_momentum.empty:
-                    st.markdown(f'<div class="signal-card">🚀 <strong>At High + Strong Momentum</strong> ({len(at_high_momentum)} stocks)<br><span style="color:#888;font-size:0.65rem">At 52W high with ROC 3M > 15%</span></div>', unsafe_allow_html=True)
+                render_signal("At High + Strong Momentum", at_high_momentum, "At 52W high with ROC 3M > 15%", "bullish")
 
         with sig_col2:
             st.markdown('<div class="dash-section-title">🔴 Bearish / Caution Signals</div>', unsafe_allow_html=True)
@@ -825,12 +825,7 @@ with main_tab0:
                     (scored['EMA Cross'] == 'Death Cross') &
                     (pd.to_numeric(scored['Days Since EMA Cross'], errors='coerce') <= 5)
                 ]
-                if not fresh_dc.empty:
-                    st.markdown(f'<div class="signal-card bearish">🔀 <strong>Fresh Death Cross</strong> ({len(fresh_dc)} stocks)</div>', unsafe_allow_html=True)
-                    for _, r in fresh_dc.head(10).iterrows():
-                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]} — {r.get("Name", "")}</div>', unsafe_allow_html=True)
-                    if len(fresh_dc) > 10:
-                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(fresh_dc) - 10} more</div>', unsafe_allow_html=True)
+                render_signal("Fresh Death Cross", fresh_dc, "EMA 50 crossed below EMA 200 in last 5 days", "bearish")
 
             # Full Bearish Alignment
             if has_col(scored, 'Market Regime') and has_col(scored, 'Supertrend') and has_col(scored, 'MACD Signal'):
@@ -839,37 +834,27 @@ with main_tab0:
                     (scored['Supertrend'] == 'Bearish') &
                     (scored['MACD Signal'] == 'Bearish')
                 ]
-                if not full_bear.empty:
-                    st.markdown(f'<div class="signal-card bearish">⚠ <strong>Full Bearish Alignment</strong> ({len(full_bear)} stocks)<br><span style="color:#888;font-size:0.65rem">Strong Bear + Supertrend Bear + MACD Bear</span></div>', unsafe_allow_html=True)
-                    for _, r in full_bear.head(8).iterrows():
-                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]}</div>', unsafe_allow_html=True)
-                    if len(full_bear) > 8:
-                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(full_bear) - 8} more</div>', unsafe_allow_html=True)
+                render_signal("Full Bearish Alignment", full_bear, "Strong Bear + Supertrend Bear + MACD Bear", "bearish")
 
             # Damaged stocks
             if has_col(scored, 'Drawdown Status'):
                 damaged = scored[scored['Drawdown Status'] == 'Damaged']
-                if not damaged.empty:
-                    st.markdown(f'<div class="signal-card bearish">💔 <strong>Damaged</strong> ({len(damaged)} stocks)<br><span style="color:#888;font-size:0.65rem">Down 20%+ from 52W high</span></div>', unsafe_allow_html=True)
+                render_signal("Damaged", damaged, "Down 20%+ from 52W high", "bearish")
 
-            # RSI Overbought (>75)
+            # RSI Overbought
             if has_col(scored, 'RSI 14'):
                 overbought = scored[pd.to_numeric(scored['RSI 14'], errors='coerce') > 75]
-                if not overbought.empty:
-                    st.markdown(f'<div class="signal-card neutral">⚡ <strong>RSI Overbought (&gt;75)</strong> ({len(overbought)} stocks)</div>', unsafe_allow_html=True)
+                render_signal("RSI Overbought (>75)", overbought, "Potentially overextended", "neutral")
 
-            # RSI Oversold (<30)
+            # RSI Oversold
             if has_col(scored, 'RSI 14'):
                 oversold = scored[pd.to_numeric(scored['RSI 14'], errors='coerce') < 30]
-                if not oversold.empty:
-                    st.markdown(f'<div class="signal-card neutral">📉 <strong>RSI Oversold (&lt;30)</strong> ({len(oversold)} stocks)</div>', unsafe_allow_html=True)
+                render_signal("RSI Oversold (<30)", oversold, "Potentially oversold", "neutral")
 
             # Rising volatility
             if has_col(scored, 'Vol Trend'):
                 rising_vol = scored[scored['Vol Trend'] == 'Rising']
-                if not rising_vol.empty:
-                    st.markdown(f'<div class="signal-card bearish">📊 <strong>Rising Volatility</strong> ({len(rising_vol)} stocks)</div>', unsafe_allow_html=True)
-
+                render_signal("Rising Volatility", rising_vol, "Short-term vol > long-term vol", "bearish")
     # ── SECTOR TOP 5 ────────────────────────────
     with dash_sub4:
         if has_col(scored, 'Sector'):
