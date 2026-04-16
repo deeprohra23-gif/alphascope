@@ -757,7 +757,7 @@ with main_tab0:
     with dash_sub3:
         st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Key signals detected in the current data snapshot. Click any signal to expand the full list.</p>", unsafe_allow_html=True)
 
-        def render_signal(label, sig_df, extra_desc="", kind="bullish", cols_to_show=None):
+        def render_signal(label, sig_df, extra_desc="", kind="bullish", cols_to_show=None, key_suffix=""):
             """Render a signal card with expandable stock list."""
             if sig_df is None or sig_df.empty:
                 return
@@ -768,9 +768,9 @@ with main_tab0:
 
             with st.expander(header, expanded=False):
                 if cols_to_show is None:
-                    cols_to_show = [sym_col, 'Name', 'Sector', 'Current Price', 'Composite Score', 'ROC 3M %', 'Market Regime']
+                    cols_to_show = ['Name', 'Sector', 'Current Price', 'Composite Score', 'ROC 3M %', 'Market Regime']
                 disp_cols = [c for c in cols_to_show if c in sig_df.columns]
-                show_table(sig_df, [c for c in disp_cols if c != sym_col], 'Composite Score', False, f'sig_{label[:12].replace(" ","")}')
+                show_table(sig_df, disp_cols, 'Composite Score', False, f'sig_{key_suffix}')
 
         sig_col1, sig_col2 = st.columns(2)
 
@@ -783,7 +783,8 @@ with main_tab0:
                     (scored['EMA Cross'] == 'Golden Cross') &
                     (pd.to_numeric(scored['Days Since EMA Cross'], errors='coerce') <= 5)
                 ]
-                render_signal("Fresh Golden Cross", fresh_gc, "EMA 50 crossed above EMA 200 in last 5 days", "bullish")
+                render_signal("Fresh Golden Cross", fresh_gc,
+                              "EMA 50 crossed above EMA 200 in last 5 days", "bullish", key_suffix="fgc")
 
             # Full Bullish Alignment
             if has_col(scored, 'Market Regime') and has_col(scored, 'Supertrend') and has_col(scored, 'MACD Signal'):
@@ -792,12 +793,14 @@ with main_tab0:
                     (scored['Supertrend'] == 'Bullish') &
                     (scored['MACD Signal'] == 'Bullish')
                 ]
-                render_signal("Full Bullish Alignment", full_bull, "Strong Bull + Supertrend Bull + MACD Bull", "bullish")
+                render_signal("Full Bullish Alignment", full_bull,
+                              "Strong Bull + Supertrend Bull + MACD Bull", "bullish", key_suffix="fba")
 
             # Near 52W High
             if has_col(scored, '% from 52W High'):
                 near_high = scored[pd.to_numeric(scored['% from 52W High'], errors='coerce') >= -5]
-                render_signal("Near 52W High", near_high, "Within 5% of 52-week high", "bullish")
+                render_signal("Near 52W High", near_high,
+                              "Within 5% of 52-week high", "bullish", key_suffix="nh")
 
             # Volume Surge
             if has_col(scored, 'Vol ROC 1M %') and has_col(scored, 'MACD Signal'):
@@ -805,7 +808,8 @@ with main_tab0:
                     (pd.to_numeric(scored['Vol ROC 1M %'], errors='coerce') > 50) &
                     (scored['MACD Signal'] == 'Bullish')
                 ]
-                render_signal("Volume Surge + Bullish MACD", vol_surge, "Volume ROC 1M > 50% with bullish MACD", "bullish")
+                render_signal("Volume Surge + Bullish MACD", vol_surge,
+                              "Volume ROC 1M > 50% with bullish MACD", "bullish", key_suffix="vs")
 
             # At High + Strong Momentum
             if has_col(scored, 'Drawdown Status') and has_col(scored, 'ROC 3M %'):
@@ -813,7 +817,8 @@ with main_tab0:
                     (scored['Drawdown Status'] == 'At High') &
                     (pd.to_numeric(scored['ROC 3M %'], errors='coerce') > 15)
                 ]
-                render_signal("At High + Strong Momentum", at_high_momentum, "At 52W high with ROC 3M > 15%", "bullish")
+                render_signal("At High + Strong Momentum", at_high_momentum,
+                              "At 52W high with ROC 3M > 15%", "bullish", key_suffix="ahm")
 
         with sig_col2:
             st.markdown('<div class="dash-section-title">🔴 Bearish / Caution Signals</div>', unsafe_allow_html=True)
@@ -824,7 +829,8 @@ with main_tab0:
                     (scored['EMA Cross'] == 'Death Cross') &
                     (pd.to_numeric(scored['Days Since EMA Cross'], errors='coerce') <= 5)
                 ]
-                render_signal("Fresh Death Cross", fresh_dc, "EMA 50 crossed below EMA 200 in last 5 days", "bearish")
+                render_signal("Fresh Death Cross", fresh_dc,
+                              "EMA 50 crossed below EMA 200 in last 5 days", "bearish", key_suffix="fdc")
 
             # Full Bearish Alignment
             if has_col(scored, 'Market Regime') and has_col(scored, 'Supertrend') and has_col(scored, 'MACD Signal'):
@@ -833,28 +839,33 @@ with main_tab0:
                     (scored['Supertrend'] == 'Bearish') &
                     (scored['MACD Signal'] == 'Bearish')
                 ]
-                render_signal("Full Bearish Alignment", full_bear, "Strong Bear + Supertrend Bear + MACD Bear", "bearish")
+                render_signal("Full Bearish Alignment", full_bear,
+                              "Strong Bear + Supertrend Bear + MACD Bear", "bearish", key_suffix="fber")
 
-            # Damaged stocks
+            # Damaged
             if has_col(scored, 'Drawdown Status'):
                 damaged = scored[scored['Drawdown Status'] == 'Damaged']
-                render_signal("Damaged", damaged, "Down 20%+ from 52W high", "bearish")
+                render_signal("Damaged", damaged,
+                              "Down 20%+ from 52W high", "bearish", key_suffix="dmg")
 
             # RSI Overbought
             if has_col(scored, 'RSI 14'):
                 overbought = scored[pd.to_numeric(scored['RSI 14'], errors='coerce') > 75]
-                render_signal("RSI Overbought (>75)", overbought, "Potentially overextended", "neutral")
+                render_signal("RSI Overbought (>75)", overbought,
+                              "Potentially overextended", "neutral", key_suffix="ob")
 
             # RSI Oversold
             if has_col(scored, 'RSI 14'):
                 oversold = scored[pd.to_numeric(scored['RSI 14'], errors='coerce') < 30]
-                render_signal("RSI Oversold (<30)", oversold, "Potentially oversold", "neutral")
+                render_signal("RSI Oversold (<30)", oversold,
+                              "Potentially oversold", "neutral", key_suffix="os")
 
             # Rising volatility
             if has_col(scored, 'Vol Trend'):
                 rising_vol = scored[scored['Vol Trend'] == 'Rising']
-                render_signal("Rising Volatility", rising_vol, "Short-term vol > long-term vol", "bearish")
-    
+                render_signal("Rising Volatility", rising_vol,
+                              "Short-term vol > long-term vol", "bearish", key_suffix="rv")
+
     # ── SECTOR TOP 5 ────────────────────────────
     with dash_sub4:
         if has_col(scored, 'Sector'):
@@ -1159,9 +1170,47 @@ with main_tab2:
                 else:
                     st.markdown(f"### 📊 {selected_index} — {len(idx_stocks)} stocks")
 
+                    # Compute RS vs the selected index (stock ROC - index ROC)
+                    if idx_df is not None:
+                        idx_row = idx_df[idx_df['Index'] == selected_index]
+                        if not idx_row.empty:
+                            idx_roc_1m = pd.to_numeric(idx_row['ROC 1M %'].iloc[0], errors='coerce') if 'ROC 1M %' in idx_row.columns else None
+                            idx_roc_3m = pd.to_numeric(idx_row['ROC 3M %'].iloc[0], errors='coerce') if 'ROC 3M %' in idx_row.columns else None
+                            idx_roc_6m = pd.to_numeric(idx_row['ROC 6M %'].iloc[0], errors='coerce') if 'ROC 6M %' in idx_row.columns else None
+
+                            # Short label for column names (strip "Nifty " prefix)
+                            short_name = selected_index.replace('Nifty ', '').replace('NIFTY', '').strip() or selected_index
+
+                            if idx_roc_1m is not None and not pd.isna(idx_roc_1m) and 'ROC 1M %' in idx_stocks.columns:
+                                idx_stocks[f'RS vs {short_name} 1M %'] = (
+                                    pd.to_numeric(idx_stocks['ROC 1M %'], errors='coerce') - idx_roc_1m
+                                ).round(2)
+                            if idx_roc_3m is not None and not pd.isna(idx_roc_3m) and 'ROC 3M %' in idx_stocks.columns:
+                                idx_stocks[f'RS vs {short_name} 3M %'] = (
+                                    pd.to_numeric(idx_stocks['ROC 3M %'], errors='coerce') - idx_roc_3m
+                                ).round(2)
+                            if idx_roc_6m is not None and not pd.isna(idx_roc_6m) and 'ROC 6M %' in idx_stocks.columns:
+                                idx_stocks[f'RS vs {short_name} 6M %'] = (
+                                    pd.to_numeric(idx_stocks['ROC 6M %'], errors='coerce') - idx_roc_6m
+                                ).round(2)
+
+                    # Build list of RS vs index cols we just added (for display)
+                    rs_vs_index_cols = [c for c in idx_stocks.columns if c.startswith('RS vs ') and c not in ['RS vs Nifty 1M %', 'RS vs Nifty 3M %', 'RS vs Nifty 6M %']]
+
+                    # Extended RETURNS cols for drill-down (adds RS vs selected index)
+                    RETURNS_COLS_DRILL = [
+                        'Name', 'Current Price',
+                        'ROC 1M %', 'ROC 3M %', 'ROC 6M %',
+                        '1Y CAGR %', '3Y CAGR %',
+                        'RS vs Nifty 1M %', 'RS vs Nifty 3M %', 'RS vs Nifty 6M %',
+                    ] + rs_vs_index_cols + ['Momentum Rank 1M', 'Momentum Score']
+
                     ds1, ds2 = st.columns([3, 1])
                     with ds1:
-                        drill_sort_opts = [c for c in ['ROC 3M %', 'ROC 1M %', 'Market Cap (Cr)', 'RSI 14', 'Momentum Quality', 'RS vs Nifty 3M %'] if c in idx_stocks.columns]
+                        drill_sort_default_opts = ['ROC 3M %', 'ROC 1M %', 'Market Cap (Cr)', 'RSI 14', 'Momentum Quality', 'RS vs Nifty 3M %']
+                        # Add the newly computed RS cols as sort options
+                        drill_sort_default_opts = drill_sort_default_opts + rs_vs_index_cols
+                        drill_sort_opts = [c for c in drill_sort_default_opts if c in idx_stocks.columns]
                         drill_sort = st.selectbox("Sort by", drill_sort_opts, key='drill_sort')
                     with ds2:
                         drill_order = st.selectbox("Order", ["Descending", "Ascending"], key='drill_order')
@@ -1169,7 +1218,7 @@ with main_tab2:
 
                     st.download_button(
                         f"⬇ Export {selected_index} stocks",
-                        data=idx_stocks[[c for c in [sym_col] + OVERVIEW_COLS if c in idx_stocks.columns]].to_csv(index=False).encode('utf-8'),
+                        data=idx_stocks[[c for c in [sym_col] + OVERVIEW_COLS + rs_vs_index_cols if c in idx_stocks.columns]].to_csv(index=False).encode('utf-8'),
                         file_name=f'{selected_index.replace(" ", "_")}_stocks.csv',
                         mime='text/csv', key='dl_drill'
                     )
@@ -1181,16 +1230,20 @@ with main_tab2:
                     idx_scored = add_insights(idx_scored)
                     with d_ov:   show_table(idx_scored, OVERVIEW_COLS, drill_sort, drill_asc, 'drill_ov')
                     with d_tech: show_table(idx_scored, TECHNICAL_COLS, drill_sort, drill_asc, 'drill_tech')
-                    with d_ret:  show_table(idx_scored, RETURNS_COLS, drill_sort, drill_asc, 'drill_ret')
+                    with d_ret:  show_table(idx_scored, RETURNS_COLS_DRILL, drill_sort, drill_asc, 'drill_ret')
                     with d_risk: show_table(idx_scored, RISK_COLS, drill_sort, drill_asc, 'drill_risk')
                     with d_fund: show_table(idx_scored, FUNDAMENTAL_COLS, drill_sort, drill_asc, 'drill_fund')
                     with d_custom:
-                        all_avail_idx = [c for c in ALL_DISPLAY_COLS if c in idx_scored.columns]
+                        all_avail_idx = [c for c in ALL_DISPLAY_COLS + rs_vs_index_cols if c in idx_scored.columns]
+                        # Deduplicate
+                        seen = set()
+                        all_avail_idx = [c for c in all_avail_idx if not (c in seen or seen.add(c))]
                         score_cols_idx = ['Technical Score', 'Momentum Score', 'Fundamental Score', 'Composite Score', 'Universe Rank']
                         all_with_scores_idx = score_cols_idx + [c for c in all_avail_idx if c not in score_cols_idx]
+                        default_custom = [sym_col, 'Name', 'Composite Score', 'Universe Rank', 'Market Regime', 'ROC 3M %', 'ROCE %'] + rs_vs_index_cols[:1]
                         custom_idx_cols = st.multiselect(
                             "Select columns", options=all_with_scores_idx,
-                            default=[sym_col, 'Name', 'Composite Score', 'Universe Rank', 'Market Regime', 'ROC 3M %', 'ROCE %'],
+                            default=[c for c in default_custom if c in idx_scored.columns],
                             key='drill_custom_cols'
                         )
                         if custom_idx_cols:
