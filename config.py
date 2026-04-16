@@ -13,6 +13,7 @@ Column definitions, screen rules, color maps, and constants.
 OVERVIEW_COLS = [
     'Name', 'Sector', 'Cap Category', 'Market Cap (Cr)',
     'Current Price', 'Day Change %',
+    'Technical Insight', 'Fundamental Insight',
     'Market Regime', 'Drawdown Status',
     'Technical Score', 'Momentum Score', 'Fundamental Score',
     'Composite Score', 'Universe Rank',
@@ -21,6 +22,7 @@ OVERVIEW_COLS = [
 
 TECHNICAL_COLS = [
     'Name', 'Current Price',
+    'Technical Insight',
     'EMA 50', 'EMA 200', 'EMA Cross', 'Days Since EMA Cross',
     'RSI 14', 'MACD Signal', 'Supertrend',
     'Trend Consistency (12M)', 'Momentum Acceleration', 'Momentum Quality',
@@ -46,6 +48,7 @@ RISK_COLS = [
 
 FUNDAMENTAL_COLS = [
     'Name', 'Sector',
+    'Fundamental Insight',
     'PE Ratio', 'Sector PE', 'PB Ratio', 'Sector PB', 'EV/EBITDA', 'PEG Ratio',
     'ROE %', 'ROCE %', 'ROCE 3Y Avg %', 'ROE 3Y Avg %', 'ROA %', 'Net Profit Margin %',
     'Sales Growth 1Y %', 'Sales Growth 3Y %', 'Profit Growth 1Y %', 'Profit Growth 3Y %',

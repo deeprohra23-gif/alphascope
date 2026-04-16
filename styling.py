@@ -9,6 +9,15 @@ from config import (
     SIGNAL_COLORS, GREEN_RED_COLS,
 )
 
+# Insight colors (defined inline to avoid circular imports)
+INSIGHT_STYLES = {
+    'Strong Buy':  'background-color:#0d2e1f; color:#00d4aa; font-weight:600',
+    'Buy':         'background-color:#0a1f35; color:#4da6ff; font-weight:600',
+    'Hold':        'background-color:#1a1a2e; color:#aaaacc',
+    'Sell':        'background-color:#2e1515; color:#ff8844',
+    'Strong Sell': 'background-color:#3d0a0a; color:#ff4444; font-weight:600',
+}
+
 
 def _color_map(val, mapping):
     return mapping.get(str(val), '')
@@ -35,12 +44,14 @@ def style_dataframe(data):
 
     # Categorical color maps
     col_fn_pairs = [
-        ('Market Regime',  lambda v: _color_map(v, REGIME_COLORS)),
-        ('Drawdown Status', lambda v: _color_map(v, DD_COLORS)),
-        ('EMA Cross',      lambda v: _color_map(v, CROSS_COLORS)),
-        ('Vol Trend',      lambda v: _color_map(v, VOL_COLORS)),
-        ('MACD Signal',    lambda v: _color_map(v, SIGNAL_COLORS)),
-        ('Supertrend',     lambda v: _color_map(v, SIGNAL_COLORS)),
+        ('Market Regime',       lambda v: _color_map(v, REGIME_COLORS)),
+        ('Drawdown Status',     lambda v: _color_map(v, DD_COLORS)),
+        ('EMA Cross',           lambda v: _color_map(v, CROSS_COLORS)),
+        ('Vol Trend',           lambda v: _color_map(v, VOL_COLORS)),
+        ('MACD Signal',         lambda v: _color_map(v, SIGNAL_COLORS)),
+        ('Supertrend',          lambda v: _color_map(v, SIGNAL_COLORS)),
+        ('Technical Insight',   lambda v: _color_map(v, INSIGHT_STYLES)),
+        ('Fundamental Insight', lambda v: _color_map(v, INSIGHT_STYLES)),
     ]
 
     for col, fn in col_fn_pairs:

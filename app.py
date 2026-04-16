@@ -12,6 +12,9 @@ from config import (
 from scoring import add_scores
 from styling import style_dataframe
 from screens import run_screen
+from insights import add_insights, INSIGHT_COLORS
+from trade_setup import calc_trade_levels, get_key_levels
+from history import get_previous_snapshot, compute_changes, get_screen_performance
 
 
 def get_data_timestamp():
@@ -490,9 +493,10 @@ sort_asc = sort_order == "Ascending"
 
 
 # ────────────────────────────────────────────────
-# SCORE ONCE (reuse across all tabs)
+# SCORE + INSIGHTS (once, reuse across tabs)
 # ────────────────────────────────────────────────
 scored = add_scores(filtered.copy(), universe_df=filtered)
+scored = add_insights(scored)
 
 
 # ────────────────────────────────────────────────
@@ -505,9 +509,59 @@ main_tab0, main_tab1, main_tab2, main_tab3 = st.tabs(["🏠 Dashboard", "📊 St
 # TAB 0 — DASHBOARD
 # ══════════════════════════════════════════════
 with main_tab0:
-    dash_sub1, dash_sub2, dash_sub3, dash_sub4 = st.tabs([
-        "📊 Market Overview", "🔄 Sector Rotation", "⚡ Signals", "🏅 Sector Top 5"
+    dash_sub0, dash_sub1, dash_sub2, dash_sub3, dash_sub4 = st.tabs([
+        "🔔 What Changed Today", "📊 Market Overview", "🔄 Sector Rotation", "⚡ Signals", "🏅 Sector Top 5"
     ])
+
+    # ── WHAT CHANGED TODAY ──────────────────────
+    with dash_sub0:
+        yday_date, yday_df = get_previous_snapshot(scored)
+
+        if yday_df is None:
+            st.info("📅 No previous snapshot available yet. Daily snapshots will start accumulating once the automated pipeline runs. Check back tomorrow to see day-over-day changes.")
+        else:
+            st.markdown(f"<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Comparing today's data against snapshot from <strong>{yday_date}</strong>. Signals shown are fresh changes, not static counts.</p>", unsafe_allow_html=True)
+
+            changes = compute_changes(scored, yday_df, sym_col=sym_col)
+
+            def render_change_signal(label, sig_df, extra_desc="", kind="bullish", key_suffix=""):
+                if sig_df is None or sig_df.empty:
+                    return
+                icon_prefix = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}[kind]
+                header = f"{icon_prefix} **{label}** — {len(sig_df)} stocks"
+                if extra_desc:
+                    header += f"  \n*{extra_desc}*"
+                with st.expander(header, expanded=False):
+                    disp_cols = [c for c in ['Name', 'Sector', 'Current Price', 'Composite Score', 'ROC 3M %', 'Market Regime'] if c in sig_df.columns]
+                    show_table(sig_df, disp_cols, 'Composite Score', False, f'chg_{key_suffix}')
+
+            chg_col1, chg_col2 = st.columns(2)
+
+            with chg_col1:
+                st.markdown('<div class="dash-section-title">🟢 Positive Changes</div>', unsafe_allow_html=True)
+                render_change_signal("Fresh Golden Cross", changes.get('new_golden_cross'),
+                                     "EMA 50 crossed above EMA 200 today", "bullish", "gc")
+                render_change_signal("Entered Strong Bull", changes.get('entered_strong_bull'),
+                                     "Regime upgraded to Strong Bull", "bullish", "esb")
+                render_change_signal("Regime Upgraded", changes.get('regime_upgraded'),
+                                     "Market regime improved", "bullish", "ru")
+                render_change_signal("Newly At 52W High", changes.get('newly_at_high'),
+                                     "Reached 52-week high today", "bullish", "nah")
+                render_change_signal("Supertrend Flipped Bullish", changes.get('supertrend_bullish_flip'),
+                                     "Supertrend turned Bullish today", "bullish", "stbf")
+
+            with chg_col2:
+                st.markdown('<div class="dash-section-title">🔴 Negative Changes</div>', unsafe_allow_html=True)
+                render_change_signal("Fresh Death Cross", changes.get('new_death_cross'),
+                                     "EMA 50 crossed below EMA 200 today", "bearish", "dc")
+                render_change_signal("Entered Strong Bear", changes.get('entered_strong_bear'),
+                                     "Regime downgraded to Strong Bear", "bearish", "esbr")
+                render_change_signal("Regime Downgraded", changes.get('regime_downgraded'),
+                                     "Market regime worsened", "bearish", "rd")
+                render_change_signal("Newly Damaged", changes.get('newly_damaged'),
+                                     "Moved to Damaged drawdown status", "bearish", "nd")
+                render_change_signal("Supertrend Flipped Bearish", changes.get('supertrend_bearish_flip'),
+                                     "Supertrend turned Bearish today", "bearish", "stbrf")
 
     # Helper for dashboard
     def pct_of(series, condition):
@@ -700,67 +754,67 @@ with main_tab0:
             st.warning("Sector data not available.")
 
     # ── SIGNAL DASHBOARD ────────────────────────
-    # ── SIGNAL DASHBOARD ────────────────────────
     with dash_sub3:
-        st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Key signals detected in the current data snapshot. Click any signal to expand the full list.</p>", unsafe_allow_html=True)
-
-        def render_signal(label, sig_df, extra_desc="", kind="bullish", cols_to_show=None):
-            """Render a signal card with expandable stock list."""
-            if sig_df is None or sig_df.empty:
-                return
-            icon_prefix = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}[kind]
-            header = f"{icon_prefix} **{label}** — {len(sig_df)} stocks"
-            if extra_desc:
-                header += f"  \n*{extra_desc}*"
-
-            with st.expander(header, expanded=False):
-                if cols_to_show is None:
-                    cols_to_show = [sym_col, 'Name', 'Sector', 'Current Price', 'Composite Score', 'ROC 3M %', 'Market Regime']
-                disp_cols = [c for c in cols_to_show if c in sig_df.columns]
-                show_table(sig_df, [c for c in disp_cols if c != sym_col], 'Composite Score', False, f'sig_{label[:12].replace(" ","")}')
+        st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Key signals detected in the current data snapshot.</p>", unsafe_allow_html=True)
 
         sig_col1, sig_col2 = st.columns(2)
 
         with sig_col1:
+            # Fresh Golden Crosses (within last 5 trading days)
             st.markdown('<div class="dash-section-title">🟢 Bullish Signals</div>', unsafe_allow_html=True)
 
-            # Fresh Golden Crosses
             if has_col(scored, 'EMA Cross') and has_col(scored, 'Days Since EMA Cross'):
                 fresh_gc = scored[
                     (scored['EMA Cross'] == 'Golden Cross') &
                     (pd.to_numeric(scored['Days Since EMA Cross'], errors='coerce') <= 5)
                 ]
-                render_signal("Fresh Golden Cross", fresh_gc, "EMA 50 crossed above EMA 200 in last 5 days", "bullish")
+                if not fresh_gc.empty:
+                    st.markdown(f'<div class="signal-card">🔀 <strong>Fresh Golden Cross</strong> ({len(fresh_gc)} stocks)</div>', unsafe_allow_html=True)
+                    for _, r in fresh_gc.head(10).iterrows():
+                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]} — {r.get("Name", "")}</div>', unsafe_allow_html=True)
+                    if len(fresh_gc) > 10:
+                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(fresh_gc) - 10} more</div>', unsafe_allow_html=True)
 
-            # Full Bullish Alignment
+            # Strong Bull + Bullish Supertrend + Bullish MACD (full alignment)
             if has_col(scored, 'Market Regime') and has_col(scored, 'Supertrend') and has_col(scored, 'MACD Signal'):
                 full_bull = scored[
                     (scored['Market Regime'] == 'Strong Bull') &
                     (scored['Supertrend'] == 'Bullish') &
                     (scored['MACD Signal'] == 'Bullish')
                 ]
-                render_signal("Full Bullish Alignment", full_bull, "Strong Bull + Supertrend Bull + MACD Bull", "bullish")
+                if not full_bull.empty:
+                    st.markdown(f'<div class="signal-card">🎯 <strong>Full Bullish Alignment</strong> ({len(full_bull)} stocks)<br><span style="color:#888;font-size:0.65rem">Strong Bull + Supertrend Bull + MACD Bull</span></div>', unsafe_allow_html=True)
+                    for _, r in full_bull.head(8).iterrows():
+                        score_val = r.get('Composite Score', '')
+                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]} — Score: {score_val}</div>', unsafe_allow_html=True)
+                    if len(full_bull) > 8:
+                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(full_bull) - 8} more</div>', unsafe_allow_html=True)
 
-            # Near 52W High
+            # Near 52W High (within 5%)
             if has_col(scored, '% from 52W High'):
-                near_high = scored[pd.to_numeric(scored['% from 52W High'], errors='coerce') >= -5]
-                render_signal("Near 52W High", near_high, "Within 5% of 52-week high", "bullish")
+                near_high = scored[
+                    pd.to_numeric(scored['% from 52W High'], errors='coerce') >= -5
+                ]
+                if not near_high.empty:
+                    st.markdown(f'<div class="signal-card">📈 <strong>Near 52W High</strong> ({len(near_high)} stocks)<br><span style="color:#888;font-size:0.65rem">Within 5% of 52-week high</span></div>', unsafe_allow_html=True)
 
-            # Volume Surge
+            # Volume Surge (Vol ROC 1M > 50%)
             if has_col(scored, 'Vol ROC 1M %') and has_col(scored, 'MACD Signal'):
                 vol_surge = scored[
                     (pd.to_numeric(scored['Vol ROC 1M %'], errors='coerce') > 50) &
                     (scored['MACD Signal'] == 'Bullish')
                 ]
-                render_signal("Volume Surge + Bullish MACD", vol_surge, "Volume ROC 1M > 50% with bullish MACD", "bullish")
+                if not vol_surge.empty:
+                    st.markdown(f'<div class="signal-card">📊 <strong>Volume Surge + Bullish MACD</strong> ({len(vol_surge)} stocks)</div>', unsafe_allow_html=True)
 
-            # At High + Strong Momentum
+            # At High + Strong momentum
             if has_col(scored, 'Drawdown Status') and has_col(scored, 'ROC 3M %'):
                 at_high_momentum = scored[
                     (scored['Drawdown Status'] == 'At High') &
                     (pd.to_numeric(scored['ROC 3M %'], errors='coerce') > 15)
                 ]
-                render_signal("At High + Strong Momentum", at_high_momentum, "At 52W high with ROC 3M > 15%", "bullish")
+                if not at_high_momentum.empty:
+                    st.markdown(f'<div class="signal-card">🚀 <strong>At High + Strong Momentum</strong> ({len(at_high_momentum)} stocks)<br><span style="color:#888;font-size:0.65rem">At 52W high with ROC 3M > 15%</span></div>', unsafe_allow_html=True)
 
         with sig_col2:
             st.markdown('<div class="dash-section-title">🔴 Bearish / Caution Signals</div>', unsafe_allow_html=True)
@@ -771,7 +825,12 @@ with main_tab0:
                     (scored['EMA Cross'] == 'Death Cross') &
                     (pd.to_numeric(scored['Days Since EMA Cross'], errors='coerce') <= 5)
                 ]
-                render_signal("Fresh Death Cross", fresh_dc, "EMA 50 crossed below EMA 200 in last 5 days", "bearish")
+                if not fresh_dc.empty:
+                    st.markdown(f'<div class="signal-card bearish">🔀 <strong>Fresh Death Cross</strong> ({len(fresh_dc)} stocks)</div>', unsafe_allow_html=True)
+                    for _, r in fresh_dc.head(10).iterrows():
+                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]} — {r.get("Name", "")}</div>', unsafe_allow_html=True)
+                    if len(fresh_dc) > 10:
+                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(fresh_dc) - 10} more</div>', unsafe_allow_html=True)
 
             # Full Bearish Alignment
             if has_col(scored, 'Market Regime') and has_col(scored, 'Supertrend') and has_col(scored, 'MACD Signal'):
@@ -780,27 +839,37 @@ with main_tab0:
                     (scored['Supertrend'] == 'Bearish') &
                     (scored['MACD Signal'] == 'Bearish')
                 ]
-                render_signal("Full Bearish Alignment", full_bear, "Strong Bear + Supertrend Bear + MACD Bear", "bearish")
+                if not full_bear.empty:
+                    st.markdown(f'<div class="signal-card bearish">⚠ <strong>Full Bearish Alignment</strong> ({len(full_bear)} stocks)<br><span style="color:#888;font-size:0.65rem">Strong Bear + Supertrend Bear + MACD Bear</span></div>', unsafe_allow_html=True)
+                    for _, r in full_bear.head(8).iterrows():
+                        st.markdown(f'<div style="font-size:0.73rem;color:#ccc;font-family:IBM Plex Mono,monospace;padding:0.1rem 0 0.1rem 1rem">{r[sym_col]}</div>', unsafe_allow_html=True)
+                    if len(full_bear) > 8:
+                        st.markdown(f'<div style="font-size:0.65rem;color:#555;padding-left:1rem">...and {len(full_bear) - 8} more</div>', unsafe_allow_html=True)
 
             # Damaged stocks
             if has_col(scored, 'Drawdown Status'):
                 damaged = scored[scored['Drawdown Status'] == 'Damaged']
-                render_signal("Damaged", damaged, "Down 20%+ from 52W high", "bearish")
+                if not damaged.empty:
+                    st.markdown(f'<div class="signal-card bearish">💔 <strong>Damaged</strong> ({len(damaged)} stocks)<br><span style="color:#888;font-size:0.65rem">Down 20%+ from 52W high</span></div>', unsafe_allow_html=True)
 
-            # RSI Overbought
+            # RSI Overbought (>75)
             if has_col(scored, 'RSI 14'):
                 overbought = scored[pd.to_numeric(scored['RSI 14'], errors='coerce') > 75]
-                render_signal("RSI Overbought (>75)", overbought, "Potentially overextended", "neutral")
+                if not overbought.empty:
+                    st.markdown(f'<div class="signal-card neutral">⚡ <strong>RSI Overbought (&gt;75)</strong> ({len(overbought)} stocks)</div>', unsafe_allow_html=True)
 
-            # RSI Oversold
+            # RSI Oversold (<30)
             if has_col(scored, 'RSI 14'):
                 oversold = scored[pd.to_numeric(scored['RSI 14'], errors='coerce') < 30]
-                render_signal("RSI Oversold (<30)", oversold, "Potentially oversold", "neutral")
+                if not oversold.empty:
+                    st.markdown(f'<div class="signal-card neutral">📉 <strong>RSI Oversold (&lt;30)</strong> ({len(oversold)} stocks)</div>', unsafe_allow_html=True)
 
             # Rising volatility
             if has_col(scored, 'Vol Trend'):
                 rising_vol = scored[scored['Vol Trend'] == 'Rising']
-                render_signal("Rising Volatility", rising_vol, "Short-term vol > long-term vol", "bearish")
+                if not rising_vol.empty:
+                    st.markdown(f'<div class="signal-card bearish">📊 <strong>Rising Volatility</strong> ({len(rising_vol)} stocks)</div>', unsafe_allow_html=True)
+
     # ── SECTOR TOP 5 ────────────────────────────
     with dash_sub4:
         if has_col(scored, 'Sector'):
@@ -837,7 +906,16 @@ with main_tab0:
                         val_color = "#00d4aa" if not pd.isna(val) and float(val) > 0 else "#ff4d4d" if not pd.isna(val) and float(val) < 0 else "#ccc"
                         regime = r.get('Market Regime', '')
                         regime_dot = "🟢" if regime in ['Bull', 'Strong Bull'] else "🔴" if regime in ['Bear', 'Strong Bear'] else "🟡"
-                        rows_html += f'<div class="top5-row"><span class="top5-rank">{rank}.</span><span class="top5-sym">{regime_dot} {r[sym_col]}</span><span class="top5-val" style="color:{val_color}">{val_str}</span></div>'
+                        tech_i = r.get('Technical Insight', 'Hold')
+                        fund_i = r.get('Fundamental Insight', 'Hold')
+                        # Short codes for space
+                        def insight_code(i):
+                            return {'Strong Buy': 'SB', 'Buy': 'B', 'Hold': 'H', 'Sell': 'S', 'Strong Sell': 'SS'}.get(i, '—')
+                        def insight_color(i):
+                            return {'Strong Buy': '#00d4aa', 'Buy': '#4da6ff', 'Hold': '#888', 'Sell': '#ff8844', 'Strong Sell': '#ff4d4d'}.get(i, '#888')
+                        tech_badge = f'<span style="color:{insight_color(tech_i)};font-size:0.65rem;padding:0 0.25rem;border:1px solid {insight_color(tech_i)};border-radius:3px">{insight_code(tech_i)}</span>'
+                        fund_badge = f'<span style="color:{insight_color(fund_i)};font-size:0.65rem;padding:0 0.25rem;border:1px solid {insight_color(fund_i)};border-radius:3px">{insight_code(fund_i)}</span>'
+                        rows_html += f'<div class="top5-row"><span class="top5-rank">{rank}.</span><span class="top5-sym">{regime_dot} {r[sym_col]} <span style="margin-left:0.4rem">{tech_badge} {fund_badge}</span></span><span class="top5-val" style="color:{val_color}">{val_str}</span></div>'
 
                     with col:
                         st.markdown(f"""
@@ -940,6 +1018,26 @@ with main_tab1:
                         <span style="color:#888">{info['desc']}</span><br><br>
                         {rules_html}
                     </div>""", unsafe_allow_html=True)
+
+                    # Screen performance (requires snapshots)
+                    perf_row_html = ""
+                    for days_back, label in [(30, "1M"), (90, "3M"), (180, "6M")]:
+                        try:
+                            perf = get_screen_performance(active, days_back, run_screen, scored, sym_col=sym_col)
+                        except Exception:
+                            perf = None
+                        if perf is None:
+                            continue
+                        color = "#00d4aa" if perf['avg_return'] > 0 else "#ff4d4d"
+                        perf_row_html += (
+                            f'<div style="flex:1; min-width:130px; padding:0.5rem 0.7rem; background:#0f1117; border-radius:4px; border:1px solid #2a2a2a">'
+                            f'<div style="font-size:0.6rem; color:#888; font-family:IBM Plex Mono,monospace; text-transform:uppercase; letter-spacing:1px">{label} Performance</div>'
+                            f'<div style="font-size:1rem; color:{color}; font-family:IBM Plex Mono,monospace; font-weight:600">{perf["avg_return"]:+.2f}%</div>'
+                            f'<div style="font-size:0.65rem; color:#888; font-family:IBM Plex Mono,monospace">{perf["winners"]}W / {perf["losers"]}L · {perf["win_rate"]}% win rate · {perf["survivors"]} picks</div>'
+                            f'</div>'
+                        )
+                    if perf_row_html:
+                        st.markdown(f'<div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1rem">{perf_row_html}</div>', unsafe_allow_html=True)
 
                     result = run_screen(active, filtered)
                     rc1, rc2 = st.columns([5, 1])
@@ -1209,17 +1307,26 @@ with main_tab3:
         mcap = row.get('Market Cap (Cr)', np.nan)
         regime = row.get('Market Regime', '—')
         dd_status = row.get('Drawdown Status', '—')
+        tech_insight = row.get('Technical Insight', 'Hold')
+        fund_insight = row.get('Fundamental Insight', 'Hold')
         chg_class = color_class(day_chg)
 
-        # Header
+        tech_style = INSIGHT_COLORS.get(tech_insight, 'color:#aaa')
+        fund_style = INSIGHT_COLORS.get(fund_insight, 'color:#aaa')
+
+        # Header with insight badges
         st.markdown(f"""
         <div class="stock-card">
             <div class="stock-card-header">{sym}</div>
             <div class="stock-card-sub">{name} · {sector} · {industry} · {cap_cat}</div>
-            <div style="display:flex; gap:2rem; align-items:baseline; margin-bottom:0.5rem;">
+            <div style="display:flex; gap:2rem; align-items:baseline; margin-bottom:0.8rem;">
                 <span style="font-size:1.6rem; font-weight:700; color:#e0e0e0; font-family:'IBM Plex Mono',monospace">₹{fmt_val(price, ',.2f')}</span>
                 <span class="stock-card-val {chg_class}" style="font-size:0.9rem">{fmt_val(day_chg, '.2f', '%')}</span>
                 <span style="font-size:0.75rem; color:#888; font-family:'IBM Plex Mono',monospace">Mkt Cap: ₹{fmt_val(mcap, ',.0f')} Cr</span>
+            </div>
+            <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                <span style="padding:0.35rem 0.8rem; border-radius:4px; font-family:'IBM Plex Mono',monospace; font-size:0.75rem; {tech_style}">TECH: {tech_insight.upper()}</span>
+                <span style="padding:0.35rem 0.8rem; border-radius:4px; font-family:'IBM Plex Mono',monospace; font-size:0.75rem; {fund_style}">FUND: {fund_insight.upper()}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1327,6 +1434,47 @@ with main_tab3:
             </div>
             """, unsafe_allow_html=True)
 
+        # Trade Setup (ATR-based)
+        trade_levels = calc_trade_levels(row)
+        key_levels = get_key_levels(row)
+
+        if trade_levels:
+            atr_pct_val = row.get('ATR % (14D)', np.nan)
+            st.markdown(f"""
+            <div class="stock-card">
+                <div class="stock-card-section">Trade Setup (Reference Only)</div>
+                <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.6rem;">
+                    <div style="flex:1; min-width:110px; padding:0.5rem; background:#0f1117; border-radius:4px">
+                        <div style="font-size:0.6rem; color:#888; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:1px">Entry</div>
+                        <div style="font-size:0.95rem; color:#e0e0e0; font-family:'IBM Plex Mono',monospace; font-weight:600">₹{trade_levels['entry']:,.2f}</div>
+                    </div>
+                    <div style="flex:1; min-width:110px; padding:0.5rem; background:#0f1117; border-radius:4px">
+                        <div style="font-size:0.6rem; color:#888; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:1px">Stop Loss</div>
+                        <div style="font-size:0.95rem; color:#ff4d4d; font-family:'IBM Plex Mono',monospace; font-weight:600">₹{trade_levels['stop']:,.2f}</div>
+                        <div style="font-size:0.65rem; color:#888; font-family:'IBM Plex Mono',monospace">-{trade_levels['risk_pct']:.2f}%</div>
+                    </div>
+                    <div style="flex:1; min-width:110px; padding:0.5rem; background:#0f1117; border-radius:4px">
+                        <div style="font-size:0.6rem; color:#888; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:1px">Target 1 (2R)</div>
+                        <div style="font-size:0.95rem; color:#00d4aa; font-family:'IBM Plex Mono',monospace; font-weight:600">₹{trade_levels['target1']:,.2f}</div>
+                        <div style="font-size:0.65rem; color:#888; font-family:'IBM Plex Mono',monospace">+{trade_levels['reward1_pct']:.2f}%</div>
+                    </div>
+                    <div style="flex:1; min-width:110px; padding:0.5rem; background:#0f1117; border-radius:4px">
+                        <div style="font-size:0.6rem; color:#888; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:1px">Target 2 (3R)</div>
+                        <div style="font-size:0.95rem; color:#00d4aa; font-family:'IBM Plex Mono',monospace; font-weight:600">₹{trade_levels['target2']:,.2f}</div>
+                        <div style="font-size:0.65rem; color:#888; font-family:'IBM Plex Mono',monospace">+{trade_levels['reward2_pct']:.2f}%</div>
+                    </div>
+                </div>
+                <div style="font-size:0.7rem; color:#666; font-family:'IBM Plex Mono',monospace; margin-bottom:0.5rem">
+                    Based on ATR ({fmt_val(atr_pct_val, '.2f', '%')}) · Stop = 1.5× ATR below entry · Levels are illustrative, not investment advice
+                </div>
+                <div class="stock-card-section" style="font-size:0.6rem; margin-top:0.8rem">Key Reference Levels</div>
+                <div class="stock-card-row"><span class="stock-card-label">52W High</span><span class="stock-card-val">₹{fmt_val(key_levels['high_52w'], ',.2f')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">52W Low</span><span class="stock-card-val">₹{fmt_val(key_levels['low_52w'], ',.2f')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">EMA 50</span><span class="stock-card-val">₹{fmt_val(key_levels['ema_50'], ',.2f')}</span></div>
+                <div class="stock-card-row"><span class="stock-card-label">EMA 200</span><span class="stock-card-val">₹{fmt_val(key_levels['ema_200'], ',.2f')}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
         # Index membership
         idx_mem = row.get('Index Membership', '—')
         if not pd.isna(idx_mem) and idx_mem != '—':
@@ -1380,6 +1528,9 @@ with main_tab3:
                     ("Day Change %", "Day Change %", "{:.2f}%", True),
                     ("Market Cap (Cr)", "Market Cap (Cr)", "₹{:,.0f}", None),
                     ("Market Regime", "Market Regime", "{}", None),
+                    ("─── Insights ───", None, None, None),
+                    ("Technical Insight", "Technical Insight", "{}", None),
+                    ("Fundamental Insight", "Fundamental Insight", "{}", None),
                     ("─── Scores ───", None, None, None),
                     ("Technical Score", "Technical Score", "{:.1f}", True),
                     ("Momentum Score", "Momentum Score", "{:.1f}", True),
