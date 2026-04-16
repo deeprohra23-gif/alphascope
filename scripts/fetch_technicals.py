@@ -36,7 +36,7 @@ RSI_PERIOD = 14
 ST_ATR_PERIOD = 10
 ST_MULTIPLIER = 3.0
 ATR_PERIOD = 14
-MAX_WORKERS = 10
+MAX_WORKERS = 5
 SLEEP_BETWEEN = 0.3
 SMALL_CAP = 5_000
 MID_CAP = 20_000
@@ -225,8 +225,8 @@ def main():
     results = []
     failed = []
     failed_tickers = set()
-    BATCH_SIZE = 200
-    BATCH_COOLDOWN = 120  # seconds between batches
+    BATCH_SIZE = 150
+    BATCH_COOLDOWN = 150  # seconds between batches
 
     total_batches = (len(tickers) + BATCH_SIZE - 1) // BATCH_SIZE
     print(f"Fetching {len(tickers)} stocks in {total_batches} batches of {BATCH_SIZE} ({MAX_WORKERS} workers)...\n")
