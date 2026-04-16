@@ -754,7 +754,6 @@ with main_tab0:
             st.warning("Sector data not available.")
 
     # ── SIGNAL DASHBOARD ────────────────────────
-    # ── SIGNAL DASHBOARD ────────────────────────
     with dash_sub3:
         st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Key signals detected in the current data snapshot. Click any signal to expand the full list.</p>", unsafe_allow_html=True)
 
@@ -855,6 +854,7 @@ with main_tab0:
             if has_col(scored, 'Vol Trend'):
                 rising_vol = scored[scored['Vol Trend'] == 'Rising']
                 render_signal("Rising Volatility", rising_vol, "Short-term vol > long-term vol", "bearish")
+    
     # ── SECTOR TOP 5 ────────────────────────────
     with dash_sub4:
         if has_col(scored, 'Sector'):
@@ -1239,7 +1239,7 @@ with main_tab2:
 # TAB 3 — TOOLS (Stock Card, Compare, Watchlist)
 # ══════════════════════════════════════════════
 with main_tab3:
-    tools_sub1, tools_sub2, tools_sub3 = st.tabs(["🪪 Stock Card", "⚖ Compare", "📌 Watchlist"])
+    tools_sub1, tools_sub2, tools_sub3, tools_sub4 = st.tabs(["🪪 Stock Card", "⚖ Compare", "📌 Watchlist", "📚 Methodology"])
 
     # Build stock lookup list
     stock_options = []
@@ -1670,3 +1670,21 @@ with main_tab3:
                 with wl_ret:  show_table(watchlist_df, RETURNS_COLS, wl_sort, wl_asc, 'wl_ret')
                 with wl_risk: show_table(watchlist_df, RISK_COLS, wl_sort, wl_asc, 'wl_risk')
                 with wl_fund: show_table(watchlist_df, FUNDAMENTAL_COLS, wl_sort, wl_asc, 'wl_fund')
+
+    # ── METHODOLOGY ─────────────────────────────
+    with tools_sub4:
+        methodology_path = None
+        for p in ['METHODOLOGY.md', 'docs/METHODOLOGY.md']:
+            if os.path.exists(p):
+                methodology_path = p
+                break
+
+        if methodology_path is None:
+            st.warning("METHODOLOGY.md not found. Please ensure the file is in the repo root.")
+        else:
+            try:
+                with open(methodology_path, 'r', encoding='utf-8') as f:
+                    methodology_content = f.read()
+                st.markdown(methodology_content, unsafe_allow_html=False)
+            except Exception as e:
+                st.error(f"Could not load methodology file: {e}")
