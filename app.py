@@ -19,13 +19,14 @@ from history import get_previous_snapshot, compute_changes, get_screen_performan
 
 def get_data_timestamp():
     """Get last modified time of technicals.csv as data freshness indicator."""
+    from datetime import timezone, timedelta
+    IST = timezone(timedelta(hours=5, minutes=30))
     for path in ['data/technicals.csv', 'technicals.csv']:
         if os.path.exists(path):
             mtime = os.path.getmtime(path)
-            dt = datetime.fromtimestamp(mtime)
-            return dt.strftime('%d %b %Y, %I:%M %p')
+            dt = datetime.fromtimestamp(mtime, tz=IST)
+            return dt.strftime('%d %b %Y, %I:%M %p IST')
     return 'Unknown'
-
 # ────────────────────────────────────────────────
 # PAGE CONFIG & STYLES
 # ────────────────────────────────────────────────
