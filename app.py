@@ -113,8 +113,17 @@ def read_csv_safe(filename):
     return None
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_stock_data(version=1):
+def _file_mtime(path):
+    """Get file modification time — used as cache key to auto-invalidate on file change."""
+    try:
+        return os.path.getmtime(path) if os.path.exists(path) else 0
+    except Exception:
+        return 0
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def load_stock_data(mtime_tech=0, mtime_fund=0, mtime_const=0):
+    """Load technicals + fundamentals + constituents. Cache invalidates when any file changes."""
     tech = read_csv_safe('data/technicals.csv')
     if tech is None:
         try:
@@ -162,20 +171,24 @@ def load_stock_data(version=1):
     return tech
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_index_data(version=1):
+@st.cache_data(ttl=600, show_spinner=False)
+def load_index_data(mtime=0):
     return read_csv_safe('data/indices_technicals.csv')
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_global_data(version=1):
+@st.cache_data(ttl=600, show_spinner=False)
+def load_global_data(mtime=0):
     return read_csv_safe('data/global_technicals.csv')
 
 
 with st.spinner("Loading data..."):
-    df = load_stock_data(version=1)
-    idx_df = load_index_data(version=1)
-    glob_df = load_global_data(version=1)
+    df = load_stock_data(
+        mtime_tech=_file_mtime('data/technicals.csv'),
+        mtime_fund=_file_mtime('data/fundamentals.csv'),
+        mtime_const=_file_mtime('data/index_constituents.csv'),
+    )
+    idx_df = load_index_data(mtime=_file_mtime('data/indices_technicals.csv'))
+    glob_df = load_global_data(mtime=_file_mtime('data/global_technicals.csv'))
 
 sym_col = df.columns[0]
 ALL_DISPLAY_COLS = all_display_cols(sym_col)
