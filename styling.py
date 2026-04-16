@@ -60,6 +60,9 @@ def style_dataframe(data):
 
     # Green/red for numeric columns
     gr_cols = [c for c in GREEN_RED_COLS if c in data.columns]
+    # Also catch dynamic 'RS vs <index> NM %' columns (from index drill-down)
+    dynamic_rs_cols = [c for c in data.columns if c.startswith('RS vs ') and c.endswith(' %') and c not in gr_cols]
+    gr_cols += dynamic_rs_cols
     if gr_cols:
         styled = styled.map(_color_num, subset=gr_cols)
 
