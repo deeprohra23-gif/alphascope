@@ -133,30 +133,27 @@ def main():
         ticker = meta["ticker"]
         category = meta["category"]
         print(f"  Fetching {name} ({ticker})...", end=" ", flush=True)
-        try:
-            hist = None
-            for attempt in range(3):
-                try:
-                    hist = yf.Ticker(ticker).history(period="5y")
-                    if hist is not None and not hist.empty and len(hist) >= 30:
-                        break
-                except Exception:
-                    pass
-                if attempt < 2:
-                    print(f"retry {attempt + 1}...", end=" ", flush=True)
-                    time.sleep(10)
 
-            if hist is None or hist.empty or len(hist) < 30:
-                print(f"SKIP — insufficient data")
-                failed.append(name)
-                continue
+        # Try up to 3 times with 10s waits between attempts
+        hist = None
+        for attempt in range(3):
+            try:
+                hist_try = yf.Ticker(ticker).history(period="5y")
+                if hist_try is not None and not hist_try.empty and len(hist_try) >= 30:
+                    hist = hist_try
+                    break
+            except Exception:
+                pass
+            if attempt < 2:
+                print(f"retry {attempt + 1}...", end=" ", flush=True)
+                time.sleep(10)
 
-            row = calc_technicals(name, ticker, category, hist)
-            results.append(row)
-            print(f"{len(hist)} rows → Regime: {row['Market Regime']} ✓")
-        except Exception as e:
-            print(f"ERROR — {e}")
+        if hist is None:
+            print(f"SKIP — all 3 attempts failed")
             failed.append(name)
+            continue
+
+        try:
             row = calc_technicals(name, ticker, category, hist)
             results.append(row)
             print(f"{len(hist)} rows → Regime: {row['Market Regime']} ✓")
@@ -165,7 +162,7 @@ def main():
             failed.append(name)
 
     if not results:
-        print("No data fetched.")
+        print("No data fetched. Keeping previous file.")
         return
 
     out = pd.DataFrame(results)
@@ -181,16 +178,15 @@ def main():
     if OUTPUT_CSV.exists():
         try:
             prev = pd.read_csv(OUTPUT_CSV)
-            # Get names that succeeded today
             new_names = set(out['Name'].tolist())
-            # Keep old rows for instruments NOT in today's results
             old_kept = prev[~prev['Name'].isin(new_names)]
-            out = pd.concat([out, old_kept], ignore_index=True)
-        except Exception:
-            pass
+            if not old_kept.empty:
+                print(f"   Keeping {len(old_kept)} instruments from previous run (failed today)")
+                out = pd.concat([out, old_kept], ignore_index=True)
+        except Exception as e:
+            print(f"   Merge warning: {e}")
 
-    # Re-sort
-    cat_order = {"Commodity": 0, "Currency": 1, "Global Index": 2}
+    # Re-sort after merge
     out["_sort"] = out["Category"].map(cat_order)
     out = out.sort_values(["_sort", "Name"]).drop(columns="_sort").reset_index(drop=True)
 
