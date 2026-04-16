@@ -36,8 +36,8 @@ RSI_PERIOD = 14
 ST_ATR_PERIOD = 10
 ST_MULTIPLIER = 3.0
 ATR_PERIOD = 14
-MAX_WORKERS = 5
-SLEEP_BETWEEN = 1
+MAX_WORKERS = 10
+SLEEP_BETWEEN = 0.3
 SMALL_CAP = 5_000
 MID_CAP = 20_000
 
@@ -45,6 +45,8 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SYMBOLS = ROOT / "data" / "nifty500_symbols.csv"
 OUTPUT_CSV = ROOT / "data" / "technicals.csv"
 FAILED_CSV = ROOT / "data" / "failed_stocks.csv"
+HISTORY_DIR = ROOT / "data" / "history"
+HISTORY_RETENTION_DAYS = 365  # keep 1 year of snapshots
 
 
 # ────────────────────────────────────────────────
@@ -55,7 +57,7 @@ def get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret):
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
-        hist = stock.history(period="6y")
+        hist = stock.history(period="max")
 
         if hist.empty or len(hist) < 30:
             return None, ticker
@@ -220,127 +222,87 @@ def main():
     print(f"Nifty history: {len(nifty_hist)} rows\n")
 
     # Parallel fetch
-  # Parallel fetch
-    # Batched parallel fetch — avoids rate limiting
     results = []
     failed = []
-    BATCH_SIZE = 200
-    BATCH_COOLDOWN = 120  # seconds between batches
 
-    total_batches = (len(tickers) + BATCH_SIZE - 1) // BATCH_SIZE
-    print(f"Fetching {len(tickers)} stocks in {total_batches} batches of {BATCH_SIZE} ({MAX_WORKERS} workers)...\n")
+    print(f"Fetching {len(tickers)} stocks with {MAX_WORKERS} workers...\n")
 
-    for batch_num in range(total_batches):
-        batch_start = batch_num * BATCH_SIZE
-        batch_end = min(batch_start + BATCH_SIZE, len(tickers))
-        batch = tickers[batch_start:batch_end]
-
-        print(f"── Batch {batch_num + 1}/{total_batches} ({len(batch)} stocks) ──")
-
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            future_map = {
-                executor.submit(get_stock_data, t, nifty_close, nifty_daily_ret, nifty_monthly_ret): t
-                for t in batch
-            }
-            for i, future in enumerate(as_completed(future_map), 1):
-                ticker = future_map[future]
-                global_idx = batch_start + i
-                try:
-                    data, fail = future.result()
-                    if data:
-                        results.append(data)
-                        print(f"  ✓ [{global_idx:3d}/{len(tickers)}] {ticker}")
-                    else:
-                        failed.append(fail or ticker)
-                        print(f"  – [{global_idx:3d}/{len(tickers)}] {ticker}  (skipped)")
-                except Exception as e:
-                    failed.append(ticker)
-                    print(f"  ✗ [{global_idx:3d}/{len(tickers)}] {ticker}  ERROR: {e}")
-
-                time.sleep(SLEEP_BETWEEN / MAX_WORKERS)
-
-        # Cooldown between batches (skip after last batch)
-        if batch_num < total_batches - 1:
-            print(f"\n  ⏳ Cooling down {BATCH_COOLDOWN}s before next batch...\n")
-            time.sleep(BATCH_COOLDOWN)
-    # Retry failed stocks (rate-limited ones often succeed on second pass)
-    retry_failed = []
-    if failed:
-        print(f"\n🔄 Retrying {len(failed)} failed stocks (30s cooldown)...\n")
-        time.sleep(120)
-        retry_failed = []
-        for i, ticker in enumerate(failed, 1):
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        future_map = {
+            executor.submit(get_stock_data, t, nifty_close, nifty_daily_ret, nifty_monthly_ret): t
+            for t in tickers
+        }
+        for i, future in enumerate(as_completed(future_map), 1):
+            ticker = future_map[future]
             try:
-                data, fail = get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret)
+                data, fail = future.result()
                 if data:
                     results.append(data)
-                    print(f"  ✓ [retry {i}/{len(failed)}] {ticker}")
+                    print(f"  ✓ [{i:3d}/{len(tickers)}] {ticker}")
                 else:
-                    retry_failed.append({"Ticker": fail or ticker, "Reason": "No data"})
-                    print(f"  – [retry {i}/{len(failed)}] {ticker}  (skipped)")
+                    failed.append({"Ticker": fail or ticker, "Reason": "No data / insufficient history"})
+                    print(f"  – [{i:3d}/{len(tickers)}] {ticker}  (skipped)")
             except Exception as e:
-                retry_failed.append({"Ticker": ticker, "Reason": str(e)})
-                print(f"  ✗ [retry {i}/{len(failed)}] {ticker}  ERROR: {e}")
-            time.sleep(2)
-        failed = retry_failed
-    # BSE fallback for tickers that consistently fail on NSE
-    if retry_failed:
-        bse_tickers = [item["Ticker"] for item in retry_failed if item["Ticker"].endswith(".NS")]
-        if bse_tickers:
-            print(f"\n🔄 Trying BSE fallback for {len(bse_tickers)} tickers (30s cooldown)...\n")
-            time.sleep(120)
-            bse_still_failed = []
-            for i, ticker in enumerate(bse_tickers, 1):
-                bse_ticker = ticker.replace(".NS", ".BO")
-                try:
-                    data, fail = get_stock_data(bse_ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret)
-                    if data:
-                        data["Symbol"] = ticker  # keep original .NS symbol
-                        results.append(data)
-                        print(f"  ✓ [BSE {i}/{len(bse_tickers)}] {ticker} via {bse_ticker}")
-                    else:
-                        bse_still_failed.append({"Ticker": ticker, "Reason": "BSE also failed"})
-                        print(f"  – [BSE {i}/{len(bse_tickers)}] {ticker}  (skipped)")
-                except Exception as e:
-                    bse_still_failed.append({"Ticker": ticker, "Reason": str(e)})
-                    print(f"  ✗ [BSE {i}/{len(bse_tickers)}] {ticker}  ERROR: {e}")
-                time.sleep(2)
-            # Replace retry_failed with only the ones that failed BSE too
-            non_nse = [item for item in retry_failed if not item["Ticker"].endswith(".NS")]
-            failed = non_nse + bse_still_failed
-        else:
-            failed = retry_failed
-    else:
-        failed = retry_failed
-   # Save
-    # Save — merge with previous data to avoid losing stocks that failed today
+                failed.append({"Ticker": ticker, "Reason": str(e)})
+                print(f"  ✗ [{i:3d}/{len(tickers)}] {ticker}  ERROR: {e}")
+
+            time.sleep(SLEEP_BETWEEN / MAX_WORKERS)
+
+    # Save — merge with previous data + archive snapshot
     if results:
         df = pd.DataFrame(results)
         df = df.sort_values("Market Cap (Cr)", ascending=False, na_position="last").reset_index(drop=True)
         OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
 
-        # Merge: keep old data for stocks that failed today
+        # Merge: keep old rows for stocks that failed today
         if OUTPUT_CSV.exists():
             try:
                 prev = pd.read_csv(OUTPUT_CSV)
                 new_syms = set(df['Symbol'].tolist())
                 old_kept = prev[~prev['Symbol'].isin(new_syms)]
                 if not old_kept.empty:
-                    print(f"   Keeping {len(old_kept)} stocks from previous run (failed today)")
+                    print(f"   Keeping {len(old_kept)} stocks from previous run (not in today's results)")
                     df = pd.concat([df, old_kept], ignore_index=True)
                     df = df.sort_values("Market Cap (Cr)", ascending=False, na_position="last").reset_index(drop=True)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"   Merge warning: {e}")
 
         df.to_csv(OUTPUT_CSV, index=False)
         print(f"\n✅ Saved {len(df)} stocks → {OUTPUT_CSV}")
+
+        # Archive daily snapshot
+        try:
+            from datetime import datetime, timedelta
+            HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            snapshot_path = HISTORY_DIR / f"{today_str}.csv"
+            df.to_csv(snapshot_path, index=False)
+            print(f"📸 Archived snapshot → {snapshot_path}")
+
+            # Cleanup old snapshots (retention window)
+            cutoff = datetime.now() - timedelta(days=HISTORY_RETENTION_DAYS)
+            removed = 0
+            for f in HISTORY_DIR.glob("*.csv"):
+                try:
+                    file_date = datetime.strptime(f.stem, "%Y-%m-%d")
+                    if file_date < cutoff:
+                        f.unlink()
+                        removed += 1
+                except ValueError:
+                    continue
+            if removed > 0:
+                print(f"🧹 Cleaned up {removed} old snapshots (>{HISTORY_RETENTION_DAYS} days)")
+        except Exception as e:
+            print(f"⚠️  Snapshot archival failed: {e}")
     else:
         print("\n⚠️  No results to save. Keeping previous file.")
+
     if failed:
         pd.DataFrame(failed).to_csv(FAILED_CSV, index=False)
-        print(f"⚠️  {len(failed)} still failed → {FAILED_CSV}")
+        print(f"⚠️  {len(failed)} failed → {FAILED_CSV}")
 
     print("\nDone.")
+
 
 if __name__ == "__main__":
     main()
