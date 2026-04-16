@@ -221,32 +221,109 @@ def main():
     nifty_monthly_ret = nifty_close.resample("ME").last().pct_change().dropna()
     print(f"Nifty history: {len(nifty_hist)} rows\n")
 
-    # Parallel fetch
+    # Batched parallel fetch — avoids rate limiting
     results = []
     failed = []
+    failed_tickers = set()
+    BATCH_SIZE = 200
+    BATCH_COOLDOWN = 120  # seconds between batches
 
-    print(f"Fetching {len(tickers)} stocks with {MAX_WORKERS} workers...\n")
+    total_batches = (len(tickers) + BATCH_SIZE - 1) // BATCH_SIZE
+    print(f"Fetching {len(tickers)} stocks in {total_batches} batches of {BATCH_SIZE} ({MAX_WORKERS} workers)...\n")
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        future_map = {
-            executor.submit(get_stock_data, t, nifty_close, nifty_daily_ret, nifty_monthly_ret): t
-            for t in tickers
-        }
-        for i, future in enumerate(as_completed(future_map), 1):
-            ticker = future_map[future]
+    for batch_num in range(total_batches):
+        batch_start = batch_num * BATCH_SIZE
+        batch_end = min(batch_start + BATCH_SIZE, len(tickers))
+        batch = tickers[batch_start:batch_end]
+
+        print(f"── Batch {batch_num + 1}/{total_batches} ({len(batch)} stocks) ──")
+
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_map = {
+                executor.submit(get_stock_data, t, nifty_close, nifty_daily_ret, nifty_monthly_ret): t
+                for t in batch
+            }
+            for i, future in enumerate(as_completed(future_map), 1):
+                ticker = future_map[future]
+                global_idx = batch_start + i
+                try:
+                    data, fail = future.result()
+                    if data:
+                        results.append(data)
+                        print(f"  ✓ [{global_idx:3d}/{len(tickers)}] {ticker}")
+                    else:
+                        failed_tickers.add(ticker)
+                        failed.append({"Ticker": fail or ticker, "Reason": "No data / insufficient history"})
+                        print(f"  – [{global_idx:3d}/{len(tickers)}] {ticker}  (skipped)")
+                except Exception as e:
+                    failed_tickers.add(ticker)
+                    failed.append({"Ticker": ticker, "Reason": str(e)})
+                    print(f"  ✗ [{global_idx:3d}/{len(tickers)}] {ticker}  ERROR: {e}")
+
+                time.sleep(SLEEP_BETWEEN / MAX_WORKERS)
+
+        # Cooldown between batches (skip after last batch)
+        if batch_num < total_batches - 1:
+            print(f"\n  ⏳ Cooling down {BATCH_COOLDOWN}s before next batch...\n")
+            time.sleep(BATCH_COOLDOWN)
+
+    # Retry pass — single-threaded with longer sleeps (for rate-limited ones)
+    retry_failed = set()
+    if failed_tickers:
+        print(f"\n── Retry pass for {len(failed_tickers)} failed stocks ──")
+        print(f"   Waiting 30s before retry...")
+        time.sleep(30)
+
+        success_syms = {r['Symbol'] for r in results if 'Symbol' in r}
+
+        for j, ticker in enumerate(sorted(failed_tickers), 1):
             try:
-                data, fail = future.result()
-                if data:
+                data, fail = get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret)
+                if data and data.get('Symbol') not in success_syms:
                     results.append(data)
-                    print(f"  ✓ [{i:3d}/{len(tickers)}] {ticker}")
+                    success_syms.add(data['Symbol'])
+                    print(f"  ✓ [RETRY {j}/{len(failed_tickers)}] {ticker}")
                 else:
-                    failed.append({"Ticker": fail or ticker, "Reason": "No data / insufficient history"})
-                    print(f"  – [{i:3d}/{len(tickers)}] {ticker}  (skipped)")
+                    retry_failed.add(ticker)
+                    print(f"  – [RETRY {j}/{len(failed_tickers)}] {ticker}  (still failed)")
             except Exception as e:
-                failed.append({"Ticker": ticker, "Reason": str(e)})
-                print(f"  ✗ [{i:3d}/{len(tickers)}] {ticker}  ERROR: {e}")
+                retry_failed.add(ticker)
+                print(f"  ✗ [RETRY {j}/{len(failed_tickers)}] {ticker}  ERROR: {e}")
 
-            time.sleep(SLEEP_BETWEEN / MAX_WORKERS)
+            time.sleep(2)
+
+    # BSE fallback — try .BO for anything still failing
+    bse_recovered = 0
+    if retry_failed:
+        print(f"\n── BSE fallback for {len(retry_failed)} still-failing stocks ──")
+        print(f"   Waiting 30s before BSE attempts...")
+        time.sleep(30)
+
+        success_syms = {r['Symbol'] for r in results if 'Symbol' in r}
+
+        for k, ticker in enumerate(sorted(retry_failed), 1):
+            bse_ticker = ticker.replace('.NS', '.BO')
+            try:
+                data, fail = get_stock_data(bse_ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret)
+                if data:
+                    # Store under original .NS symbol so it merges with rest
+                    data['Symbol'] = ticker
+                    if ticker not in success_syms:
+                        results.append(data)
+                        success_syms.add(ticker)
+                        bse_recovered += 1
+                        print(f"  ✓ [BSE {k}/{len(retry_failed)}] {ticker} (via {bse_ticker})")
+                    else:
+                        print(f"  – [BSE {k}/{len(retry_failed)}] {ticker}  (already recovered)")
+                else:
+                    print(f"  – [BSE {k}/{len(retry_failed)}] {ticker}  (BSE also failed)")
+            except Exception as e:
+                print(f"  ✗ [BSE {k}/{len(retry_failed)}] {ticker}  ERROR: {e}")
+
+            time.sleep(2)
+
+        if bse_recovered > 0:
+            print(f"\n   BSE fallback recovered {bse_recovered} stocks")
 
     # Save — merge with previous data + archive snapshot
     if results:
