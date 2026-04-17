@@ -1163,7 +1163,7 @@ with main_tab2:
             )
 
             # Drill-down
-            st.markdown('<div class="index-click-hint">▸ Select an index below to analyse its constituent stocks</div>', unsafe_allow_html=True)
+            st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>▸ Select an index below to analyse its constituent stocks, view advances/declines, and compare relative strength.</p>", unsafe_allow_html=True)
 
             all_index_names = sorted(idx_df['Index'].dropna().tolist()) if idx_df is not None else []
             drill_col1, drill_col2 = st.columns([3, 1])
