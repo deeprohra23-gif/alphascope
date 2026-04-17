@@ -49,8 +49,9 @@ INSTRUMENTS = {
     "Nikkei 225":   {"ticker": "^N225",    "category": "Global Index"},
     "Hang Seng":    {"ticker": "^HSI",     "category": "Global Index"},
     "FTSE 100":     {"ticker": "^FTSE",    "category": "Global Index"},
+    "India VIX":    {"ticker": "^INDIAVIX", "category": "Global Index"},
+    "US 10Y Yield": {"ticker": "^TNX",     "category": "Global Index"},
 }
-
 
 # ─────────────────────────────────────────────
 # CALC ALL INDICATORS FOR ONE INSTRUMENT
