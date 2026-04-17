@@ -1189,8 +1189,23 @@ with main_tab2:
                 if idx_stocks.empty:
                     st.warning(f"No constituent stocks found for {selected_index}.")
                 else:
-                    st.markdown(f"### 📊 {selected_index} — {len(idx_stocks)} stocks")
+                    # Advance / Decline summary
+                    day_chg_col = pd.to_numeric(idx_stocks.get('Day Change %', pd.Series()), errors='coerce')
+                    adv = (day_chg_col > 0).sum()
+                    dec = (day_chg_col < 0).sum()
+                    unch = (day_chg_col == 0).sum()
+                    ad_ratio = round(adv / dec, 2) if dec > 0 else adv
+                    ad_color = "#00d4aa" if adv > dec else "#ff4d4d" if dec > adv else "#888"
 
+                    st.markdown(f"### 📊 {selected_index} — {len(idx_stocks)} stocks")
+                    st.markdown(f"""
+                    <div style="display:flex; gap:0.8rem; margin-bottom:1rem; flex-wrap:wrap">
+                        <div class="metric-card" style="flex:1;min-width:100px"><div class="metric-label">Advances</div><div class="metric-value" style="color:#00d4aa">{adv}</div></div>
+                        <div class="metric-card" style="flex:1;min-width:100px"><div class="metric-label">Declines</div><div class="metric-value" style="color:#ff4d4d">{dec}</div></div>
+                        <div class="metric-card" style="flex:1;min-width:100px"><div class="metric-label">Unchanged</div><div class="metric-value" style="color:#888">{unch}</div></div>
+                        <div class="metric-card" style="flex:1;min-width:100px"><div class="metric-label">A/D Ratio</div><div class="metric-value" style="color:{ad_color}">{ad_ratio}</div></div>
+                    </div>
+                    """, unsafe_allow_html=True)
                     # Compute RS vs the selected index (stock ROC - index ROC)
                     if idx_df is not None:
                         idx_row = idx_df[idx_df['Index'] == selected_index]
