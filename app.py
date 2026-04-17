@@ -597,7 +597,7 @@ with main_tab0:
         above_ema50 = pct_of(price, price > ema50_vals) if 'EMA 50' in scored.columns else 0
         above_ema200 = pct_of(price, price > ema200_vals) if 'EMA 200' in scored.columns else 0
 
-        bc1, bc2, bc3, bc4, bc5 = st.columns(5)
+        bc1, bc2, bc3, bc4, bc5, bc6 = st.columns(6)
         with bc1:
             st.markdown(f'<div class="metric-card"><div class="metric-label">Above EMA 50</div><div class="metric-value">{above_ema50}%</div></div>', unsafe_allow_html=True)
         with bc2:
@@ -615,6 +615,13 @@ with main_tab0:
                 gc_pct = pct_of(scored['EMA Cross'], scored['EMA Cross'] == 'Golden Cross')
                 st.markdown(f'<div class="metric-card"><div class="metric-label">Golden Cross</div><div class="metric-value">{gc_pct}%</div></div>', unsafe_allow_html=True)
 
+        with bc6:
+            day_chg = pd.to_numeric(scored.get('Day Change %', pd.Series()), errors='coerce')
+            advances = (day_chg > 0).sum()
+            declines = (day_chg < 0).sum()
+            ad_ratio = round(advances / declines, 2) if declines > 0 else 0
+            ad_color = "#00d4aa" if ad_ratio > 1 else "#ff4d4d"
+            st.markdown(f'<div class="metric-card"><div class="metric-label">Adv/Dec Ratio</div><div class="metric-value" style="color:{ad_color}">{ad_ratio} ({advances}/{declines})</div></div>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
         # Regime distribution bar
