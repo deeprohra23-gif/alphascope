@@ -14,7 +14,7 @@ from styling import style_dataframe
 from screens import run_screen
 from insights import add_insights, INSIGHT_COLORS
 from trade_setup import calc_trade_levels, get_key_levels
-from history import get_previous_snapshot, compute_changes, get_screen_performance
+from history import get_previous_snapshot, compute_changes, get_screen_performance, list_snapshots
 
 
 def get_data_timestamp():
@@ -529,14 +529,28 @@ with main_tab0:
 
     # ── WHAT CHANGED TODAY ──────────────────────
     with dash_sub0:
-        yday_date, yday_df = get_previous_snapshot(scored)
+        snapshots = list_snapshots()
+        if len(snapshots) >= 2:
+            # Load most recent as "today" and second most recent as "yesterday"
+            try:
+                today_snap = pd.read_csv(snapshots[0][1])
+                yday_date = snapshots[1][0]
+                yday_df = pd.read_csv(snapshots[1][1])
+                # Use today's snapshot for comparison instead of live scored data
+                scored_for_changes = today_snap
+            except Exception:
+                yday_date, yday_df = None, None
+                scored_for_changes = scored
+        else:
+            yday_date, yday_df = None, None
+            scored_for_changes = scored
 
         if yday_df is None:
             st.info("📅 No previous snapshot available yet. Daily snapshots will start accumulating once the automated pipeline runs. Check back tomorrow to see day-over-day changes.")
         else:
             st.markdown(f"<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Comparing today's data against snapshot from <strong>{yday_date}</strong>. Signals shown are fresh changes, not static counts.</p>", unsafe_allow_html=True)
 
-            changes = compute_changes(scored, yday_df, sym_col=sym_col)
+            changes = compute_changes(scored_for_changes, yday_df, sym_col=sym_col)
 
             def render_change_signal(label, sig_df, extra_desc="", kind="bullish", key_suffix=""):
                 if sig_df is None or sig_df.empty:
