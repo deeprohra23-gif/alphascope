@@ -43,22 +43,19 @@ def load_snapshot(date_str):
 
 def get_previous_snapshot(today_df):
     """
-    Get the most recent snapshot that's not from today.
-    Returns (date_str, df) or (None, None) if not found.
+    Get the two most recent snapshots for comparison.
+    Returns (date_str, df) of the second-most-recent snapshot.
     """
     snapshots = list_snapshots()
-    today = datetime.now().strftime('%Y-%m-%d')
+    if len(snapshots) < 2:
+        return None, None
 
-    for date_str, path in snapshots:
-        if date_str == today:
-            continue
-        try:
-            df = pd.read_csv(path)
-            return date_str, df
-        except Exception:
-            continue
-    return None, None
-
+    # Most recent is snapshots[0], second most recent is snapshots[1]
+    try:
+        df = pd.read_csv(snapshots[1][1])
+        return snapshots[1][0], df
+    except Exception:
+        return None, None
 
 def compute_changes(today_df, yday_df, sym_col='Symbol'):
     """
