@@ -179,7 +179,22 @@ def load_index_data(mtime=0):
 
 @st.cache_data(ttl=600, show_spinner=False)
 def load_global_data(mtime=0):
-    return read_csv_safe('data/global_technicals.csv')
+    return read_csv_safe('data/global_technicals.csv')def load_etf_mapping():
+    try:
+        etf_df = pd.read_csv('data/etf_mapping.csv')
+        mapping = {}
+        for _, row in etf_df.iterrows():
+            idx = row['Index'].strip()
+            sym = row['ETF_Symbol'].strip()
+            if idx in mapping:
+                mapping[idx].append(sym)
+            else:
+                mapping[idx] = [sym]
+        return mapping
+    except Exception:
+        return {}
+
+etf_mapping = load_etf_mapping()
 
 
 with st.spinner("Loading data..."):
@@ -1141,6 +1156,10 @@ with main_tab2:
             st.warning("indices_technicals.csv not found. Run `python scripts/fetch_indices.py` first.")
         else:
             idx_display = idx_df.copy()
+            # Add ETF column
+            idx_display['Available ETF'] = idx_display['Index'].map(
+                lambda x: ', '.join(etf_mapping.get(x, [])) if etf_mapping.get(x) else '—'
+            )
             for period, col in [('1M', 'ROC 1M %'), ('3M', 'ROC 3M %')]:
                 if col in idx_display.columns:
                     idx_display[f'Momentum Rank {period}'] = idx_display[col].rank(ascending=False, method='min').astype('Int64')
