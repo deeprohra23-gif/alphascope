@@ -61,7 +61,7 @@ FUNDAMENTAL_COLS = [
 ]
 
 INDEX_COLS = [
-    'Index', 'Category', 'Market Regime', 'Current Price', 'Day Change %',
+    'Index', 'Category', 'Available ETF', 'Market Regime', 'Current Price', 'Day Change %',
     'EMA 50', 'EMA 200', 'EMA Cross',
     'RSI 14', 'MACD Signal', 'Supertrend',
     'ROC 1M %', 'ROC 3M %', 'ROC 6M %',
