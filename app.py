@@ -180,7 +180,8 @@ def load_index_data(mtime=0):
 @st.cache_data(ttl=600, show_spinner=False)
 
 def load_global_data(mtime=0):
-    return read_csv_safe('data/global_technicals.csv')def load_etf_mapping():
+    return read_csv_safe('data/global_technicals.csv')
+    def load_etf_mapping():
     try:
         etf_df = pd.read_csv('data/etf_mapping.csv')
         mapping = {}
