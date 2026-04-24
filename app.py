@@ -249,7 +249,7 @@ def show_table(data_df, cols, sort_by, sort_asc, key_suffix=""):
     else:
         disp = data_df[disp_cols].copy()
 
-    if sort_by and sort_by in disp.columns:
+    if sort_by and sort_by in data_df.columns:
         try:
             actual_sort = '_rank_sort' if sort_by == 'Universe Rank' and '_rank_sort' in disp.columns else sort_by
             disp = disp.sort_values(actual_sort, ascending=sort_asc, na_position='last')
