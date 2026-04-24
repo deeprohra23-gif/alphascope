@@ -1275,6 +1275,29 @@ with main_tab2:
                         'RS vs Nifty 1M %', 'RS vs Nifty 3M %', 'RS vs Nifty 6M %',
                     ] + rs_vs_index_cols + ['Momentum Rank 1M', 'Momentum Score']
 
+                    # Top 5 Gainers & Losers
+                    day_chg_sorted = idx_stocks.dropna(subset=['Day Change %']).copy()
+                    day_chg_sorted['Day Change %'] = pd.to_numeric(day_chg_sorted['Day Change %'], errors='coerce')
+
+                    top5_gain = day_chg_sorted.nlargest(5, 'Day Change %')
+                    top5_lose = day_chg_sorted.nsmallest(5, 'Day Change %')
+
+                    gl_col1, gl_col2 = st.columns(2)
+                    with gl_col1:
+                        gain_html = '<div class="top5-card"><div class="top5-header">🟢 Top 5 Gainers</div>'
+                        for _, r in top5_gain.iterrows():
+                            chg = r['Day Change %']
+                            gain_html += f'<div class="top5-row"><span class="top5-sym">{r[sym_col]}</span><span class="top5-val" style="color:#00d4aa">+{chg:.2f}%</span></div>'
+                        gain_html += '</div>'
+                        st.markdown(gain_html, unsafe_allow_html=True)
+                    with gl_col2:
+                        lose_html = '<div class="top5-card"><div class="top5-header">🔴 Top 5 Losers</div>'
+                        for _, r in top5_lose.iterrows():
+                            chg = r['Day Change %']
+                            lose_html += f'<div class="top5-row"><span class="top5-sym">{r[sym_col]}</span><span class="top5-val" style="color:#ff4d4d">{chg:.2f}%</span></div>'
+                        lose_html += '</div>'
+                        st.markdown(lose_html, unsafe_allow_html=True)
+
                     ds1, ds2 = st.columns([3, 1])
                     with ds1:
                         drill_sort_default_opts = ['ROC 3M %', 'ROC 1M %', 'Market Cap (Cr)', 'RSI 14', 'Momentum Quality', 'RS vs Nifty 3M %']
