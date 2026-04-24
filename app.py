@@ -244,6 +244,30 @@ def show_table(data_df, cols, sort_by, sort_asc, key_suffix=""):
             deduped.append(c)
     disp_cols = deduped
 
+    # Sort on FULL dataframe first (so sort works even if column isn't displayed)
+    sorted_df = data_df.copy()
+    if sort_by and sort_by in sorted_df.columns:
+        try:
+            actual_sort = '_rank_sort' if sort_by == 'Universe Rank' and '_rank_sort' in sorted_df.columns else sort_by
+            sorted_df = sorted_df.sort_values(actual_sort, ascending=sort_asc, na_position='last')
+        except Exception:
+            pass
+
+    # Then slice to display columns
+    disp = sorted_df[disp_cols].copy()
+    disp = disp.reset_index(drop=True)
+    disp.index = disp.index + 1
+    disp.index.name = 'Sr No'
+
+    col_config = {sym_col: st.column_config.Column(pinned=True)}
+    st.dataframe(
+        style_dataframe(disp),
+        use_container_width=True,
+        height=560,
+        column_config=col_config,
+        key=f"table_{key_suffix}"
+    )
+    return disp
     if '_rank_sort' in data_df.columns and '_rank_sort' not in disp_cols:
         disp = data_df[disp_cols + ['_rank_sort']].copy()
     else:
