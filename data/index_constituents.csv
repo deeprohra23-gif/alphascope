@@ -39,7 +39,6 @@ AIAENG.NS,"Nifty 500, Nifty India Manufacturing, Nifty Midcap 150, Nifty Total M
 AIIL.NS,"Nifty 500, Nifty Midcap 150, Nifty Total Market"
 AJANTPHARM.NS,"Nifty 500, Nifty Midcap 150, Nifty Pharma, Nifty Total Market"
 AKUMS.NS,Nifty Total Market
-AKZOINDIA.NS,"Nifty 500, Nifty Smallcap 250, Nifty Total Market"
 ALIVUS.NS,Nifty Total Market
 ALKEM.NS,"Nifty 200, Nifty 500, Nifty Healthcare Index, Nifty India Manufacturing, Nifty Midcap 150, Nifty Pharma, Nifty Total Market"
 ALKYLAMINE.NS,Nifty Total Market
@@ -48,6 +47,7 @@ ALOKINDS.NS,Nifty Total Market
 AMAGI.NS,Nifty Ipo
 AMBER.NS,"Nifty 500, Nifty Alpha 50, Nifty High Beta 50, Nifty India New Age Consumption, Nifty Smallcap 250, Nifty Total Market"
 AMBUJACEM.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Commodities, Nifty Housing, Nifty Infrastructure, Nifty Mnc, Nifty Rural, Nifty Total Market, Nifty100 Esg"
+AMIRCHAND.NS,Nifty Ipo
 ANANDRATHI.NS,"Nifty 500, Nifty Capital Markets, Nifty Smallcap 250, Nifty Total Market"
 ANANTRAJ.NS,"Nifty 500, Nifty India New Age Consumption, Nifty Realty, Nifty Smallcap 250, Nifty Total Market"
 ANGELONE.NS,"Nifty 500, Nifty Capital Markets, Nifty High Beta 50, Nifty India Internet, Nifty India New Age Consumption, Nifty Smallcap 250, Nifty Total Market"
@@ -176,6 +176,7 @@ CINELINE.NS,Nifty Waves
 CIPLA.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Healthcare Index, Nifty India Manufacturing, Nifty Low Volatility 50, Nifty Pharma, Nifty Total Market"
 CLEAN.NS,"Nifty 500, Nifty Smallcap 250, Nifty Total Market"
 CLEANMAX.NS,Nifty Ipo
+CMPDI.NS,Nifty Ipo
 CMSINFO.NS,Nifty Total Market
 COALINDIA.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Commodities, Nifty Cpse, Nifty Energy, Nifty Pse, Nifty Total Market, Nifty100 Quality 30"
 COCHINSHIP.NS,"Nifty 200, Nifty 500, Nifty Cpse, Nifty India Defence, Nifty India Manufacturing, Nifty Midcap 150, Nifty Total Market"
@@ -236,7 +237,6 @@ ELECTCAST.NS,Nifty Total Market
 ELGIEQUIP.NS,"Nifty 500, Nifty Smallcap 250, Nifty Total Market"
 ELLEN.NS,"Nifty Ipo, Nifty Total Market"
 EMAMILTD.NS,"Nifty 500, Nifty Fmcg, Nifty Smallcap 250, Nifty Total Market"
-EMBDL.NS,Nifty Total Market
 EMCURE.NS,"Nifty 500, Nifty Smallcap 250, Nifty Total Market"
 EMIL.NS,Nifty Total Market
 EMMVEE.NS,"Nifty 500, Nifty Ipo, Nifty Smallcap 250, Nifty Total Market"
@@ -419,6 +419,7 @@ JSFB.NS,Nifty Total Market
 JSL.NS,"Nifty 500, Nifty Housing, Nifty Metal, Nifty Midcap 150, Nifty Total Market"
 JSLL.NS,Nifty Total Market
 JSWCEMENT.NS,"Nifty 500, Nifty Ipo, Nifty Smallcap 250, Nifty Total Market"
+JSWDULUX.NS,"Nifty 500, Nifty Smallcap 250, Nifty Total Market"
 JSWENERGY.NS,"Nifty 200, Nifty 500, Nifty Commodities, Nifty Energy, Nifty High Beta 50, Nifty Housing, Nifty Midcap 150, Nifty Rural, Nifty Total Market, Nifty100 Esg"
 JSWINFRA.NS,"Nifty 500, Nifty Midcap 150, Nifty Total Market"
 JSWSTEEL.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Commodities, Nifty Housing, Nifty India Manufacturing, Nifty Low Volatility 50, Nifty Metal, Nifty Total Market, Nifty100 Esg"
@@ -597,6 +598,7 @@ POLYCAB.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Housing, Nifty India Man
 POLYMED.NS,"Nifty 500, Nifty Smallcap 250, Nifty Total Market"
 POONAWALLA.NS,"Nifty 500, Nifty Alpha 50, Nifty Rural, Nifty Smallcap 250, Nifty Total Market"
 POWERGRID.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Cpse, Nifty Energy, Nifty Infrastructure, Nifty Low Volatility 50, Nifty Pse, Nifty Services Sector, Nifty Total Market, Nifty100 Esg"
+POWERICA.NS,Nifty Ipo
 POWERINDIA.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Energy, Nifty Midcap 150, Nifty Mnc, Nifty Total Market"
 POWERMECH.NS,Nifty Total Market
 PPLPHARMA.NS,"Nifty 500, Nifty Healthcare Index, Nifty Pharma, Nifty Smallcap 250, Nifty Total Market"
@@ -652,11 +654,11 @@ RTNPOWER.NS,Nifty Total Market
 RUBICON.NS,"Nifty Ipo, Nifty Total Market"
 RVNL.NS,"Nifty 200, Nifty 500, Nifty High Beta 50, Nifty Housing, Nifty India Railways Psu, Nifty Midcap 150, Nifty Pse, Nifty Total Market"
 SAATVIKGL.NS,"Nifty Ipo, Nifty Total Market"
-SABEVENTS.NS,Nifty Waves
 SAFARI.NS,Nifty Total Market
 SAGILITY.NS,"Nifty 500, Nifty India Digital, Nifty Smallcap 250, Nifty Total Market"
 SAIL.NS,"Nifty 200, Nifty 500, Nifty High Beta 50, Nifty Housing, Nifty India Railways Psu, Nifty Metal, Nifty Midcap 150, Nifty Total Market"
 SAILIFE.NS,"Nifty 500, Nifty Smallcap 250, Nifty Total Market"
+SAIPARENT.NS,Nifty Ipo
 SAMBHAAV.NS,Nifty Waves
 SAMBHV.NS,Nifty Ipo
 SAMHI.NS,Nifty Total Market
