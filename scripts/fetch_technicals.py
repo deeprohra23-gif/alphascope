@@ -331,19 +331,22 @@ def main():
         df = df.sort_values("Market Cap (Cr)", ascending=False, na_position="last").reset_index(drop=True)
         OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
 
-        # Merge: keep old rows for stocks that failed today
+        # Merge: keep old rows for stocks that failed today (but only if still in symbol list)
         if OUTPUT_CSV.exists():
             try:
                 prev = pd.read_csv(OUTPUT_CSV)
                 new_syms = set(df['Symbol'].tolist())
-                old_kept = prev[~prev['Symbol'].isin(new_syms)]
+                valid_syms = set(tickers)  # current symbol list
+                old_kept = prev[
+                    (~prev['Symbol'].isin(new_syms)) &
+                    (prev['Symbol'].isin(valid_syms))
+                ]
                 if not old_kept.empty:
-                    print(f"   Keeping {len(old_kept)} stocks from previous run (not in today's results)")
+                    print(f"   Keeping {len(old_kept)} stocks from previous run (failed today but still in symbol list)")
                     df = pd.concat([df, old_kept], ignore_index=True)
                     df = df.sort_values("Market Cap (Cr)", ascending=False, na_position="last").reset_index(drop=True)
             except Exception as e:
                 print(f"   Merge warning: {e}")
-
         df.to_csv(OUTPUT_CSV, index=False)
         print(f"\n✅ Saved {len(df)} stocks → {OUTPUT_CSV}")
 
