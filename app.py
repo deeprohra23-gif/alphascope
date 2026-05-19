@@ -1686,6 +1686,8 @@ with main_tab3:
                     ("Price", "Current Price", "₹{:,.2f}", None),
                     ("Day Change %", "Day Change %", "{:.2f}%", True),
                     ("Market Cap (Cr)", "Market Cap (Cr)", "₹{:,.0f}", None),
+                    ("Sector", "Sector", "{}", None),
+                    ("Industry", "Industry", "{}", None),
                     ("Market Regime", "Market Regime", "{}", None),
                     ("─── Insights ───", None, None, None),
                     ("Technical Insight", "Technical Insight", "{}", None),
