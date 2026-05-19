@@ -1412,40 +1412,74 @@ with main_tab2:
 # TAB 3.5 — EVENTS
 # ══════════════════════════════════════════════
 with main_tab3:
-    ev_sub1, ev_sub2 = st.tabs(["📋 Board Meetings & Corporate Actions", "💰 FII / DII Activity"])
+    ev_sub1, ev_sub2 = st.tabs(["📋 Corporate Actions", "💰 FII / DII Activity"])
 
     with ev_sub1:
         try:
-            from nsepython import nse_events
-            events_df = nse_events()
-            if events_df is not None and not events_df.empty:
-                st.markdown(f"<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>{len(events_df)} upcoming corporate events from NSE</p>", unsafe_allow_html=True)
+            from nsepython import nsefetch
+            url = "https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=01-01-2026&to_date=31-12-2026"
+            ca_data = nsefetch(url)
 
-                # Filter by purpose
-                purposes = ["All"] + sorted(events_df['purpose'].dropna().unique().tolist())
-                sel_purpose = st.selectbox("Filter by purpose", purposes, key='ev_purpose')
-                if sel_purpose != "All":
-                    events_df = events_df[events_df['purpose'] == sel_purpose]
+            if ca_data and len(ca_data) > 0:
+                ca_df = pd.DataFrame(ca_data)
+                st.markdown(f"<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>{len(ca_df)} corporate actions in 2026 from NSE</p>", unsafe_allow_html=True)
 
-                # Filter to only stocks in our universe
-                show_all = st.checkbox("Show all NSE stocks (uncheck to show only screener universe)", value=False, key='ev_all')
-                if not show_all and sym_col in df.columns:
+                # Categorize actions
+                def categorize_action(subject):
+                    s = str(subject).lower()
+                    if 'dividend' in s:
+                        return '💰 Dividend'
+                    elif 'split' in s or 'sub-division' in s:
+                        return '✂️ Split'
+                    elif 'bonus' in s:
+                        return '🎁 Bonus'
+                    elif 'right' in s:
+                        return '📄 Rights'
+                    elif 'buyback' in s or 'buy back' in s:
+                        return '🔄 Buyback'
+                    elif 'agm' in s or 'annual general' in s:
+                        return '📅 AGM'
+                    else:
+                        return '📌 Other'
+
+                ca_df['Action Type'] = ca_df['subject'].apply(categorize_action)
+
+                # Filters
+                fc1, fc2, fc3 = st.columns(3)
+                with fc1:
+                    action_types = ["All"] + sorted(ca_df['Action Type'].unique().tolist())
+                    sel_action = st.selectbox("Action Type", action_types, key='ca_type')
+                with fc2:
+                    show_universe = st.checkbox("Only screener universe", value=True, key='ca_universe')
+                with fc3:
+                    show_upcoming = st.checkbox("Only upcoming (ex-date today or later)", value=True, key='ca_upcoming')
+
+                filtered_ca = ca_df.copy()
+                if sel_action != "All":
+                    filtered_ca = filtered_ca[filtered_ca['Action Type'] == sel_action]
+                if show_universe and sym_col in df.columns:
                     our_syms = set(df[sym_col].str.replace('.NS', '').str.strip().tolist())
-                    events_df = events_df[events_df['symbol'].isin(our_syms)]
+                    filtered_ca = filtered_ca[filtered_ca['symbol'].isin(our_syms)]
+                if show_upcoming:
+                    filtered_ca['_exDate'] = pd.to_datetime(filtered_ca['exDate'], format='%d-%b-%Y', errors='coerce')
+                    filtered_ca = filtered_ca[filtered_ca['_exDate'] >= pd.Timestamp.now().normalize()]
+                    filtered_ca = filtered_ca.drop(columns=['_exDate'])
 
-                st.markdown(f"**{len(events_df)} events**")
+                st.markdown(f"**{len(filtered_ca)} actions**")
 
-                disp_events = events_df[['symbol', 'company', 'purpose', 'bm_desc', 'date']].copy()
-                disp_events.columns = ['Symbol', 'Company', 'Purpose', 'Description', 'Date']
-                disp_events = disp_events.sort_values('Date').reset_index(drop=True)
-                disp_events.index = disp_events.index + 1
-                disp_events.index.name = 'Sr No'
-                st.dataframe(disp_events, use_container_width=True, height=500, key='events_table')
+                if not filtered_ca.empty:
+                    disp_ca = filtered_ca[['symbol', 'comp', 'Action Type', 'subject', 'exDate', 'recDate', 'faceVal']].copy()
+                    disp_ca.columns = ['Symbol', 'Company', 'Type', 'Details', 'Ex-Date', 'Record Date', 'Face Value']
+                    disp_ca = disp_ca.sort_values('Ex-Date').reset_index(drop=True)
+                    disp_ca.index = disp_ca.index + 1
+                    disp_ca.index.name = 'Sr No'
+                    st.dataframe(disp_ca, use_container_width=True, height=500, key='ca_table')
+                else:
+                    st.info("No corporate actions match the selected filters.")
             else:
-                st.info("No upcoming events found.")
+                st.info("No corporate actions data available.")
         except Exception as e:
-            st.warning(f"Could not fetch events from NSE. This may be due to network restrictions. Error: {e}")
-
+            st.warning(f"Could not fetch corporate actions from NSE. Error: {e}")
     with ev_sub2:
         try:
             from nsepython import nse_fiidii
