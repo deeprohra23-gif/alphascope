@@ -132,7 +132,8 @@ def load_stock_data(mtime_tech=0, mtime_fund=0, mtime_const=0):
         except Exception:
             st.error("Could not load technicals data.")
             st.stop()
-st.write("Industry in columns:", 'Industry' in df.columns)
+            
+
     
     fund = read_csv_safe('data/fundamentals.csv')
     const = read_csv_safe('data/index_constituents.csv')
@@ -172,7 +173,7 @@ st.write("Industry in columns:", 'Industry' in df.columns)
 
     return tech
 
-
+st.write("Industry in columns:", 'Industry' in df.columns)
 @st.cache_data(ttl=600, show_spinner=False)
 def load_index_data(mtime=0):
     return read_csv_safe('data/indices_technicals.csv')
