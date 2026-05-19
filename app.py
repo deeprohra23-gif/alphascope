@@ -1470,9 +1470,11 @@ with main_tab3:
                 if not filtered_ca.empty:
                     disp_ca = filtered_ca[['symbol', 'comp', 'Action Type', 'subject', 'exDate', 'recDate', 'faceVal']].copy()
                     disp_ca.columns = ['Symbol', 'Company', 'Type', 'Details', 'Ex-Date', 'Record Date', 'Face Value']
-                    disp_ca['_sort_ex'] = pd.to_datetime(disp_ca['Ex-Date'], format='%d-%b-%Y', errors='coerce')
-                    disp_ca['_sort_rec'] = pd.to_datetime(disp_ca['Record Date'], format='%d-%b-%Y', errors='coerce')
-                    disp_ca = disp_ca.sort_values('_sort_ex').drop(columns=['_sort_ex', '_sort_rec']).reset_index(drop=True)
+                    disp_ca['Ex-Date'] = pd.to_datetime(disp_ca['Ex-Date'], format='%d-%b-%Y', errors='coerce')
+                    disp_ca['Record Date'] = pd.to_datetime(disp_ca['Record Date'], format='%d-%b-%Y', errors='coerce')
+                    disp_ca = disp_ca.sort_values('Ex-Date').reset_index(drop=True)
+                    disp_ca['Ex-Date'] = disp_ca['Ex-Date'].dt.strftime('%d-%b-%Y').fillna('—')
+                    disp_ca['Record Date'] = disp_ca['Record Date'].dt.strftime('%d-%b-%Y').fillna('—')
                     disp_ca.index = disp_ca.index + 1
                     disp_ca.index.name = 'Sr No'
                     st.dataframe(disp_ca, use_container_width=True, height=500, key='ca_table')
