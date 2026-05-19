@@ -1531,8 +1531,7 @@ with ev_sub3:
             from nsepython import get_bulkdeals, get_blockdeals
             bulk = get_bulkdeals()
             block = get_blockdeals()
-            st.write("Bulk columns:", bulk.columns.tolist() if bulk is not None else "None")
-            st.write("Block columns:", block.columns.tolist() if block is not None else "None")
+           
 
             bd_col1, bd_col2 = st.tabs(["Bulk Deals", "Block Deals"])
 
@@ -1543,16 +1542,16 @@ with ev_sub3:
                     show_univ_bulk = st.checkbox("Only screener universe", value=False, key='bulk_universe')
                     if show_univ_bulk and sym_col in df.columns:
                         our_syms = set(df[sym_col].str.replace('.NS', '').str.strip().tolist())
-                        bulk = bulk[bulk['symbol'].isin(our_syms)]
+                        bulk = bulk[bulk['Symbol'].isin(our_syms)]
 
                     buy_filter = st.selectbox("Filter", ["All", "Buy Only", "Sell Only"], key='bulk_filter')
                     if buy_filter == "Buy Only":
-                        bulk = bulk[bulk['buySell'].str.strip().str.upper() == 'BUY']
+                        bulk = bulk[bulk['Buy/Sell'].str.strip().str.upper() == 'BUY']
                     elif buy_filter == "Sell Only":
-                        bulk = bulk[bulk['buySell'].str.strip().str.upper() == 'SELL']
+                        bulk = bulk[bulk['Buy/Sell'].str.strip().str.upper() == 'SELL']
 
                     if not bulk.empty:
-                        disp_bulk = bulk[['date', 'symbol', 'name', 'clientName', 'buySell', 'qty', 'watp']].copy()
+                        disp_bulk = bulk[['Date', 'Symbol', 'Security Name', 'Client Name', 'Buy/Sell', 'Quantity Traded', 'Trade Price / Wght. Avg. Price']].copy()
                         disp_bulk.columns = ['Date', 'Symbol', 'Company', 'Client', 'Buy/Sell', 'Quantity', 'Avg Price']
                         disp_bulk['Quantity'] = pd.to_numeric(disp_bulk['Quantity'], errors='coerce').apply(lambda x: f"{x:,.0f}" if not pd.isna(x) else '—')
                         disp_bulk['Avg Price'] = pd.to_numeric(disp_bulk['Avg Price'], errors='coerce').apply(lambda x: f"₹{x:,.2f}" if not pd.isna(x) else '—')
@@ -1572,10 +1571,10 @@ with ev_sub3:
                     show_univ_block = st.checkbox("Only screener universe", value=False, key='block_universe')
                     if show_univ_block and sym_col in df.columns:
                         our_syms = set(df[sym_col].str.replace('.NS', '').str.strip().tolist())
-                        block = block[block['symbol'].isin(our_syms)]
+                        block = block[block['Symbol'].isin(our_syms)]
 
                     if not block.empty:
-                        disp_block = block[['date', 'symbol', 'name', 'clientName', 'buySell', 'qty', 'watp']].copy()
+                        disp_block = block[['Date', 'Symbol', 'Security Name', 'Client Name', 'Buy/Sell', 'Quantity Traded', 'Trade Price / Wght. Avg. Price']].copy()
                         disp_block.columns = ['Date', 'Symbol', 'Company', 'Client', 'Buy/Sell', 'Quantity', 'Avg Price']
                         disp_block['Quantity'] = pd.to_numeric(disp_block['Quantity'], errors='coerce').apply(lambda x: f"{x:,.0f}" if not pd.isna(x) else '—')
                         disp_block['Avg Price'] = pd.to_numeric(disp_block['Avg Price'], errors='coerce').apply(lambda x: f"₹{x:,.2f}" if not pd.isna(x) else '—')
