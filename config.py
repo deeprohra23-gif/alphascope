@@ -11,7 +11,7 @@ Column definitions, screen rules, color maps, and constants.
 # The app prepends sym_col dynamically
 
 OVERVIEW_COLS = [
-    'Name', 'Sector', 'Cap Category', 'Market Cap (Cr)',
+    'Name', 'Sector', 'Industry', 'Cap Category', 'Market Cap (Cr)',
     'Current Price', 'Day Change %',
     'Technical Insight', 'Fundamental Insight',
     'Market Regime', 'Drawdown Status',
