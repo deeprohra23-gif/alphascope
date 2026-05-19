@@ -1412,7 +1412,7 @@ with main_tab2:
 # TAB 3.5 — EVENTS
 # ══════════════════════════════════════════════
 with main_tab3:
-    ev_sub1, ev_sub2 = st.tabs(["📋 Corporate Actions", "💰 FII / DII Activity"])
+    ev_sub1, ev_sub2, ev_sub3 = st.tabs(["📋 Corporate Actions", "💰 FII / DII Activity", "📊 Bulk & Block Deals"])
 
     with ev_sub1:
         try:
@@ -1525,6 +1525,68 @@ with main_tab3:
                 st.info("No FII/DII data available.")
         except Exception as e:
             st.warning(f"Could not fetch FII/DII data from NSE. Error: {e}")
+
+with ev_sub3:
+        try:
+            from nsepython import get_bulkdeals, get_blockdeals
+            bulk = get_bulkdeals()
+            block = get_blockdeals()
+
+            bd_col1, bd_col2 = st.tabs(["Bulk Deals", "Block Deals"])
+
+            with bd_col1:
+                if bulk is not None and not bulk.empty:
+                    st.markdown(f"<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>{len(bulk)} bulk deals today</p>", unsafe_allow_html=True)
+
+                    show_univ_bulk = st.checkbox("Only screener universe", value=False, key='bulk_universe')
+                    if show_univ_bulk and sym_col in df.columns:
+                        our_syms = set(df[sym_col].str.replace('.NS', '').str.strip().tolist())
+                        bulk = bulk[bulk['symbol'].isin(our_syms)]
+
+                    buy_filter = st.selectbox("Filter", ["All", "Buy Only", "Sell Only"], key='bulk_filter')
+                    if buy_filter == "Buy Only":
+                        bulk = bulk[bulk['buySell'].str.strip().str.upper() == 'BUY']
+                    elif buy_filter == "Sell Only":
+                        bulk = bulk[bulk['buySell'].str.strip().str.upper() == 'SELL']
+
+                    if not bulk.empty:
+                        disp_bulk = bulk[['date', 'symbol', 'name', 'clientName', 'buySell', 'qty', 'watp']].copy()
+                        disp_bulk.columns = ['Date', 'Symbol', 'Company', 'Client', 'Buy/Sell', 'Quantity', 'Avg Price']
+                        disp_bulk['Quantity'] = pd.to_numeric(disp_bulk['Quantity'], errors='coerce').apply(lambda x: f"{x:,.0f}" if not pd.isna(x) else '—')
+                        disp_bulk['Avg Price'] = pd.to_numeric(disp_bulk['Avg Price'], errors='coerce').apply(lambda x: f"₹{x:,.2f}" if not pd.isna(x) else '—')
+                        disp_bulk = disp_bulk.reset_index(drop=True)
+                        disp_bulk.index = disp_bulk.index + 1
+                        disp_bulk.index.name = 'Sr No'
+                        st.dataframe(disp_bulk, use_container_width=True, height=500, key='bulk_table')
+                    else:
+                        st.info("No bulk deals match the selected filters.")
+                else:
+                    st.info("No bulk deals today.")
+
+            with bd_col2:
+                if block is not None and not block.empty:
+                    st.markdown(f"<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>{len(block)} block deals today</p>", unsafe_allow_html=True)
+
+                    show_univ_block = st.checkbox("Only screener universe", value=False, key='block_universe')
+                    if show_univ_block and sym_col in df.columns:
+                        our_syms = set(df[sym_col].str.replace('.NS', '').str.strip().tolist())
+                        block = block[block['symbol'].isin(our_syms)]
+
+                    if not block.empty:
+                        disp_block = block[['date', 'symbol', 'name', 'clientName', 'buySell', 'qty', 'watp']].copy()
+                        disp_block.columns = ['Date', 'Symbol', 'Company', 'Client', 'Buy/Sell', 'Quantity', 'Avg Price']
+                        disp_block['Quantity'] = pd.to_numeric(disp_block['Quantity'], errors='coerce').apply(lambda x: f"{x:,.0f}" if not pd.isna(x) else '—')
+                        disp_block['Avg Price'] = pd.to_numeric(disp_block['Avg Price'], errors='coerce').apply(lambda x: f"₹{x:,.2f}" if not pd.isna(x) else '—')
+                        disp_block = disp_block.reset_index(drop=True)
+                        disp_block.index = disp_block.index + 1
+                        disp_block.index.name = 'Sr No'
+                        st.dataframe(disp_block, use_container_width=True, height=500, key='block_table')
+                    else:
+                        st.info("No block deals match the selected filters.")
+                else:
+                    st.info("No block deals today.")
+        except Exception as e:
+            st.warning(f"Could not fetch deals data from NSE. Error: {e}")
 
 # ══════════════════════════════════════════════
 # TAB 3 — TOOLS (Stock Card, Compare, Watchlist)
