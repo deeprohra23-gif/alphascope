@@ -173,7 +173,7 @@ def load_stock_data(mtime_tech=0, mtime_fund=0, mtime_const=0):
 
     return tech
 
-st.write("Industry in columns:", 'Industry' in df.columns)
+
 @st.cache_data(ttl=600, show_spinner=False)
 def load_index_data(mtime=0):
     return read_csv_safe('data/indices_technicals.csv')
@@ -209,6 +209,7 @@ with st.spinner("Loading data..."):
     idx_df = load_index_data(mtime=_file_mtime('data/indices_technicals.csv'))
     glob_df = load_global_data(mtime=_file_mtime('data/global_technicals.csv'))
 
+st.write("Industry in columns:", 'Industry' in df.columns)
 sym_col = df.columns[0]
 ALL_DISPLAY_COLS = all_display_cols(sym_col)
 
