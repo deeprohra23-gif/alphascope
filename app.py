@@ -1531,6 +1531,8 @@ with ev_sub3:
             from nsepython import get_bulkdeals, get_blockdeals
             bulk = get_bulkdeals()
             block = get_blockdeals()
+            st.write("Bulk columns:", bulk.columns.tolist() if bulk is not None else "None")
+            st.write("Block columns:", block.columns.tolist() if block is not None else "None")
 
             bd_col1, bd_col2 = st.tabs(["Bulk Deals", "Block Deals"])
 
