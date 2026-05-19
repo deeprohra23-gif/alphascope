@@ -559,7 +559,7 @@ scored = add_insights(scored)
 # ────────────────────────────────────────────────
 # MAIN TABS
 # ────────────────────────────────────────────────
-main_tab0, main_tab1, main_tab2, main_tab3 = st.tabs(["🏠 Dashboard", "📊 Stocks", "📈 Index Dashboard", "🔍 Tools"])
+main_tab0, main_tab1, main_tab2, main_tab3, main_tab4 = st.tabs(["🏠 Dashboard", "📊 Stocks", "📈 Index Dashboard", "📰 Events", "🔍 Tools"])
 
 
 # ══════════════════════════════════════════════
@@ -1409,9 +1409,89 @@ with main_tab2:
 
 
 # ══════════════════════════════════════════════
-# TAB 3 — TOOLS (Stock Card, Compare, Watchlist)
+# TAB 3.5 — EVENTS
 # ══════════════════════════════════════════════
 with main_tab3:
+    ev_sub1, ev_sub2 = st.tabs(["📋 Board Meetings & Corporate Actions", "💰 FII / DII Activity"])
+
+    with ev_sub1:
+        try:
+            from nsepython import nse_events
+            events_df = nse_events()
+            if events_df is not None and not events_df.empty:
+                st.markdown(f"<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>{len(events_df)} upcoming corporate events from NSE</p>", unsafe_allow_html=True)
+
+                # Filter by purpose
+                purposes = ["All"] + sorted(events_df['purpose'].dropna().unique().tolist())
+                sel_purpose = st.selectbox("Filter by purpose", purposes, key='ev_purpose')
+                if sel_purpose != "All":
+                    events_df = events_df[events_df['purpose'] == sel_purpose]
+
+                # Filter to only stocks in our universe
+                show_all = st.checkbox("Show all NSE stocks (uncheck to show only screener universe)", value=False, key='ev_all')
+                if not show_all and sym_col in df.columns:
+                    our_syms = set(df[sym_col].str.replace('.NS', '').str.strip().tolist())
+                    events_df = events_df[events_df['symbol'].isin(our_syms)]
+
+                st.markdown(f"**{len(events_df)} events**")
+
+                disp_events = events_df[['symbol', 'company', 'purpose', 'bm_desc', 'date']].copy()
+                disp_events.columns = ['Symbol', 'Company', 'Purpose', 'Description', 'Date']
+                disp_events = disp_events.sort_values('Date').reset_index(drop=True)
+                disp_events.index = disp_events.index + 1
+                disp_events.index.name = 'Sr No'
+                st.dataframe(disp_events, use_container_width=True, height=500, key='events_table')
+            else:
+                st.info("No upcoming events found.")
+        except Exception as e:
+            st.warning(f"Could not fetch events from NSE. This may be due to network restrictions. Error: {e}")
+
+    with ev_sub2:
+        try:
+            from nsepython import nse_fiidii
+            fii_dii = nse_fiidii()
+            if fii_dii is not None and not fii_dii.empty:
+                st.markdown(f"<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Latest FII/DII trading activity from NSE (values in ₹ Cr)</p>", unsafe_allow_html=True)
+
+                for _, row in fii_dii.iterrows():
+                    cat = row.get('category', '')
+                    buy = float(row.get('buyValue', 0))
+                    sell = float(row.get('sellValue', 0))
+                    net = float(row.get('netValue', 0))
+                    net_color = "#00d4aa" if net > 0 else "#ff4d4d"
+                    date_val = row.get('date', '')
+
+                    st.markdown(f"""
+                    <div style="background:#16181f;border:1px solid #2a2a2a;border-radius:8px;padding:0.8rem;margin-bottom:0.6rem">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-family:IBM Plex Mono,monospace;font-size:0.9rem;color:#e0e0e0;font-weight:600">{cat}</span>
+                            <span style="font-family:IBM Plex Mono,monospace;font-size:0.7rem;color:#888">{date_val}</span>
+                        </div>
+                        <div style="display:flex;gap:1.5rem;margin-top:0.5rem">
+                            <div>
+                                <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Buy</div>
+                                <div style="font-size:0.95rem;color:#00d4aa;font-family:IBM Plex Mono,monospace;font-weight:600">₹{buy:,.2f} Cr</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Sell</div>
+                                <div style="font-size:0.95rem;color:#ff4d4d;font-family:IBM Plex Mono,monospace;font-weight:600">₹{sell:,.2f} Cr</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Net</div>
+                                <div style="font-size:1.1rem;color:{net_color};font-family:IBM Plex Mono,monospace;font-weight:700">₹{net:,.2f} Cr</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("No FII/DII data available.")
+        except Exception as e:
+            st.warning(f"Could not fetch FII/DII data from NSE. Error: {e}")
+
+# ══════════════════════════════════════════════
+# TAB 3 — TOOLS (Stock Card, Compare, Watchlist)
+# ══════════════════════════════════════════════
+with main_tab4:
     tools_sub1, tools_sub2, tools_sub3, tools_sub4 = st.tabs(["🪪 Stock Card", "⚖ Compare", "📌 Watchlist", "📚 Methodology"])
 
     # Build stock lookup list
