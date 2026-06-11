@@ -1824,7 +1824,8 @@ with main_tab4:
                 """, unsafe_allow_html=True)
 
                 if not same_cap_peers.empty:
-                    show_table(same_cap_peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_same_cap')
+                    with st.expander(f"View {len(same_cap_peers)} peers", expanded=False):
+                        show_table(same_cap_peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_same_cap')
                 
                 # Show other cap peers in expander
                 other_cap_peers = peers[peers.get('Cap Category', pd.Series()) != stock_cap] if stock_cap else pd.DataFrame()
