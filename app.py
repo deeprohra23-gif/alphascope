@@ -1778,44 +1778,7 @@ with main_tab4:
                 {coverage_note}
             </div>
             """, unsafe_allow_html=True)
-            # Analyst distribution
-            try:
-                recs = yf.Ticker(sym).recommendations
-                if recs is not None and not recs.empty:
-                    latest = recs.iloc[0]
-                    sb = int(latest.get('strongBuy', 0))
-                    b = int(latest.get('buy', 0))
-                    h = int(latest.get('hold', 0))
-                    s = int(latest.get('sell', 0))
-                    ss = int(latest.get('strongSell', 0))
-                    total = sb + b + h + s + ss
-                    if total > 0:
-                        sb_w = sb/total*100
-                        b_w = b/total*100
-                        h_w = h/total*100
-                        s_w = s/total*100
-                        ss_w = ss/total*100
-                        st.markdown(f"""
-                        <div style="margin-top:0.5rem">
-                            <div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace;margin-bottom:0.3rem">Analyst Distribution</div>
-                            <div class="breadth-bar" style="height:24px">
-                                <div class="breadth-seg" style="width:{sb_w}%;background:#00d4aa;color:#0f1117">SB {sb}</div>
-                                <div class="breadth-seg" style="width:{b_w}%;background:#4da6ff;color:#0f1117">B {b}</div>
-                                <div class="breadth-seg" style="width:{h_w}%;background:#ffaa33;color:#0f1117">H {h}</div>
-                                <div class="breadth-seg" style="width:{s_w}%;background:#ff8844;color:#0f1117">S {s}</div>
-                                <div class="breadth-seg" style="width:{ss_w}%;background:#ff4d4d;color:#0f1117">SS {ss}</div>
-                            </div>
-                            <div style="display:flex;gap:1rem;font-size:0.6rem;font-family:IBM Plex Mono,monospace;color:#888;margin-top:0.2rem">
-                                <span><span style="color:#00d4aa">●</span> Strong Buy {sb}</span>
-                                <span><span style="color:#4da6ff">●</span> Buy {b}</span>
-                                <span><span style="color:#ffaa33">●</span> Hold {h}</span>
-                                <span><span style="color:#ff8844">●</span> Sell {s}</span>
-                                <span><span style="color:#ff4d4d">●</span> Strong Sell {ss}</span>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-            except Exception as e:
-                st.markdown(f'<div style="font-size:0.7rem;color:#ff8844">Distribution error: {e}</div>', unsafe_allow_html=True)
+            
         # ── Screen Membership ──
         matched_screens = []
         for screen_name in SCREENS:
@@ -1883,10 +1846,48 @@ with main_tab4:
                         with po_ret:  show_table(other_cap_peers, RETURNS_COLS, 'Composite Score', False, 'peer_oc_ret')
                         with po_risk: show_table(other_cap_peers, RISK_COLS, 'Composite Score', False, 'peer_oc_risk')
                         with po_fund: show_table(other_cap_peers, FUNDAMENTAL_COLS, 'Composite Score', False, 'peer_oc_fund')
-        # ── Recent News ──
+        # ── News + Analyst Distribution (single yfinance call) ──
         try:
-            news_ticker = yf.Ticker(sym)
-            news_items = news_ticker.news[:5] if news_ticker.news else []
+            _yf_ticker = yf.Ticker(sym)
+            
+            # Analyst distribution
+            recs = _yf_ticker.recommendations
+            if recs is not None and not recs.empty:
+                latest = recs.iloc[0]
+                sb = int(latest.get('strongBuy', 0))
+                b = int(latest.get('buy', 0))
+                h = int(latest.get('hold', 0))
+                s = int(latest.get('sell', 0))
+                ss = int(latest.get('strongSell', 0))
+                total = sb + b + h + s + ss
+                if total > 0:
+                    sb_w = sb/total*100
+                    b_w = b/total*100
+                    h_w = h/total*100
+                    s_w = s/total*100
+                    ss_w = ss/total*100
+                    st.markdown(f"""
+                    <div class="stock-card" style="margin-top:0.5rem">
+                        <div class="stock-card-section">Analyst Distribution</div>
+                        <div class="breadth-bar" style="height:24px">
+                            <div class="breadth-seg" style="width:{sb_w}%;background:#00d4aa;color:#0f1117">SB {sb}</div>
+                            <div class="breadth-seg" style="width:{b_w}%;background:#4da6ff;color:#0f1117">B {b}</div>
+                            <div class="breadth-seg" style="width:{h_w}%;background:#ffaa33;color:#0f1117">H {h}</div>
+                            <div class="breadth-seg" style="width:{s_w}%;background:#ff8844;color:#0f1117">S {s}</div>
+                            <div class="breadth-seg" style="width:{ss_w}%;background:#ff4d4d;color:#0f1117">SS {ss}</div>
+                        </div>
+                        <div style="display:flex;gap:1rem;font-size:0.6rem;font-family:IBM Plex Mono,monospace;color:#888;margin-top:0.2rem">
+                            <span><span style="color:#00d4aa">●</span> Strong Buy {sb}</span>
+                            <span><span style="color:#4da6ff">●</span> Buy {b}</span>
+                            <span><span style="color:#ffaa33">●</span> Hold {h}</span>
+                            <span><span style="color:#ff8844">●</span> Sell {s}</span>
+                            <span><span style="color:#ff4d4d">●</span> Strong Sell {ss}</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            # Recent News
+            news_items = _yf_ticker.news[:5] if _yf_ticker.news else []
             if news_items:
                 news_html = '<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Recent News</div>'
                 for item in news_items:
@@ -1902,7 +1903,6 @@ with main_tab4:
                 st.markdown(news_html, unsafe_allow_html=True)
         except Exception:
             pass
-
         # Scores
         col_a, col_b = st.columns(2)
         with col_a:
