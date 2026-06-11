@@ -190,6 +190,13 @@ def get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret):
             "Up Capture Ratio": up_cap,
             "Down Capture Ratio": down_cap,
             "Capture Ratio": cap_ratio,
+            "Description": info.get('longBusinessSummary', ''),
+            "Analyst Recommendation": info.get('recommendationKey', ''),
+            "Analyst Score": info.get('recommendationMean', np.nan),
+            "Target Mean Price": info.get('targetMeanPrice', np.nan),
+            "Target High Price": info.get('targetHighPrice', np.nan),
+            "Target Low Price": info.get('targetLowPrice', np.nan),
+            "No. of Analysts": info.get('numberOfAnalystOpinions', np.nan),
         }, None
 
     except Exception as e:
