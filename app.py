@@ -1737,16 +1737,20 @@ with main_tab4:
         num_analysts = row.get('No. of Analysts', np.nan)
         analyst_score = row.get('Analyst Score', np.nan)
 
-        if analyst_rec and str(analyst_rec) not in ('', 'nan', 'None', 'none'):
+        has_rec = analyst_rec and str(analyst_rec) not in ('', 'nan', 'None', 'none')
+        has_targets = not pd.isna(target_mean) or not pd.isna(target_high) or not pd.isna(target_low)
+
+        if has_rec or has_targets:
             rec_colors = {'strong_buy': '#00d4aa', 'buy': '#4da6ff', 'hold': '#ffaa33', 'sell': '#ff8844', 'strong_sell': '#ff4d4d'}
-            rec_color = rec_colors.get(str(analyst_rec).lower(), '#888')
-            rec_label = str(analyst_rec).replace('_', ' ').title()
+            rec_color = rec_colors.get(str(analyst_rec).lower(), '#888') if has_rec else '#888'
+            rec_label = str(analyst_rec).replace('_', ' ').title() if has_rec else '—'
             n_analysts = int(num_analysts) if not pd.isna(num_analysts) else '?'
             coverage_note = "" if not pd.isna(num_analysts) and num_analysts >= 3 else '<div style="font-size:0.6rem;color:#ff8844;margin-top:0.3rem">⚠ Limited analyst coverage — data may be outdated</div>'
 
             upside = ((float(target_mean) - float(price)) / float(price) * 100) if not pd.isna(target_mean) and not pd.isna(price) and float(price) > 0 else np.nan
             upside_color = "#00d4aa" if not pd.isna(upside) and upside > 0 else "#ff4d4d"
             upside_str = f"{upside:+.1f}% {'upside' if upside > 0 else 'downside'}" if not pd.isna(upside) else '—'
+            score_str = f"Score: {analyst_score:.2f}/5" if not pd.isna(analyst_score) else ''
 
             st.markdown(f"""
             <div class="stock-card" style="margin-top:0.5rem">
@@ -1755,7 +1759,7 @@ with main_tab4:
                     <div style="flex:1;min-width:100px;padding:0.5rem;background:#0f1117;border-radius:4px">
                         <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Rating</div>
                         <div style="font-size:1rem;color:{rec_color};font-family:IBM Plex Mono,monospace;font-weight:600">{rec_label}</div>
-                        <div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace">{'Score: ' + f'{analyst_score:.2f}/5' if not pd.isna(analyst_score) else ''}</div>
+                        <div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace">{score_str}</div>
                     </div>
                     <div style="flex:1;min-width:100px;padding:0.5rem;background:#0f1117;border-radius:4px">
                         <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Target Mean</div>
