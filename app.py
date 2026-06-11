@@ -1047,20 +1047,7 @@ with main_tab0:
                 continue
             top = horizon_df.nlargest(10, 'Composite Score') if 'Composite Score' in horizon_df.columns else horizon_df.head(10)
             with st.expander(f"{horizon_name} — {len(horizon_df)} stocks", expanded=False):
-                cards_html = '<div style="display:flex;flex-wrap:wrap;gap:0.5rem">'
-                for _, r in top.iterrows():
-                    price_val = r.get('Current Price', np.nan)
-                    day_chg_val = r.get('Day Change %', np.nan)
-                    comp_score_val = r.get('Composite Score', np.nan)
-                    regime_val = r.get('Market Regime', '')
-                    sector_val = r.get('Sector', '')
-                    chg_c = "#00d4aa" if not pd.isna(day_chg_val) and day_chg_val > 0 else "#ff4d4d"
-                    rdot = "🟢" if regime_val in ['Bull', 'Strong Bull'] else "🔴" if regime_val in ['Bear', 'Strong Bear'] else "🟡"
-                    cards_html += f'<div style="flex:1;min-width:200px;max-width:280px;background:#16181f;border:1px solid #2a2a2a;border-radius:8px;padding:0.7rem"><div style="font-family:IBM Plex Mono,monospace;font-size:0.85rem;color:#e0e0e0;font-weight:600">{rdot} {r[sym_col].replace(".NS","")}</div><div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace">{sector_val}</div><div style="display:flex;justify-content:space-between;margin-top:0.4rem"><span style="font-family:IBM Plex Mono,monospace;font-size:0.9rem;color:#e0e0e0">₹{price_val:,.2f}</span><span style="font-family:IBM Plex Mono,monospace;font-size:0.75rem;color:{chg_c}">{day_chg_val:+.2f}%</span></div><div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace;margin-top:0.3rem">Score: {comp_score_val:.1f}</div></div>'
-                cards_html += '</div>'
-                st.markdown(cards_html, unsafe_allow_html=True)
                 show_table(horizon_df, OVERVIEW_COLS, 'Composite Score', False, f'qp_{horizon_name[:8]}')
-
 
 # ══════════════════════════════════════════════
 # TAB 1 — STOCKS
@@ -1841,6 +1828,8 @@ with main_tab4:
                     peer_html += f'<div style="flex:1;min-width:180px;max-width:250px;background:#0f1117;border:1px solid #2a2a2a;border-radius:6px;padding:0.6rem"><div style="font-family:IBM Plex Mono,monospace;font-size:0.8rem;color:#e0e0e0;font-weight:600">{pr_rdot} {pr[sym_col].replace(".NS","")}</div><div style="display:flex;justify-content:space-between;margin-top:0.3rem"><span style="font-family:IBM Plex Mono,monospace;font-size:0.8rem;color:#e0e0e0">₹{pr_price:,.2f}</span><span style="font-size:0.7rem;color:{pr_chg_c};font-family:IBM Plex Mono,monospace">{pr_chg:+.2f}%</span></div><div style="margin-top:0.3rem"><span style="font-size:0.6rem;padding:0.15rem 0.4rem;border-radius:3px;color:{_ic(pr_ti)};border:1px solid {_ic(pr_ti)};font-family:IBM Plex Mono,monospace">T:{pr_ti}</span> <span style="font-size:0.6rem;padding:0.15rem 0.4rem;border-radius:3px;color:{_ic(pr_fi)};border:1px solid {_ic(pr_fi)};font-family:IBM Plex Mono,monospace">F:{pr_fi}</span></div><div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;margin-top:0.2rem">Score: {pr_score:.1f}</div></div>'
                 peer_html += '</div></div>'
                 st.markdown(peer_html, unsafe_allow_html=True)
+                with st.expander(f"View all {len(peers)} peers", expanded=False):
+                    show_table(peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_table')
 
         # ── Recent News ──
         try:
