@@ -1810,9 +1810,8 @@ with main_tab4:
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-            except Exception:
-                pass
-
+            except Exception as e:
+                st.markdown(f'<div style="font-size:0.7rem;color:#ff8844">Distribution error: {e}</div>', unsafe_allow_html=True)
         # ── Screen Membership ──
         matched_screens = []
         for screen_name in SCREENS:
