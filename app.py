@@ -1825,13 +1825,23 @@ with main_tab4:
 
                 if not same_cap_peers.empty:
                     with st.expander(f"View {len(same_cap_peers)} peers", expanded=False):
-                        show_table(same_cap_peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_same_cap')
+                        p_ov, p_tech, p_ret, p_risk, p_fund = st.tabs(["Overview", "Technicals", "Returns", "Risk", "Fundamentals"])
+                        with p_ov:   show_table(same_cap_peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_sc_ov')
+                        with p_tech: show_table(same_cap_peers, TECHNICAL_COLS, 'Composite Score', False, 'peer_sc_tech')
+                        with p_ret:  show_table(same_cap_peers, RETURNS_COLS, 'Composite Score', False, 'peer_sc_ret')
+                        with p_risk: show_table(same_cap_peers, RISK_COLS, 'Composite Score', False, 'peer_sc_risk')
+                        with p_fund: show_table(same_cap_peers, FUNDAMENTAL_COLS, 'Composite Score', False, 'peer_sc_fund')
                 
                 # Show other cap peers in expander
                 other_cap_peers = peers[peers.get('Cap Category', pd.Series()) != stock_cap] if stock_cap else pd.DataFrame()
                 if not other_cap_peers.empty:
                     with st.expander(f"Other {stock_industry} peers (different cap size) — {len(other_cap_peers)} stocks", expanded=False):
-                        show_table(other_cap_peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_other_cap')
+                        po_ov, po_tech, po_ret, po_risk, po_fund = st.tabs(["Overview", "Technicals", "Returns", "Risk", "Fundamentals"])
+                        with po_ov:   show_table(other_cap_peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_oc_ov')
+                        with po_tech: show_table(other_cap_peers, TECHNICAL_COLS, 'Composite Score', False, 'peer_oc_tech')
+                        with po_ret:  show_table(other_cap_peers, RETURNS_COLS, 'Composite Score', False, 'peer_oc_ret')
+                        with po_risk: show_table(other_cap_peers, RISK_COLS, 'Composite Score', False, 'peer_oc_risk')
+                        with po_fund: show_table(other_cap_peers, FUNDAMENTAL_COLS, 'Composite Score', False, 'peer_oc_fund')
         # ── Recent News ──
         try:
             news_ticker = yf.Ticker(sym)
