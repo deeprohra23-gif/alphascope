@@ -1725,7 +1725,7 @@ with main_tab4:
             st.markdown(f"""
             <div class="stock-card" style="margin-top:0.5rem">
                 <div class="stock-card-section">About</div>
-                <div style="font-size:0.75rem;color:#aaa;font-family:IBM Plex Mono,monospace;line-height:1.5">{str(desc)[:500]}{'...' if len(str(desc)) > 500 else ''}</div>
+                <div style="font-size:0.75rem;color:#aaa;font-family:IBM Plex Mono,monospace;line-height:1.5">{str(desc)}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1737,7 +1737,7 @@ with main_tab4:
         num_analysts = row.get('No. of Analysts', np.nan)
         analyst_score = row.get('Analyst Score', np.nan)
 
-        if analyst_rec and str(analyst_rec) not in ('', 'nan', 'None'):
+        if analyst_rec and str(analyst_rec) not in ('', 'nan', 'None', 'none'):
             rec_colors = {'strong_buy': '#00d4aa', 'buy': '#4da6ff', 'hold': '#ffaa33', 'sell': '#ff8844', 'strong_sell': '#ff4d4d'}
             rec_color = rec_colors.get(str(analyst_rec).lower(), '#888')
             rec_label = str(analyst_rec).replace('_', ' ').title()
@@ -1755,7 +1755,7 @@ with main_tab4:
                     <div style="flex:1;min-width:100px;padding:0.5rem;background:#0f1117;border-radius:4px">
                         <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Rating</div>
                         <div style="font-size:1rem;color:{rec_color};font-family:IBM Plex Mono,monospace;font-weight:600">{rec_label}</div>
-                        <div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace">Score: {analyst_score:.2f}/5</div>
+                        <div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace">{'Score: ' + f'{analyst_score:.2f}/5' if not pd.isna(analyst_score) else ''}</div>
                     </div>
                     <div style="flex:1;min-width:100px;padding:0.5rem;background:#0f1117;border-radius:4px">
                         <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Target Mean</div>
@@ -1774,6 +1774,44 @@ with main_tab4:
                 {coverage_note}
             </div>
             """, unsafe_allow_html=True)
+            # Analyst distribution
+            try:
+                recs = yf.Ticker(sym).recommendations
+                if recs is not None and not recs.empty:
+                    latest = recs.iloc[0]
+                    sb = int(latest.get('strongBuy', 0))
+                    b = int(latest.get('buy', 0))
+                    h = int(latest.get('hold', 0))
+                    s = int(latest.get('sell', 0))
+                    ss = int(latest.get('strongSell', 0))
+                    total = sb + b + h + s + ss
+                    if total > 0:
+                        sb_w = sb/total*100
+                        b_w = b/total*100
+                        h_w = h/total*100
+                        s_w = s/total*100
+                        ss_w = ss/total*100
+                        st.markdown(f"""
+                        <div style="margin-top:0.5rem">
+                            <div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace;margin-bottom:0.3rem">Analyst Distribution</div>
+                            <div class="breadth-bar" style="height:24px">
+                                <div class="breadth-seg" style="width:{sb_w}%;background:#00d4aa;color:#0f1117">SB {sb}</div>
+                                <div class="breadth-seg" style="width:{b_w}%;background:#4da6ff;color:#0f1117">B {b}</div>
+                                <div class="breadth-seg" style="width:{h_w}%;background:#ffaa33;color:#0f1117">H {h}</div>
+                                <div class="breadth-seg" style="width:{s_w}%;background:#ff8844;color:#0f1117">S {s}</div>
+                                <div class="breadth-seg" style="width:{ss_w}%;background:#ff4d4d;color:#0f1117">SS {ss}</div>
+                            </div>
+                            <div style="display:flex;gap:1rem;font-size:0.6rem;font-family:IBM Plex Mono,monospace;color:#888;margin-top:0.2rem">
+                                <span><span style="color:#00d4aa">●</span> Strong Buy {sb}</span>
+                                <span><span style="color:#4da6ff">●</span> Buy {b}</span>
+                                <span><span style="color:#ffaa33">●</span> Hold {h}</span>
+                                <span><span style="color:#ff8844">●</span> Sell {s}</span>
+                                <span><span style="color:#ff4d4d">●</span> Strong Sell {ss}</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            except Exception:
+                pass
 
         # ── Screen Membership ──
         matched_screens = []
