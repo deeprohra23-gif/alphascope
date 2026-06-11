@@ -1803,34 +1803,34 @@ with main_tab4:
 
         # ── Peer Comparison ──
         stock_industry = row.get('Industry', '')
+        stock_cap = row.get('Cap Category', '')
         if stock_industry and str(stock_industry) not in ('', 'nan', 'None', 'N/A'):
             peers = scored[
                 (scored.get('Industry', pd.Series()) == stock_industry) &
                 (scored[sym_col] != sym)
             ].copy()
             if not peers.empty:
-                peers_top = peers.nlargest(5, 'Composite Score') if 'Composite Score' in peers.columns else peers.head(5)
-                peer_html = f'<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Industry Peers — {stock_industry} ({len(peers)} peers)</div>'
-                peer_html += '<div style="display:flex;flex-wrap:wrap;gap:0.5rem">'
-                for _, pr in peers_top.iterrows():
-                    pr_price = pr.get('Current Price', np.nan)
-                    pr_chg = pr.get('Day Change %', np.nan)
-                    pr_score = pr.get('Composite Score', np.nan)
-                    pr_regime = pr.get('Market Regime', '')
-                    pr_ti = pr.get('Technical Insight', 'Hold')
-                    pr_fi = pr.get('Fundamental Insight', 'Hold')
-                    pr_chg_c = "#00d4aa" if not pd.isna(pr_chg) and pr_chg > 0 else "#ff4d4d"
-                    pr_rdot = "🟢" if pr_regime in ['Bull', 'Strong Bull'] else "🔴" if pr_regime in ['Bear', 'Strong Bear'] else "🟡"
+                # Split into same cap and other cap peers
+                same_cap_peers = peers[peers.get('Cap Category', pd.Series()) == stock_cap] if stock_cap else peers
+                
+                peer_label = f"Industry Peers — {stock_industry}"
+                if stock_cap:
+                    peer_label += f" ({stock_cap} Cap)"
 
-                    def _ic(i):
-                        return {'Strong Buy': '#00d4aa', 'Buy': '#4da6ff', 'Hold': '#888', 'Sell': '#ff8844', 'Strong Sell': '#ff4d4d'}.get(i, '#888')
+                st.markdown(f"""
+                <div class="stock-card" style="margin-top:0.5rem">
+                    <div class="stock-card-section">{peer_label} — {len(same_cap_peers)} peers</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-                    peer_html += f'<div style="flex:1;min-width:180px;max-width:250px;background:#0f1117;border:1px solid #2a2a2a;border-radius:6px;padding:0.6rem"><div style="font-family:IBM Plex Mono,monospace;font-size:0.8rem;color:#e0e0e0;font-weight:600">{pr_rdot} {pr[sym_col].replace(".NS","")}</div><div style="display:flex;justify-content:space-between;margin-top:0.3rem"><span style="font-family:IBM Plex Mono,monospace;font-size:0.8rem;color:#e0e0e0">₹{pr_price:,.2f}</span><span style="font-size:0.7rem;color:{pr_chg_c};font-family:IBM Plex Mono,monospace">{pr_chg:+.2f}%</span></div><div style="margin-top:0.3rem"><span style="font-size:0.6rem;padding:0.15rem 0.4rem;border-radius:3px;color:{_ic(pr_ti)};border:1px solid {_ic(pr_ti)};font-family:IBM Plex Mono,monospace">T:{pr_ti}</span> <span style="font-size:0.6rem;padding:0.15rem 0.4rem;border-radius:3px;color:{_ic(pr_fi)};border:1px solid {_ic(pr_fi)};font-family:IBM Plex Mono,monospace">F:{pr_fi}</span></div><div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;margin-top:0.2rem">Score: {pr_score:.1f}</div></div>'
-                peer_html += '</div></div>'
-                st.markdown(peer_html, unsafe_allow_html=True)
-                with st.expander(f"View all {len(peers)} peers", expanded=False):
-                    show_table(peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_table')
-
+                if not same_cap_peers.empty:
+                    show_table(same_cap_peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_same_cap')
+                
+                # Show other cap peers in expander
+                other_cap_peers = peers[peers.get('Cap Category', pd.Series()) != stock_cap] if stock_cap else pd.DataFrame()
+                if not other_cap_peers.empty:
+                    with st.expander(f"Other {stock_industry} peers (different cap size) — {len(other_cap_peers)} stocks", expanded=False):
+                        show_table(other_cap_peers, OVERVIEW_COLS, 'Composite Score', False, 'peer_other_cap')
         # ── Recent News ──
         try:
             news_ticker = yf.Ticker(sym)
