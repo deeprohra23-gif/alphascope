@@ -4,6 +4,7 @@ import numpy as np
 import re
 import os
 from datetime import datetime
+import yfinance as yf
 
 from config import (
     OVERVIEW_COLS, TECHNICAL_COLS, RETURNS_COLS, RISK_COLS, FUNDAMENTAL_COLS,
@@ -566,10 +567,9 @@ main_tab0, main_tab1, main_tab2, main_tab3, main_tab4 = st.tabs(["🏠 Dashboard
 # TAB 0 — DASHBOARD
 # ══════════════════════════════════════════════
 with main_tab0:
-    dash_sub0, dash_sub1, dash_sub2, dash_sub3, dash_sub4 = st.tabs([
-        "🔔 What Changed Today", "📊 Market Overview", "🔄 Sector Rotation", "⚡ Signals", "🏅 Sector Top 5"
+    dash_sub0, dash_sub1, dash_sub2, dash_sub3, dash_sub4, dash_sub5 = st.tabs([
+        "🔔 What Changed Today", "📊 Market Overview", "🔄 Sector Rotation", "⚡ Signals", "🏅 Sector Top 5", "🎯 Quick Picks"
     ])
-
     # ── WHAT CHANGED TODAY ──────────────────────
     with dash_sub0:
         snapshots = list_snapshots()
@@ -1000,6 +1000,66 @@ with main_tab0:
                         """, unsafe_allow_html=True)
         else:
             st.warning("Sector data not available.")
+
+
+# ── QUICK PICKS ─────────────────────────────
+    with dash_sub5:
+        st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Stocks categorised by investment horizon. Top 10 shown per category, ranked by Composite Score. Click to expand full list.</p>", unsafe_allow_html=True)
+
+        horizons = {
+            "📈 Short Term (Momentum)": scored[
+                (scored.get('Supertrend', pd.Series()) == 'Bullish') &
+                (scored.get('MACD Signal', pd.Series()) == 'Bullish') &
+                (pd.to_numeric(scored.get('ROC 1M %', pd.Series()), errors='coerce') > 5) &
+                (pd.to_numeric(scored.get('RSI 14', pd.Series()), errors='coerce').between(50, 70))
+            ] if has_col(scored, 'Supertrend') else pd.DataFrame(),
+
+            "📊 Medium Term (Trend + Quality)": scored[
+                (scored.get('Market Regime', pd.Series()).isin(['Bull', 'Strong Bull'])) &
+                (pd.to_numeric(scored.get('ROC 3M %', pd.Series()), errors='coerce') > 10) &
+                (pd.to_numeric(scored.get('Fundamental Score', pd.Series()), errors='coerce') > 50)
+            ] if has_col(scored, 'Market Regime') else pd.DataFrame(),
+
+            "🏦 Long Term Compounder": scored[
+                (pd.to_numeric(scored.get('ROCE %', pd.Series()), errors='coerce') > 15) &
+                (pd.to_numeric(scored.get('ROE %', pd.Series()), errors='coerce') > 12) &
+                (pd.to_numeric(scored.get('Debt/Equity', pd.Series()), errors='coerce') < 1) &
+                (pd.to_numeric(scored.get('Sales Growth 3Y %', pd.Series()), errors='coerce') > 10) &
+                (pd.to_numeric(scored.get('Promoter Holding %', pd.Series()), errors='coerce') > 50)
+            ] if has_col(scored, 'ROCE %') else pd.DataFrame(),
+
+            "💰 Dividend Pick": scored[
+                (pd.to_numeric(scored.get('Dividend Yield %', pd.Series()), errors='coerce') > 2) &
+                (pd.to_numeric(scored.get('Dividend Payout %', pd.Series()), errors='coerce').between(10, 60)) &
+                (pd.to_numeric(scored.get('Debt/Equity', pd.Series()), errors='coerce') < 0.5) &
+                (pd.to_numeric(scored.get('Profit Growth 3Y %', pd.Series()), errors='coerce') > 5)
+            ] if has_col(scored, 'Dividend Yield %') else pd.DataFrame(),
+
+            "💎 Value Pick": scored[
+                (pd.to_numeric(scored.get('PE Ratio', pd.Series()), errors='coerce') < pd.to_numeric(scored.get('Sector PE', pd.Series()), errors='coerce')) &
+                (pd.to_numeric(scored.get('ROCE %', pd.Series()), errors='coerce') > 12) &
+                (pd.to_numeric(scored.get('Profit Growth 1Y %', pd.Series()), errors='coerce') > 0)
+            ] if has_col(scored, 'PE Ratio') else pd.DataFrame(),
+        }
+
+        for horizon_name, horizon_df in horizons.items():
+            if horizon_df is None or horizon_df.empty:
+                continue
+            top = horizon_df.nlargest(10, 'Composite Score') if 'Composite Score' in horizon_df.columns else horizon_df.head(10)
+            with st.expander(f"{horizon_name} — {len(horizon_df)} stocks", expanded=False):
+                cards_html = '<div style="display:flex;flex-wrap:wrap;gap:0.5rem">'
+                for _, r in top.iterrows():
+                    price_val = r.get('Current Price', np.nan)
+                    day_chg_val = r.get('Day Change %', np.nan)
+                    comp_score_val = r.get('Composite Score', np.nan)
+                    regime_val = r.get('Market Regime', '')
+                    sector_val = r.get('Sector', '')
+                    chg_c = "#00d4aa" if not pd.isna(day_chg_val) and day_chg_val > 0 else "#ff4d4d"
+                    rdot = "🟢" if regime_val in ['Bull', 'Strong Bull'] else "🔴" if regime_val in ['Bear', 'Strong Bear'] else "🟡"
+                    cards_html += f'<div style="flex:1;min-width:200px;max-width:280px;background:#16181f;border:1px solid #2a2a2a;border-radius:8px;padding:0.7rem"><div style="font-family:IBM Plex Mono,monospace;font-size:0.85rem;color:#e0e0e0;font-weight:600">{rdot} {r[sym_col].replace(".NS","")}</div><div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace">{sector_val}</div><div style="display:flex;justify-content:space-between;margin-top:0.4rem"><span style="font-family:IBM Plex Mono,monospace;font-size:0.9rem;color:#e0e0e0">₹{price_val:,.2f}</span><span style="font-family:IBM Plex Mono,monospace;font-size:0.75rem;color:{chg_c}">{day_chg_val:+.2f}%</span></div><div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace;margin-top:0.3rem">Score: {comp_score_val:.1f}</div></div>'
+                cards_html += '</div>'
+                st.markdown(cards_html, unsafe_allow_html=True)
+                show_table(horizon_df, OVERVIEW_COLS, 'Composite Score', False, f'qp_{horizon_name[:8]}')
 
 
 # ══════════════════════════════════════════════
@@ -1670,6 +1730,137 @@ with main_tab4:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+
+    # ── Company Description ──
+        desc = row.get('Description', '')
+        if desc and str(desc) not in ('', 'nan', 'None'):
+            st.markdown(f"""
+            <div class="stock-card" style="margin-top:0.5rem">
+                <div class="stock-card-section">About</div>
+                <div style="font-size:0.75rem;color:#aaa;font-family:IBM Plex Mono,monospace;line-height:1.5">{str(desc)[:500]}{'...' if len(str(desc)) > 500 else ''}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── Analyst Consensus ──
+        analyst_rec = row.get('Analyst Recommendation', '')
+        target_mean = row.get('Target Mean Price', np.nan)
+        target_high = row.get('Target High Price', np.nan)
+        target_low = row.get('Target Low Price', np.nan)
+        num_analysts = row.get('No. of Analysts', np.nan)
+        analyst_score = row.get('Analyst Score', np.nan)
+
+        if analyst_rec and str(analyst_rec) not in ('', 'nan', 'None'):
+            rec_colors = {'strong_buy': '#00d4aa', 'buy': '#4da6ff', 'hold': '#ffaa33', 'sell': '#ff8844', 'strong_sell': '#ff4d4d'}
+            rec_color = rec_colors.get(str(analyst_rec).lower(), '#888')
+            rec_label = str(analyst_rec).replace('_', ' ').title()
+            n_analysts = int(num_analysts) if not pd.isna(num_analysts) else '?'
+            coverage_note = "" if not pd.isna(num_analysts) and num_analysts >= 3 else '<div style="font-size:0.6rem;color:#ff8844;margin-top:0.3rem">⚠ Limited analyst coverage — data may be outdated</div>'
+
+            upside = ((float(target_mean) - float(price)) / float(price) * 100) if not pd.isna(target_mean) and not pd.isna(price) and float(price) > 0 else np.nan
+            upside_color = "#00d4aa" if not pd.isna(upside) and upside > 0 else "#ff4d4d"
+            upside_str = f"{upside:+.1f}% {'upside' if upside > 0 else 'downside'}" if not pd.isna(upside) else '—'
+
+            st.markdown(f"""
+            <div class="stock-card" style="margin-top:0.5rem">
+                <div class="stock-card-section">Analyst Consensus ({n_analysts} analysts)</div>
+                <div style="display:flex;gap:1rem;flex-wrap:wrap">
+                    <div style="flex:1;min-width:100px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                        <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Rating</div>
+                        <div style="font-size:1rem;color:{rec_color};font-family:IBM Plex Mono,monospace;font-weight:600">{rec_label}</div>
+                        <div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace">Score: {analyst_score:.2f}/5</div>
+                    </div>
+                    <div style="flex:1;min-width:100px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                        <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Target Mean</div>
+                        <div style="font-size:1rem;color:#e0e0e0;font-family:IBM Plex Mono,monospace;font-weight:600">₹{fmt_val(target_mean, ',.2f')}</div>
+                        <div style="font-size:0.65rem;color:{upside_color};font-family:IBM Plex Mono,monospace">{upside_str}</div>
+                    </div>
+                    <div style="flex:1;min-width:100px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                        <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Target High</div>
+                        <div style="font-size:0.95rem;color:#00d4aa;font-family:IBM Plex Mono,monospace;font-weight:600">₹{fmt_val(target_high, ',.2f')}</div>
+                    </div>
+                    <div style="flex:1;min-width:100px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                        <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase;letter-spacing:1px">Target Low</div>
+                        <div style="font-size:0.95rem;color:#ff4d4d;font-family:IBM Plex Mono,monospace;font-weight:600">₹{fmt_val(target_low, ',.2f')}</div>
+                    </div>
+                </div>
+                {coverage_note}
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── Screen Membership ──
+        matched_screens = []
+        for screen_name in SCREENS:
+            try:
+                result = run_screen(screen_name, scored)
+                if result is not None and not result.empty and sym in result[sym_col].values:
+                    matched_screens.append(screen_name)
+            except Exception:
+                continue
+
+        if matched_screens:
+            badges = " ".join([f'<span style="display:inline-block;padding:0.25rem 0.6rem;margin:0.15rem;border-radius:4px;background:#0d2e1f;border:1px solid #00d4aa33;color:#00d4aa;font-family:IBM Plex Mono,monospace;font-size:0.7rem">{s}</span>' for s in matched_screens])
+            st.markdown(f"""
+            <div class="stock-card" style="margin-top:0.5rem">
+                <div class="stock-card-section">Appears in Screens ({len(matched_screens)})</div>
+                <div style="display:flex;flex-wrap:wrap;gap:0.2rem">{badges}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="stock-card" style="margin-top:0.5rem">
+                <div class="stock-card-section">Appears in Screens</div>
+                <div style="font-size:0.75rem;color:#555;font-family:IBM Plex Mono,monospace">Does not match any pre-built screen currently</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── Peer Comparison ──
+        stock_industry = row.get('Industry', '')
+        if stock_industry and str(stock_industry) not in ('', 'nan', 'None', 'N/A'):
+            peers = scored[
+                (scored.get('Industry', pd.Series()) == stock_industry) &
+                (scored[sym_col] != sym)
+            ].copy()
+            if not peers.empty:
+                peers_top = peers.nlargest(5, 'Composite Score') if 'Composite Score' in peers.columns else peers.head(5)
+                peer_html = f'<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Industry Peers — {stock_industry} ({len(peers)} peers)</div>'
+                peer_html += '<div style="display:flex;flex-wrap:wrap;gap:0.5rem">'
+                for _, pr in peers_top.iterrows():
+                    pr_price = pr.get('Current Price', np.nan)
+                    pr_chg = pr.get('Day Change %', np.nan)
+                    pr_score = pr.get('Composite Score', np.nan)
+                    pr_regime = pr.get('Market Regime', '')
+                    pr_ti = pr.get('Technical Insight', 'Hold')
+                    pr_fi = pr.get('Fundamental Insight', 'Hold')
+                    pr_chg_c = "#00d4aa" if not pd.isna(pr_chg) and pr_chg > 0 else "#ff4d4d"
+                    pr_rdot = "🟢" if pr_regime in ['Bull', 'Strong Bull'] else "🔴" if pr_regime in ['Bear', 'Strong Bear'] else "🟡"
+
+                    def _ic(i):
+                        return {'Strong Buy': '#00d4aa', 'Buy': '#4da6ff', 'Hold': '#888', 'Sell': '#ff8844', 'Strong Sell': '#ff4d4d'}.get(i, '#888')
+
+                    peer_html += f'<div style="flex:1;min-width:180px;max-width:250px;background:#0f1117;border:1px solid #2a2a2a;border-radius:6px;padding:0.6rem"><div style="font-family:IBM Plex Mono,monospace;font-size:0.8rem;color:#e0e0e0;font-weight:600">{pr_rdot} {pr[sym_col].replace(".NS","")}</div><div style="display:flex;justify-content:space-between;margin-top:0.3rem"><span style="font-family:IBM Plex Mono,monospace;font-size:0.8rem;color:#e0e0e0">₹{pr_price:,.2f}</span><span style="font-size:0.7rem;color:{pr_chg_c};font-family:IBM Plex Mono,monospace">{pr_chg:+.2f}%</span></div><div style="margin-top:0.3rem"><span style="font-size:0.6rem;padding:0.15rem 0.4rem;border-radius:3px;color:{_ic(pr_ti)};border:1px solid {_ic(pr_ti)};font-family:IBM Plex Mono,monospace">T:{pr_ti}</span> <span style="font-size:0.6rem;padding:0.15rem 0.4rem;border-radius:3px;color:{_ic(pr_fi)};border:1px solid {_ic(pr_fi)};font-family:IBM Plex Mono,monospace">F:{pr_fi}</span></div><div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;margin-top:0.2rem">Score: {pr_score:.1f}</div></div>'
+                peer_html += '</div></div>'
+                st.markdown(peer_html, unsafe_allow_html=True)
+
+        # ── Recent News ──
+        try:
+            news_ticker = yf.Ticker(sym)
+            news_items = news_ticker.news[:5] if news_ticker.news else []
+            if news_items:
+                news_html = '<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Recent News</div>'
+                for item in news_items:
+                    content = item.get('content', {})
+                    n_title = content.get('title', '')
+                    n_summary = content.get('summary', '')
+                    n_date = content.get('pubDate', '')[:10]
+                    n_provider = content.get('provider', {}).get('displayName', '')
+                    n_link = content.get('clickThroughUrl', {}).get('url', '')
+                    if n_title:
+                        news_html += f'<div style="padding:0.5rem 0;border-bottom:1px solid #2a2a2a"><a href="{n_link}" target="_blank" style="color:#4da6ff;font-family:IBM Plex Mono,monospace;font-size:0.78rem;text-decoration:none;font-weight:600">{n_title[:120]}{"..." if len(n_title) > 120 else ""}</a><div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace;margin-top:0.2rem">{n_provider} · {n_date}</div><div style="font-size:0.7rem;color:#aaa;font-family:IBM Plex Mono,monospace;margin-top:0.2rem">{n_summary[:200]}{"..." if len(n_summary) > 200 else ""}</div></div>'
+                news_html += '</div>'
+                st.markdown(news_html, unsafe_allow_html=True)
+        except Exception:
+            pass
 
         # Scores
         col_a, col_b = st.columns(2)
