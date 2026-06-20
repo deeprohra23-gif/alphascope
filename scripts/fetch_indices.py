@@ -61,7 +61,7 @@ INDICES = {
     "Nifty Pharma":                                 "Sectoral",
     "Nifty Private Bank":                           "Sectoral",
     "Nifty Psu Bank":                               "Sectoral",
-    "Nifty Realty":                                  "Sectoral",
+    "Nifty Realty":                                 "Sectoral",
     "Nifty Reits & Realty":                         "Sectoral",
     # Thematic
     "Nifty Capital Markets":                        "Thematic",
@@ -72,7 +72,7 @@ INDICES = {
     "Nifty Housing":                                "Thematic",
     "Nifty India Consumption":                      "Thematic",
     "Nifty India Defence":                          "Thematic",
-    "Nifty India Digital":                           "Thematic",
+    "Nifty India Digital":                          "Thematic",
     "Nifty India Internet":                         "Thematic",
     "Nifty India Manufacturing":                    "Thematic",
     "Nifty India Railways Psu":                     "Thematic",
@@ -80,6 +80,7 @@ INDICES = {
     "Nifty Non-Cyclical Consumer":                  "Thematic",
     "Nifty Pse":                                    "Thematic",
     "Nifty Transportation & Logistics":             "Thematic",
+    "Nifty IPO"                                     "Thematic",
     # Strategy/Factor
     "Nifty Alpha 50":                               "Strategy",
     "Nifty Alpha Quality Value Low-Volatility 30":  "Strategy",
