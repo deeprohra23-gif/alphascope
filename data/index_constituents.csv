@@ -14,16 +14,16 @@ ABFRL.NS,"Nifty 500, Nifty Smallcap 250"
 ABLBL.NS,"Nifty 500, Nifty Smallcap 250"
 ABREL.NS,"Nifty 500, Nifty Realty, Nifty Smallcap 250"
 ABSLAMC.NS,"Nifty 500, Nifty Capital Markets, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
-ACC.NS,"Nifty 500, Nifty Cement, Nifty Housing, Nifty Midcap 150"
+ACC.NS,"Nifty 500, Nifty Cement, Nifty Midcap 150"
 ACE.NS,"Nifty 500, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 ACI.NS,Nifty Microcap 250
 ACMESOLAR.NS,"Nifty 500, Nifty Smallcap 250"
 ACUTAAS.NS,"Nifty 500, Nifty Smallcap 250"
-ADANIENSOL.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Commodities, Nifty Energy, Nifty High Beta 50, Nifty Next 50"
+ADANIENSOL.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Commodities, Nifty Energy, Nifty High Beta 50, Nifty Housing, Nifty Next 50"
 ADANIENT.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty High Beta 50, Nifty Metal"
 ADANIGREEN.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Commodities, Nifty Energy, Nifty High Beta 50, Nifty Housing, Nifty Infrastructure, Nifty Next 50"
 ADANIPORTS.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty High Beta 50, Nifty Infrastructure, Nifty Transportation & Logistics"
-ADANIPOWER.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Commodities, Nifty Energy, Nifty High Beta 50, Nifty India Consumption, Nifty Next 50"
+ADANIPOWER.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Commodities, Nifty Energy, Nifty High Beta 50, Nifty Housing, Nifty India Consumption, Nifty Next 50"
 ADVANCE.NS,Nifty Ipo
 ADVENZYMES.NS,Nifty Microcap 250
 AEGISLOG.NS,"Nifty 500, Nifty Energy, Nifty Oil & Gas, Nifty Smallcap 250"
@@ -75,7 +75,7 @@ ASKAUTOLTD.NS,Nifty Microcap 250
 ASTERDM.NS,"Nifty 500, Nifty Smallcap 250"
 ASTRAL.NS,"Nifty 200, Nifty 500, Nifty India Manufacturing, Nifty Midcap 150, Nifty Midcap150 Quality 50"
 ASTRAMICRO.NS,"Nifty India Defence, Nifty Microcap 250"
-ATGL.NS,"Nifty 200, Nifty 500, Nifty Energy, Nifty Housing, Nifty Midcap 150, Nifty Oil & Gas"
+ATGL.NS,"Nifty 200, Nifty 500, Nifty Energy, Nifty Midcap 150, Nifty Oil & Gas"
 ATHERENERG.NS,"Nifty 500, Nifty Ev & New Age Automotive, Nifty Ipo, Nifty Smallcap 250"
 ATLANTAELE.NS,"Nifty Ipo, Nifty Microcap 250"
 ATUL.NS,"Nifty 500, Nifty Chemicals, Nifty Smallcap 250"
@@ -102,7 +102,7 @@ BALKRISIND.NS,"Nifty 500, Nifty India Manufacturing, Nifty Midcap 150, Nifty Mid
 BALRAMCHIN.NS,"Nifty 500, Nifty Smallcap 250"
 BALUFORGE.NS,Nifty Microcap 250
 BANCOINDIA.NS,Nifty Microcap 250
-BANDHANBNK.NS,"Nifty 500, Nifty High Beta 50, Nifty Housing, Nifty Private Bank, Nifty Smallcap 250"
+BANDHANBNK.NS,"Nifty 500, Nifty High Beta 50, Nifty Private Bank, Nifty Smallcap 250"
 BANKBARODA.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Bank, Nifty Dividend Opportunities 50, Nifty Housing, Nifty Next 50, Nifty Psu Bank, Nifty200 Value 30"
 BANKINDIA.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Dividend Opportunities 50, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty Psu Bank, Nifty200 Value 30"
 BATAINDIA.NS,"Nifty 500, Nifty Consumer Durables, Nifty Smallcap 250"
@@ -114,7 +114,7 @@ BECTORFOOD.NS,Nifty Microcap 250
 BEL.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Alpha 50, Nifty Alpha Quality Value Low-Volatility 30, Nifty Cpse, Nifty India Defence, Nifty India Manufacturing, Nifty India Railways Psu, Nifty Pse, Nifty200 Quality 30"
 BELRISE.NS,"Nifty 500, Nifty Ipo, Nifty Smallcap 250"
 BEML.NS,"Nifty 500, Nifty India Defence, Nifty India Railways Psu, Nifty Smallcap 250"
-BERGEPAINT.NS,"Nifty 500, Nifty Housing, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty Midcap150 Quality 50"
+BERGEPAINT.NS,"Nifty 500, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty Midcap150 Quality 50"
 BHARATCOAL.NS,Nifty Ipo
 BHARATFORG.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Auto, Nifty Ev & New Age Automotive, Nifty India Defence, Nifty India Manufacturing, Nifty Infrastructure, Nifty Midcap 150, Nifty Transportation & Logistics"
 BHARTIARTL.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty India Consumption, Nifty India Digital, Nifty Infrastructure, Nifty Low Volatility 50, Nifty Non-Cyclical Consumer, Nifty100 Low Volatility 30, Nifty200 Momentum 30"
@@ -128,7 +128,7 @@ BLACKBUCK.NS,Nifty Microcap 250
 BLS.NS,"Nifty 500, Nifty India Digital, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 BLUEDART.NS,"Nifty 500, Nifty Smallcap 250"
 BLUEJET.NS,"Nifty 500, Nifty Smallcap 250"
-BLUESTARCO.NS,"Nifty 200, Nifty 500, Nifty Consumer Durables, Nifty India Manufacturing, Nifty Midcap 150"
+BLUESTARCO.NS,"Nifty 200, Nifty 500, Nifty Consumer Durables, Nifty Housing, Nifty India Manufacturing, Nifty Midcap 150"
 BLUESTONE.NS,"Nifty Ipo, Nifty Microcap 250"
 BMWVENTLTD.NS,Nifty Ipo
 BORORENEW.NS,Nifty Microcap 250
@@ -141,7 +141,7 @@ BSE.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Capital Markets, Nifty Finan
 BSOFT.NS,"Nifty 500, Nifty India Digital, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 CAMPUS.NS,Nifty Microcap 250
 CAMS.NS,"Nifty 500, Nifty Capital Markets, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
-CANBK.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Bank, Nifty Dividend Opportunities 50, Nifty Next 50, Nifty Psu Bank, Nifty200 Momentum 30, Nifty200 Value 30"
+CANBK.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Bank, Nifty Dividend Opportunities 50, Nifty Housing, Nifty Next 50, Nifty Psu Bank, Nifty200 Momentum 30, Nifty200 Value 30"
 CANFINHOME.NS,"Nifty 500, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 CANHLIFE.NS,"Nifty 500, Nifty Ipo, Nifty Smallcap 250"
 CAPILLARY.NS,"Nifty Ipo, Nifty Microcap 250"
@@ -191,12 +191,12 @@ CRISIL.NS,"Nifty 500, Nifty Midcap 150, Nifty Midcap150 Quality 50"
 CRIZAC.NS,"Nifty India Internet, Nifty Ipo, Nifty Microcap 250"
 CROMPTON.NS,"Nifty 500, Nifty Consumer Durables, Nifty Housing, Nifty India Manufacturing, Nifty Smallcap 250"
 CSBBANK.NS,Nifty Microcap 250
-CUB.NS,"Nifty 500, Nifty Housing, Nifty Smallcap 250"
+CUB.NS,"Nifty 500, Nifty Smallcap 250"
 CUMMINSIND.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Dividend Opportunities 50, Nifty India Manufacturing, Nifty Infrastructure, Nifty Midcap150 Momentum 50, Nifty Midcap150 Quality 50, Nifty Next 50, Nifty200 Momentum 30, Nifty200 Quality 30"
 CUPID.NS,Nifty Microcap 250
 CYIENT.NS,"Nifty 500, Nifty India Digital, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 DABUR.NS,"Nifty 200, Nifty 500, Nifty Fmcg, Nifty Low Volatility 50, Nifty Midcap 150, Nifty Non-Cyclical Consumer"
-DALBHARAT.NS,"Nifty 500, Nifty Cement, Nifty Housing, Nifty Midcap 150, Nifty Midcap150 Momentum 50"
+DALBHARAT.NS,"Nifty 500, Nifty Cement, Nifty Midcap 150, Nifty Midcap150 Momentum 50"
 DATAMATICS.NS,Nifty Microcap 250
 DATAPATTNS.NS,"Nifty 500, Nifty India Defence, Nifty Smallcap 250"
 DBCORP.NS,Nifty Media
@@ -204,7 +204,7 @@ DBL.NS,Nifty Microcap 250
 DBREALTY.NS,Nifty Microcap 250
 DCBBANK.NS,Nifty Microcap 250
 DCMSHRIRAM.NS,"Nifty 500, Nifty Smallcap 250"
-DEEPAKFERT.NS,"Nifty 500, Nifty Smallcap 250"
+DEEPAKFERT.NS,"Nifty 500, Nifty Chemicals, Nifty Smallcap 250"
 DEEPAKNTR.NS,"Nifty 500, Nifty Chemicals, Nifty Smallcap 250"
 DELHIVERY.NS,"Nifty 500, Nifty Alpha 50, Nifty Smallcap 250, Nifty Transportation & Logistics"
 DEVYANI.NS,"Nifty 500, Nifty Smallcap 250"
@@ -215,13 +215,12 @@ DLF.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty High Beta 50, Nifty Housing, Nift
 DMART.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty India Consumption, Nifty Low Volatility 50, Nifty Next 50, Nifty Non-Cyclical Consumer"
 DOMS.NS,"Nifty 500, Nifty Smallcap 250"
 DRREDDY.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Alpha Quality Value Low-Volatility 30, Nifty Healthcare Index, Nifty India Manufacturing, Nifty Low Volatility 50, Nifty Pharma, Nifty100 Low Volatility 30"
-DUMMYALCAR.NS,Nifty Microcap 250
 DYNAMATECH.NS,"Nifty India Defence, Nifty Microcap 250"
 EBGNG.NS,Nifty Ipo
 ECLERX.NS,"Nifty 500, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 EDELWEISS.NS,Nifty Microcap 250
 EICHERMOT.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Alpha 50, Nifty Alpha Quality Value Low-Volatility 30, Nifty Auto, Nifty Ev & New Age Automotive, Nifty India Consumption, Nifty India Manufacturing, Nifty Transportation & Logistics, Nifty200 Momentum 30"
-EIDPARRY.NS,"Nifty 500, Nifty Chemicals, Nifty Smallcap 250"
+EIDPARRY.NS,"Nifty 500, Nifty Smallcap 250"
 EIEL.NS,Nifty Microcap 250
 EIHOTEL.NS,"Nifty 500, Nifty Smallcap 250"
 ELECON.NS,"Nifty 500, Nifty Smallcap 250"
@@ -268,7 +267,6 @@ GAEL.NS,Nifty Microcap 250
 GAIL.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Dividend Opportunities 50, Nifty Energy, Nifty Infrastructure, Nifty Next 50, Nifty Oil & Gas, Nifty Pse, Nifty200 Value 30"
 GALLANTT.NS,"Nifty 500, Nifty Smallcap 250"
 GANESHCP.NS,Nifty Ipo
-GAUDIUMIVF.NS,Nifty Ipo
 GEMAROMA.NS,Nifty Ipo
 GESHIP.NS,"Nifty 500, Nifty Smallcap 250"
 GHCL.NS,Nifty Microcap 250
@@ -285,7 +283,7 @@ GMDCLTD.NS,"Nifty 500, Nifty Smallcap 250"
 GMMPFAUDLR.NS,Nifty Microcap 250
 GMRAIRPORT.NS,"Nifty 200, Nifty 500, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty Transportation & Logistics, Nifty200 Momentum 30"
 GMRP&UI.NS,Nifty Microcap 250
-GNFC.NS,"Nifty Chemicals, Nifty Microcap 250"
+GNFC.NS,Nifty Microcap 250
 GODFRYPHLP.NS,"Nifty 200, Nifty 500, Nifty Midcap 150, Nifty Midcap150 Quality 50"
 GODIGIT.NS,"Nifty 500, Nifty Smallcap 250"
 GODREJAGRO.NS,Nifty Microcap 250
@@ -317,7 +315,6 @@ HCC.NS,Nifty Microcap 250
 HCG.NS,Nifty Microcap 250
 HCLTECH.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Alpha Quality Value Low-Volatility 30, Nifty Dividend Opportunities 50, Nifty India Digital, Nifty It, Nifty Low Volatility 50, Nifty100 Low Volatility 30, Nifty200 Quality 30"
 HDBFS.NS,"Nifty 500, Nifty Ipo, Nifty Midcap 150"
-HDFC.NS,Nifty Housing
 HDFCAMC.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Alpha Quality Value Low-Volatility 30, Nifty Capital Markets, Nifty Dividend Opportunities 50, Nifty Midcap150 Momentum 50, Nifty Midcap150 Quality 50, Nifty Next 50, Nifty200 Quality 30"
 HDFCBANK.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Alpha Quality Value Low-Volatility 30, Nifty Bank, Nifty Financial Services, Nifty Housing, Nifty Low Volatility 50, Nifty Private Bank, Nifty100 Low Volatility 30"
 HDFCLIFE.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Financial Services, Nifty Low Volatility 50"
@@ -341,7 +338,6 @@ HONAUT.NS,"Nifty 500, Nifty India Manufacturing, Nifty Midcap 150, Nifty Midcap1
 HSCL.NS,"Nifty 500, Nifty Chemicals, Nifty Ev & New Age Automotive, Nifty India Manufacturing, Nifty Smallcap 250"
 HUDCO.NS,"Nifty 200, Nifty 500, Nifty Dividend Opportunities 50, Nifty High Beta 50, Nifty Midcap 150"
 HYUNDAI.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Ev & New Age Automotive, Nifty India Manufacturing, Nifty Next 50, Nifty Transportation & Logistics"
-IBULHSGFIN.NS,Nifty Housing
 ICICIAMC.NS,"Nifty 200, Nifty 500, Nifty Capital Markets, Nifty Ipo, Nifty Midcap 150"
 ICICIBANK.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Alpha Quality Value Low-Volatility 30, Nifty Bank, Nifty Financial Services, Nifty Housing, Nifty Low Volatility 50, Nifty Private Bank, Nifty100 Low Volatility 30"
 ICICIGI.NS,"Nifty 200, Nifty 500, Nifty Financial Services, Nifty Low Volatility 50, Nifty Midcap 150"
@@ -355,7 +351,7 @@ IFBIND.NS,Nifty Microcap 250
 IFCI.NS,"Nifty 500, Nifty Smallcap 250"
 IGCL.NS,Nifty Ipo
 IGIL.NS,"Nifty 500, Nifty Smallcap 250"
-IGL.NS,"Nifty 500, Nifty Energy, Nifty Housing, Nifty Midcap150 Momentum 50, Nifty Midcap150 Quality 50, Nifty Oil & Gas, Nifty Smallcap 250"
+IGL.NS,"Nifty 500, Nifty Energy, Nifty Midcap150 Momentum 50, Nifty Midcap150 Quality 50, Nifty Oil & Gas, Nifty Smallcap 250"
 IIFL.NS,"Nifty 500, Nifty Alpha 50, Nifty High Beta 50, Nifty Smallcap 250"
 IIFLCAPS.NS,"Nifty India Internet, Nifty Microcap 250"
 IKS.NS,"Nifty 500, Nifty India Digital, Nifty Smallcap 250"
@@ -365,7 +361,7 @@ INDHOTEL.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty India Consumption, Nifty Inf
 INDIACEM.NS,"Nifty 500, Nifty Cement, Nifty Smallcap 250"
 INDIAGLYCO.NS,Nifty Microcap 250
 INDIAMART.NS,"Nifty 500, Nifty India Digital, Nifty India Internet, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
-INDIANB.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Dividend Opportunities 50, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty Psu Bank, Nifty200 Momentum 30, Nifty200 Value 30"
+INDIANB.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Dividend Opportunities 50, Nifty Housing, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty Psu Bank, Nifty200 Momentum 30, Nifty200 Value 30"
 INDIASHLTR.NS,Nifty Microcap 250
 INDIGO.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty India Consumption, Nifty Infrastructure, Nifty Non-Cyclical Consumer, Nifty Transportation & Logistics, Nifty200 Momentum 30"
 INDIGOPNTS.NS,Nifty Microcap 250
@@ -390,7 +386,6 @@ IRFC.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Dividend Opportunities 50, Nifty
 ITC.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Alpha Quality Value Low-Volatility 30, Nifty Dividend Opportunities 50, Nifty Fmcg, Nifty India Consumption, Nifty Low Volatility 50, Nifty Non-Cyclical Consumer, Nifty100 Low Volatility 30, Nifty200 Quality 30"
 ITCHOTELS.NS,"Nifty 500, Nifty Midcap 150"
 ITI.NS,"Nifty 500, Nifty India Digital, Nifty India Railways Psu, Nifty Smallcap 250"
-IVALUE.NS,Nifty Ipo
 IXIGO.NS,"Nifty India Internet, Nifty Microcap 250"
 J&KBANK.NS,"Nifty 500, Nifty Smallcap 250"
 JAIBALAJI.NS,Nifty Microcap 250
@@ -411,11 +406,11 @@ JLHL.NS,Nifty Microcap 250
 JMFINANCIL.NS,"Nifty 500, Nifty Smallcap 250"
 JPPOWER.NS,"Nifty 500, Nifty Energy, Nifty Smallcap 250"
 JSFB.NS,Nifty Microcap 250
-JSL.NS,"Nifty 500, Nifty Metal, Nifty Midcap 150, Nifty Midcap150 Momentum 50"
+JSL.NS,"Nifty 500, Nifty Housing, Nifty Metal, Nifty Midcap 150, Nifty Midcap150 Momentum 50"
 JSLL.NS,Nifty Microcap 250
 JSWCEMENT.NS,"Nifty 500, Nifty Cement, Nifty Ipo, Nifty Smallcap 250"
 JSWDULUX.NS,"Nifty 500, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
-JSWENERGY.NS,"Nifty 200, Nifty 500, Nifty Commodities, Nifty Energy, Nifty High Beta 50, Nifty Midcap 150"
+JSWENERGY.NS,"Nifty 200, Nifty 500, Nifty Commodities, Nifty Energy, Nifty High Beta 50, Nifty Housing, Nifty Midcap 150"
 JSWINFRA.NS,"Nifty 500, Nifty Midcap 150"
 JSWSTEEL.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Commodities, Nifty Housing, Nifty India Manufacturing, Nifty Low Volatility 50, Nifty Metal"
 JUBLFOOD.NS,"Nifty 200, Nifty 500, Nifty Midcap 150, Nifty Non-Cyclical Consumer"
@@ -425,14 +420,14 @@ JUSTDIAL.NS,"Nifty India Internet, Nifty Microcap 250"
 JWL.NS,"Nifty 500, Nifty Ev & New Age Automotive, Nifty Smallcap 250"
 JYOTHYLAB.NS,Nifty Microcap 250
 JYOTICNC.NS,"Nifty 500, Nifty Smallcap 250"
-KAJARIACER.NS,"Nifty 500, Nifty Consumer Durables, Nifty Housing, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
+KAJARIACER.NS,"Nifty 500, Nifty Consumer Durables, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 KALPATARU.NS,Nifty Ipo
 KALYANKJIL.NS,"Nifty 200, Nifty 500, Nifty Consumer Durables, Nifty High Beta 50, Nifty Midcap 150"
-KANSAINER.NS,"Nifty Housing, Nifty Microcap 250"
+KANSAINER.NS,Nifty Microcap 250
 KARURVYSYA.NS,"Nifty 500, Nifty Alpha 50, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 KAYNES.NS,"Nifty 500, Nifty High Beta 50, Nifty India Manufacturing, Nifty Smallcap 250"
 KEC.NS,"Nifty 500, Nifty Smallcap 250"
-KEI.NS,"Nifty 200, Nifty 500, Nifty Ev & New Age Automotive, Nifty India Manufacturing, Nifty Midcap 150, Nifty Midcap150 Quality 50"
+KEI.NS,"Nifty 200, Nifty 500, Nifty Ev & New Age Automotive, Nifty Housing, Nifty India Manufacturing, Nifty Midcap 150, Nifty Midcap150 Quality 50"
 KFINTECH.NS,"Nifty 500, Nifty Capital Markets, Nifty Smallcap 250"
 KIMS.NS,"Nifty 500, Nifty Smallcap 250"
 KIRLOSBROS.NS,"Nifty Microcap 250, Nifty Smallcap250 Quality 50"
@@ -466,7 +461,7 @@ LINDEINDIA.NS,"Nifty 500, Nifty Chemicals, Nifty India Manufacturing, Nifty Midc
 LLOYDSENGG.NS,Nifty Microcap 250
 LLOYDSENT.NS,Nifty Microcap 250
 LLOYDSME.NS,"Nifty 500, Nifty Metal, Nifty Midcap 150"
-LODHA.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty High Beta 50, Nifty Next 50, Nifty Realty, Nifty Reits & Realty"
+LODHA.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty High Beta 50, Nifty Housing, Nifty Next 50, Nifty Realty, Nifty Reits & Realty"
 LOTUSDEV.NS,"Nifty Ipo, Nifty Microcap 250"
 LT.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Housing, Nifty Infrastructure, Nifty Low Volatility 50, Nifty100 Low Volatility 30"
 LTF.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty High Beta 50, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty200 Momentum 30"
@@ -500,7 +495,7 @@ MEESHO.NS,"Nifty 500, Nifty India Digital, Nifty India Internet, Nifty Ipo, Nift
 MEIL.NS,Nifty Ipo
 METROPOLIS.NS,"Nifty Microcap 250, Nifty Smallcap250 Quality 50"
 MFSL.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Financial Services, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty200 Momentum 30"
-MGL.NS,"Nifty 500, Nifty Energy, Nifty Housing, Nifty Oil & Gas, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
+MGL.NS,"Nifty 500, Nifty Energy, Nifty Oil & Gas, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 MIDHANI.NS,"Nifty India Defence, Nifty Microcap 250"
 MIDWESTLTD.NS,Nifty Ipo
 MINDACORP.NS,"Nifty 500, Nifty Ev & New Age Automotive, Nifty Smallcap 250"
@@ -535,7 +530,7 @@ NEULANDLAB.NS,"Nifty 500, Nifty Smallcap 250"
 NEWGEN.NS,"Nifty 500, Nifty India Digital, Nifty Smallcap 250"
 NFL.NS,Nifty Microcap 250
 NH.NS,"Nifty 500, Nifty Alpha 50, Nifty Smallcap 250"
-NHPC.NS,"Nifty 200, Nifty 500, Nifty Commodities, Nifty Cpse, Nifty Dividend Opportunities 50, Nifty Energy, Nifty Midcap 150, Nifty Pse"
+NHPC.NS,"Nifty 200, Nifty 500, Nifty Commodities, Nifty Cpse, Nifty Dividend Opportunities 50, Nifty Energy, Nifty Housing, Nifty Midcap 150, Nifty Pse"
 NIACL.NS,"Nifty 500, Nifty Midcap 150"
 NIVABUPA.NS,"Nifty 500, Nifty Smallcap 250"
 NLCINDIA.NS,"Nifty 500, Nifty Cpse, Nifty Energy, Nifty Midcap 150"
@@ -578,7 +573,7 @@ PFOCUS.NS,"Nifty Media, Nifty Microcap 250"
 PGEL.NS,"Nifty 500, Nifty Consumer Durables, Nifty Smallcap 250"
 PGHH.NS,Nifty Midcap150 Quality 50
 PGIL.NS,Nifty Microcap 250
-PHOENIXLTD.NS,"Nifty 200, Nifty 500, Nifty Midcap 150, Nifty Realty, Nifty Reits & Realty"
+PHOENIXLTD.NS,"Nifty 200, Nifty 500, Nifty Housing, Nifty Midcap 150, Nifty Realty, Nifty Reits & Realty"
 PICCADIL.NS,Nifty Microcap 250
 PIDILITIND.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Chemicals, Nifty Commodities, Nifty India Manufacturing, Nifty Low Volatility 50, Nifty Next 50, Nifty100 Low Volatility 30, Nifty200 Quality 30"
 PIIND.NS,"Nifty 200, Nifty 500, Nifty Chemicals, Nifty Commodities, Nifty India Manufacturing, Nifty Midcap 150, Nifty Midcap150 Quality 50"
@@ -590,7 +585,7 @@ PNCINFRA.NS,Nifty Microcap 250
 PNGJL.NS,Nifty Microcap 250
 PNGSREVA.NS,Nifty Ipo
 POLICYBZR.NS,"Nifty 200, Nifty 500, Nifty High Beta 50, Nifty India Digital, Nifty India Internet, Nifty Midcap 150"
-POLYCAB.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty India Manufacturing, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty Midcap150 Quality 50, Nifty200 Quality 30"
+POLYCAB.NS,"Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Housing, Nifty India Manufacturing, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty Midcap150 Quality 50, Nifty200 Quality 30"
 POLYMED.NS,"Nifty 500, Nifty Smallcap 250, Nifty Smallcap250 Quality 50"
 POONAWALLA.NS,"Nifty 500, Nifty Alpha 50, Nifty Smallcap 250"
 POWERGRID.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Cpse, Nifty Dividend Opportunities 50, Nifty Energy, Nifty Infrastructure, Nifty Low Volatility 50, Nifty Pse, Nifty200 Value 30"
@@ -600,7 +595,7 @@ POWERMECH.NS,Nifty Microcap 250
 PPLPHARMA.NS,"Nifty 500, Nifty Healthcare Index, Nifty Pharma, Nifty Smallcap 250"
 PRAJIND.NS,"Nifty Microcap 250, Nifty Smallcap250 Quality 50"
 PREMIERENE.NS,"Nifty 200, Nifty 500, Nifty Midcap 150"
-PRESTIGE.NS,"Nifty 200, Nifty 500, Nifty High Beta 50, Nifty Midcap 150, Nifty Realty, Nifty Reits & Realty"
+PRESTIGE.NS,"Nifty 200, Nifty 500, Nifty High Beta 50, Nifty Housing, Nifty Midcap 150, Nifty Realty, Nifty Reits & Realty"
 PRICOLLTD.NS,Nifty Microcap 250
 PRIVISCL.NS,Nifty Microcap 250
 PROSTARM.NS,Nifty Ipo
@@ -619,12 +614,12 @@ RAILTEL.NS,"Nifty 500, Nifty India Digital, Nifty India Railways Psu, Nifty Smal
 RAIN.NS,Nifty Microcap 250
 RAINBOW.NS,"Nifty 500, Nifty Smallcap 250"
 RALLIS.NS,Nifty Microcap 250
-RAMCOCEM.NS,"Nifty 500, Nifty Cement, Nifty Housing, Nifty Smallcap 250"
+RAMCOCEM.NS,"Nifty 500, Nifty Cement, Nifty Smallcap 250"
 RATEGAIN.NS,Nifty Microcap 250
 RATNAMANI.NS,Nifty Microcap 250
 RAYMONDLSL.NS,Nifty Microcap 250
 RBA.NS,Nifty Microcap 250
-RBLBANK.NS,"Nifty 500, Nifty Alpha 50, Nifty Housing, Nifty Private Bank, Nifty Smallcap 250"
+RBLBANK.NS,"Nifty 500, Nifty Alpha 50, Nifty Private Bank, Nifty Smallcap 250"
 RCF.NS,Nifty Microcap 250
 RECLTD.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Dividend Opportunities 50, Nifty Financial Services, Nifty High Beta 50, Nifty Next 50, Nifty Pse, Nifty200 Value 30"
 REDINGTON.NS,"Nifty 500, Nifty Alpha 50, Nifty Dividend Opportunities 50, Nifty Smallcap 250"
@@ -645,7 +640,7 @@ RSL.NS,Nifty Ipo
 RTNINDIA.NS,"Nifty India Internet, Nifty Microcap 250"
 RTNPOWER.NS,Nifty Microcap 250
 RUBICON.NS,"Nifty Ipo, Nifty Microcap 250"
-RVNL.NS,"Nifty 200, Nifty 500, Nifty High Beta 50, Nifty India Railways Psu, Nifty Midcap 150, Nifty Pse"
+RVNL.NS,"Nifty 200, Nifty 500, Nifty High Beta 50, Nifty Housing, Nifty India Railways Psu, Nifty Midcap 150, Nifty Pse"
 SAATVIKGL.NS,"Nifty Ipo, Nifty Microcap 250"
 SAFARI.NS,Nifty Microcap 250
 SAGILITY.NS,"Nifty 500, Nifty India Digital, Nifty Smallcap 250"
@@ -722,7 +717,7 @@ SUPREMEIND.NS,"Nifty 200, Nifty 500, Nifty India Manufacturing, Nifty Midcap 150
 SUPRIYA.NS,Nifty Microcap 250
 SURYAROSNI.NS,Nifty Microcap 250
 SUZLON.NS,"Nifty 200, Nifty 500, Nifty Energy, Nifty India Manufacturing, Nifty Infrastructure, Nifty Midcap 150"
-SWANCORP.NS,"Nifty 500, Nifty Smallcap 250"
+SWANCORP.NS,"Nifty 500, Nifty Chemicals, Nifty Smallcap 250"
 SWIGGY.NS,"Nifty 200, Nifty 500, Nifty India Digital, Nifty India Internet, Nifty Midcap 150, Nifty Non-Cyclical Consumer, Nifty Transportation & Logistics"
 SWSOLAR.NS,Nifty Microcap 250
 SYNGENE.NS,"Nifty 500, Nifty Healthcare Index, Nifty Midcap150 Quality 50, Nifty Smallcap 250"
@@ -780,7 +775,7 @@ UBL.NS,"Nifty 500, Nifty Fmcg, Nifty Midcap 150"
 UCOBANK.NS,"Nifty 500, Nifty Psu Bank, Nifty Smallcap 250"
 UJJIVANSFB.NS,Nifty Microcap 250
 ULTRACEMCO.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Cement, Nifty Commodities, Nifty Housing, Nifty Infrastructure, Nifty Low Volatility 50, Nifty100 Low Volatility 30"
-UNIONBANK.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Bank, Nifty Dividend Opportunities 50, Nifty Next 50, Nifty Psu Bank, Nifty200 Value 30"
+UNIONBANK.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Alpha 50, Nifty Bank, Nifty Dividend Opportunities 50, Nifty Housing, Nifty Next 50, Nifty Psu Bank, Nifty200 Value 30"
 UNITDSPR.NS,"Nifty 100, Nifty 200, Nifty 500, Nifty Fmcg, Nifty India Consumption, Nifty Low Volatility 50, Nifty Next 50, Nifty Non-Cyclical Consumer"
 UNOMINDA.NS,"Nifty 500, Nifty Auto, Nifty Ev & New Age Automotive, Nifty India Manufacturing, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty Transportation & Logistics"
 UPL.NS,"Nifty 200, Nifty 500, Nifty Chemicals, Nifty Commodities, Nifty India Manufacturing, Nifty Midcap 150, Nifty Midcap150 Momentum 50, Nifty200 Momentum 30, Nifty200 Value 30"
@@ -818,7 +813,7 @@ WELENT.NS,Nifty Microcap 250
 WELSPUNLIV.NS,"Nifty 500, Nifty Smallcap 250"
 WESTLIFE.NS,Nifty Microcap 250
 WEWORK.NS,"Nifty Ipo, Nifty Microcap 250"
-WHIRLPOOL.NS,"Nifty 500, Nifty Consumer Durables, Nifty Housing, Nifty Smallcap 250"
+WHIRLPOOL.NS,"Nifty 500, Nifty Consumer Durables, Nifty Smallcap 250"
 WIPRO.NS,"Nifty 100, Nifty 200, Nifty 50, Nifty 500, Nifty Alpha Quality Value Low-Volatility 30, Nifty Dividend Opportunities 50, Nifty India Digital, Nifty It, Nifty Low Volatility 50, Nifty100 Low Volatility 30"
 WOCKPHARMA.NS,"Nifty 500, Nifty High Beta 50, Nifty Pharma, Nifty Smallcap 250"
 YATHARTH.NS,Nifty Microcap 250
