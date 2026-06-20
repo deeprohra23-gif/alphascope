@@ -80,7 +80,7 @@ INDICES = {
     "Nifty Non-Cyclical Consumer":                  "Thematic",
     "Nifty Pse":                                    "Thematic",
     "Nifty Transportation & Logistics":             "Thematic",
-    "Nifty IPO"                                     "Thematic",
+    "Nifty IPO":                                     "Thematic",
     # Strategy/Factor
     "Nifty Alpha 50":                               "Strategy",
     "Nifty Alpha Quality Value Low-Volatility 30":  "Strategy",
