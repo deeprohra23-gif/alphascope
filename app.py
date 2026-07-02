@@ -4,6 +4,7 @@ import numpy as np
 import re
 import os
 from datetime import datetime
+from datetime import timedelta
 import yfinance as yf
 
 from config import (
