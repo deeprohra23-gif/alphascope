@@ -568,7 +568,7 @@ main_tab0, main_tab1, main_tab2, main_tab3, main_tab4 = st.tabs(["🏠 Dashboard
 # ══════════════════════════════════════════════
 with main_tab0:
     dash_sub0, dash_sub1, dash_sub2, dash_sub3, dash_sub4, dash_sub5 = st.tabs([
-        "🔔 What Changed Today", "📊 Market Overview", "🔄 Sector Rotation", "⚡ Signals", "🏅 Sector Top 5", "🎯 Quick Picks"
+        "📊 Market Overview", "🔔 What Changed Today", "🔄 Sector Rotation", "⚡ Signals", "🏅 Sector Top 5", "🎯 Quick Picks"
     ])
     # ── WHAT CHANGED TODAY ──────────────────────
     with dash_sub0:
