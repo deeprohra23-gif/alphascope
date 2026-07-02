@@ -571,7 +571,7 @@ with main_tab0:
         "📊 Market Overview", "🔔 What Changed Today", "🔄 Sector Rotation", "⚡ Signals", "🏅 Sector Top 5", "🎯 Quick Picks"
     ])
     # ── WHAT CHANGED TODAY ──────────────────────
-    with dash_sub0:
+    with dash_sub1:
         snapshots = list_snapshots()
         if len(snapshots) >= 2:
             # Load most recent as "today" and second most recent as "yesterday"
@@ -642,7 +642,7 @@ with main_tab0:
         return round(condition.sum() / total * 100, 1)
 
     # ── MARKET OVERVIEW ─────────────────────────
-    with dash_sub1:
+    with dash_sub0:
         st.markdown('<div class="dash-section">', unsafe_allow_html=True)
         st.markdown('<div class="dash-section-title">Market Breadth</div>', unsafe_allow_html=True)
 
