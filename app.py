@@ -498,7 +498,7 @@ data_ts = get_data_timestamp()
 st.markdown(f"""
 <div class="screener-header">
     <p class="screener-title">▸ STOCKRADAR INDIA</p>
-    <p class="screener-subtitle">Technical + Fundamental · 880+ Stocks · 50 Indices · Daily refresh</p>
+    <p class="screener-subtitle">Technical + Fundamental Stock Screener for Indian Markets</p>
     <p class="data-timestamp">Data as of: {data_ts}</p>
 </div>
 """, unsafe_allow_html=True)
