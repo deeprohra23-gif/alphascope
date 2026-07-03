@@ -1885,7 +1885,21 @@ with main_tab4:
                         d = f'{v:.1f}x{"(F)" if y["projected"] else ""}' if not pd.isna(v) and v>0 else '—'
                         pe_cells += f'<td style="padding:0.3rem 0.6rem;text-align:right;color:{cl};font-size:0.72rem">{d}</td>'
                     pe_row = f'<tr><td style="padding:0.3rem 0.6rem;color:#888;font-size:0.72rem;white-space:nowrap">PE / Fwd PE</td>{pe_cells}</tr>'
-                    earn_html = f'<div class="stock-card" style="margin-top:0.5rem"><div'
+                    earn_html = f'<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Earnings Trajectory</div><div style="overflow-x:auto"><table style="{ts}"><tr style="{hb}"><th style="padding:0.4rem 0.6rem;text-align:left;color:#888;font-size:0.72rem"></th>{hdr}</tr>{_mr("Revenue (Cr)","revenue",_fc)}{_mr("Net Profit (Cr)","net_profit",_fc)}{_mr("EPS","eps",lambda v: f"{v:.1f}" if not pd.isna(v) else "—")}{pe_row}</table></div><div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;margin-top:0.4rem">{cagr_line}</div></div>'
+                    st.markdown(earn_html, unsafe_allow_html=True)
+                    hd = [y for y in years_data if not y['projected']]
+                    hhdr = ''.join([f'<th style="padding:0.4rem 0.6rem;text-align:right;color:#e0e0e0;font-size:0.72rem">{y["label"]}</th>' for y in hd])
+                    def _mhr(lbl, ky, fn):
+                        c = ''.join([f'<td style="padding:0.3rem 0.6rem;text-align:right;color:#ccc;font-size:0.72rem">{fn(y.get(ky,np.nan)) if not pd.isna(y.get(ky,np.nan)) else "—"}</td>' for y in hd])
+                        return f'<tr><td style="padding:0.3rem 0.6rem;color:#888;font-size:0.72rem;white-space:nowrap">{lbl}</td>{c}</tr>'
+                    ratio_html = f'<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Key Ratios</div><div style="overflow-x:auto"><table style="{ts}"><tr style="{hb}"><th style="padding:0.4rem 0.6rem;text-align:left;color:#888;font-size:0.72rem"></th>{hhdr}</tr>{_mhr("EBITDA Margin","ebitda_margin",_fp)}{_mhr("Net Margin","net_margin",_fp)}{_mhr("ROE","roe",_fp)}</table></div></div>'
+                    st.markdown(ratio_html, unsafe_allow_html=True)
+                    health_html = f'<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Financial Health</div><div style="overflow-x:auto"><table style="{ts}"><tr style="{hb}"><th style="padding:0.4rem 0.6rem;text-align:left;color:#888;font-size:0.72rem"></th>{hhdr}</tr>{_mhr("Debt/Equity","de_ratio",_fr)}{_mhr("Net Debt/EBITDA","nd_ebitda",lambda v: f"{v:.2f}x")}{_mhr("Int Coverage","int_coverage",lambda v: f"{v:.1f}x")}{_mhr("FCF (Cr)","fcf",_fc)}{_mhr("FCF/Profit","fcf_profit",_fp)}</table></div><div style="font-size:0.55rem;color:#555;font-family:IBM Plex Mono,monospace;margin-top:0.4rem">Projections based on historical growth trends. Actual results will vary. Not investment advice.</div></div>'
+                    st.markdown(health_html, unsafe_allow_html=True)
+        except Exception:
+            pass
+
+        # ── Screen Membership ──
     
             
         # ── Screen Membership ──
