@@ -1842,7 +1842,12 @@ with main_tab4:
                     if not pd.isna(eps) and eps>0 and _hist_prices is not None:
                         try:
                             td = col
-                            nb = _hist_prices.loc[:td.strftime('%Y-%m-%d')]
+                            try:
+                                hp = _hist_prices.copy()
+                                hp.index = hp.index.tz_localize(None)
+                                nb = hp.loc[:td.strftime('%Y-%m-%d')]
+                            except Exception:
+                                nb = _hist_prices.loc[:td.strftime('%Y-%m-%d')]
                             if not nb.empty: hpe = nb['Close'].iloc[-1] / eps
                         except Exception: pass
                     years_data.append({'label':fy,'year':col.year if hasattr(col,'year') else 0,'revenue':rev,'net_profit':np_,'eps':eps,'ebitda':ebitda,'ebitda_margin':em,'net_margin':nm,'roe':roe,'de_ratio':de,'nd_ebitda':nde,'int_coverage':ic,'fcf':fcf,'fcf_profit':fp,'pe':hpe,'projected':False})
