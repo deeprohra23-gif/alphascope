@@ -1871,7 +1871,8 @@ with main_tab4:
                         c = ''
                         for y in years_data:
                             v = y.get(ky, np.nan)
-                            if y['projected'] and not proj_ok: c += '<td style="padding:0.3rem 0.6rem;text-align:right;color:#333;font-size:0.72rem">—</td>'
+                            if y['projected'] and not proj_ok:
+                                c += '<td style="padding:0.3rem 0.6rem;text-align:right;color:#333;font-size:0.72rem">—</td>'
                             else:
                                 d = fn(v) if not pd.isna(v) else '—'
                                 cl = '#ffaa33' if y['projected'] else '#ccc'
