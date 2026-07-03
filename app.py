@@ -1779,10 +1779,116 @@ with main_tab4:
                 {coverage_note}
             </div>
             """, unsafe_allow_html=True)
-
+       # ── Financial Snapshot & Projections ──
+        try:
+            from datetime import timedelta
+            _fin_ticker = yf.Ticker(sym)
+            _financials = _fin_ticker.financials
+            _balance = _fin_ticker.balance_sheet
+            _cashflow = _fin_ticker.cashflow
+            _hist_prices = _fin_ticker.history(period="5y", interval="1mo")
+            if _financials is not None and not _financials.empty and len(_financials.columns) >= 3:
+                fin_cols = sorted(_financials.columns)
+                bal_cols = sorted(_balance.columns) if _balance is not None else []
+                cf_cols = sorted(_cashflow.columns) if _cashflow is not None else []
+                def _gv(df, rn, col):
+                    try:
+                        v = df.loc[rn, col]
+                        return float(v) if pd.notna(v) else np.nan
+                    except Exception:
+                        return np.nan
+                def _cr(v):
+                    return v / 1e7 if not pd.isna(v) else np.nan
+                years_data = []
+                for col in fin_cols:
+                    if pd.isna(col): continue
+                    fy = f"FY{str(col.year)[-2:]}" if hasattr(col, 'year') else str(col)[:4]
+                    rev = _cr(_gv(_financials, 'Total Revenue', col))
+                    np_ = _cr(_gv(_financials, 'Net Income', col))
+                    if pd.isna(np_): np_ = _cr(_gv(_financials, 'Net Income Common Stockholders', col))
+                    ebitda = _cr(_gv(_financials, 'EBITDA', col))
+                    ebit = _cr(_gv(_financials, 'EBIT', col))
+                    intexp = _cr(_gv(_financials, 'Interest Expense', col))
+                    eps = _gv(_financials, 'Diluted EPS', col)
+                    if pd.isna(eps): eps = _gv(_financials, 'Basic EPS', col)
+                    teq = _cr(_gv(_balance, 'Stockholders Equity', col)) if col in bal_cols else np.nan
+                    if pd.isna(teq): teq = _cr(_gv(_balance, 'Total Equity Gross Minority Interest', col)) if col in bal_cols else np.nan
+                    tdb = _cr(_gv(_balance, 'Total Debt', col)) if col in bal_cols else np.nan
+                    ndb = _cr(_gv(_balance, 'Net Debt', col)) if col in bal_cols else np.nan
+                    fcf = _cr(_gv(_cashflow, 'Free Cash Flow', col)) if col in cf_cols else np.nan
+                    em = (ebitda/rev*100) if not pd.isna(ebitda) and not pd.isna(rev) and rev>0 else np.nan
+                    nm = (np_/rev*100) if not pd.isna(np_) and not pd.isna(rev) and rev>0 else np.nan
+                    de = (tdb/teq) if not pd.isna(tdb) and not pd.isna(teq) and teq>0 else np.nan
+                    nde = (ndb/ebitda) if not pd.isna(ndb) and not pd.isna(ebitda) and ebitda>0 else np.nan
+                    ic = (ebit/abs(intexp)) if not pd.isna(ebit) and not pd.isna(intexp) and abs(intexp)>0 else np.nan
+                    fp = (fcf/np_*100) if not pd.isna(fcf) and not pd.isna(np_) and np_>0 else np.nan
+                    roe = (np_/teq*100) if not pd.isna(np_) and not pd.isna(teq) and teq>0 else np.nan
+                    hpe = np.nan
+                    if not pd.isna(eps) and eps>0 and _hist_prices is not None:
+                        try:
+                            td = col
+                            nb = _hist_prices.loc[:td.strftime('%Y-%m-%d')]
+                            if not nb.empty: hpe = nb['Close'].iloc[-1] / eps
+                        except Exception: pass
+                    years_data.append({'label':fy,'year':col.year if hasattr(col,'year') else 0,'revenue':rev,'net_profit':np_,'eps':eps,'ebitda':ebitda,'ebitda_margin':em,'net_margin':nm,'roe':roe,'de_ratio':de,'nd_ebitda':nde,'int_coverage':ic,'fcf':fcf,'fcf_profit':fp,'pe':hpe,'projected':False})
+                years_data = [y for y in years_data if not pd.isna(y['revenue'])]
+                years_data = sorted(years_data, key=lambda x: x['year'])
+                if len(years_data) > 4: years_data = years_data[-4:]
+                if len(years_data) >= 2:
+                    first, last = years_data[0], years_data[-1]
+                    ny = len(years_data) - 1
+                    rc = ((last['revenue']/first['revenue'])**(1/ny)-1)*100 if first['revenue']>0 and last['revenue']>0 else np.nan
+                    pc = ((last['net_profit']/first['net_profit'])**(1/ny)-1)*100 if first['net_profit']>0 and last['net_profit']>0 else np.nan
+                    pr = np.nan
+                    if not pd.isna(pc) and pc>0: pr = min(pc*0.9, 30)
+                    elif not pd.isna(rc) and rc>0: pr = min(rc*0.9, 30)
+                    if not pd.isna(pr) and pr>0:
+                        g = 1+pr/100
+                        cp = float(price) if not pd.isna(price) else np.nan
+                        for yo in range(1,3):
+                            py = last['year']+yo
+                            prev = last['revenue']*(g**yo) if not pd.isna(last['revenue']) else np.nan
+                            pnp = last['net_profit']*(g**yo) if not pd.isna(last['net_profit']) else np.nan
+                            peps = last['eps']*(g**yo) if not pd.isna(last['eps']) else np.nan
+                            fpe = (cp/peps) if not pd.isna(peps) and peps>0 and not pd.isna(cp) else np.nan
+                            years_data.append({'label':f"FY{str(py)[-2:]}(E)",'year':py,'revenue':prev,'net_profit':pnp,'eps':peps,'ebitda':np.nan,'ebitda_margin':np.nan,'net_margin':np.nan,'roe':np.nan,'de_ratio':np.nan,'nd_ebitda':np.nan,'int_coverage':np.nan,'fcf':np.nan,'fcf_profit':np.nan,'pe':fpe,'projected':True})
+                    cagr_parts = []
+                    if not pd.isna(rc): cagr_parts.append(f'Revenue CAGR {rc:.1f}%')
+                    if not pd.isna(pc): cagr_parts.append(f'Profit CAGR {pc:.1f}%')
+                    if not pd.isna(pr): cagr_parts.append(f'Projection uses {pr:.1f}%')
+                    cagr_line = ' · '.join(cagr_parts)
+                    ts = 'border-collapse:collapse;width:100%;font-family:IBM Plex Mono,monospace'
+                    hb = 'background:#0f1117'
+                    def _fc(v):
+                        if pd.isna(v): return '—'
+                        return f'{v:,.0f}' if abs(v)>=100 else f'{v:,.1f}'
+                    def _fp(v):
+                        return f'{v:.1f}%' if not pd.isna(v) else '—'
+                    def _fr(v):
+                        return f'{v:.2f}' if not pd.isna(v) else '—'
+                    hdr = ''.join([f'<th style="padding:0.4rem 0.6rem;text-align:right;color:{"#ffaa33" if y["projected"] else "#e0e0e0"};font-size:0.72rem">{y["label"]}</th>' for y in years_data])
+                    def _mr(lbl, ky, fn, proj_ok=True):
+                        c = ''
+                        for y in years_data:
+                            v = y.get(ky, np.nan)
+                            if y['projected'] and not proj_ok: c += '<td style="padding:0.3rem 0.6rem;text-align:right;color:#333;font-size:0.72rem">—</td>'
+                            else:
+                                d = fn(v) if not pd.isna(v) else '—'
+                                cl = '#ffaa33' if y['projected'] else '#ccc'
+                                c += f'<td style="padding:0.3rem 0.6rem;text-align:right;color:{cl};font-size:0.72rem">{d}</td>'
+                        return f'<tr><td style="padding:0.3rem 0.6rem;color:#888;font-size:0.72rem;white-space:nowrap">{lbl}</td>{c}</tr>'
+                    pe_cells = ''
+                    for y in years_data:
+                        v = y.get('pe', np.nan)
+                        cl = '#ffaa33' if y['projected'] else '#ccc'
+                        d = f'{v:.1f}x{"(F)" if y["projected"] else ""}' if not pd.isna(v) and v>0 else '—'
+                        pe_cells += f'<td style="padding:0.3rem 0.6rem;text-align:right;color:{cl};font-size:0.72rem">{d}</td>'
+                    pe_row = f'<tr><td style="padding:0.3rem 0.6rem;color:#888;font-size:0.72rem;white-space:nowrap">PE / Fwd PE</td>{pe_cells}</tr>'
+                    earn_html = f'<div class="stock-card" style="margin-top:0.5rem"><div'
     
             
         # ── Screen Membership ──
+        
         matched_screens = []
         for screen_name in SCREENS:
             try:
