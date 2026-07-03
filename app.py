@@ -1911,8 +1911,8 @@ with main_tab4:
                     st.markdown(ratio_html, unsafe_allow_html=True)
                     health_html = f'<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Financial Health</div><div style="overflow-x:auto"><table style="{ts}"><tr style="{hb}"><th style="padding:0.4rem 0.6rem;text-align:left;color:#888;font-size:0.72rem"></th>{hhdr}</tr>{_mhr("Debt/Equity","de_ratio",_fr)}{_mhr("Net Debt/EBITDA","nd_ebitda",lambda v: f"{v:.2f}x")}{_mhr("Int Coverage","int_coverage",lambda v: f"{v:.1f}x")}{_mhr("FCF (Cr)","fcf",_fc)}{_mhr("FCF/Profit","fcf_profit",_fp)}</table></div><div style="font-size:0.55rem;color:#555;font-family:IBM Plex Mono,monospace;margin-top:0.4rem">Projections based on historical growth trends. Actual results will vary. Not investment advice.</div></div>'
                     st.markdown(health_html, unsafe_allow_html=True)
-        except Exception:
-            pass
+           except Exception:
+               pass
 
         # ── Screen Membership ──
     
