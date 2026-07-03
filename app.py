@@ -1811,6 +1811,15 @@ with main_tab4:
                     intexp = _cr(_gv(_financials, 'Interest Expense', col))
                     eps = _gv(_financials, 'Diluted EPS', col)
                     if pd.isna(eps): eps = _gv(_financials, 'Basic EPS', col)
+                    if pd.isna(eps):
+                        ni = _gv(_financials, 'Net Income Common Stockholders', col)
+                        if pd.isna(ni): ni = _gv(_financials, 'Net Income', col)
+                        shares = _gv(_financials, 'Diluted Average Shares', col)
+                        if pd.isna(shares): shares = _gv(_financials, 'Basic Average Shares', col)
+                        if not pd.isna(ni) and not pd.isna(shares) and shares > 0: eps = ni / shares
+
+#Edit on GitHub. This computes EPS manually when Yahoo doesn't provide it. Once FY26 EPS exists, FY27/FY28 projections and forward PE will automatically populate.
+                    if pd.isna(eps): eps = _gv(_financials, 'Basic EPS', col)
                     teq = _cr(_gv(_balance, 'Stockholders Equity', col)) if col in bal_cols else np.nan
                     if pd.isna(teq): teq = _cr(_gv(_balance, 'Total Equity Gross Minority Interest', col)) if col in bal_cols else np.nan
                     tdb = _cr(_gv(_balance, 'Total Debt', col)) if col in bal_cols else np.nan
