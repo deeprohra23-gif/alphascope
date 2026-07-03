@@ -1786,8 +1786,7 @@ with main_tab4:
         if show_financials:
            try:
         # ── Financial Snapshot & Projections ──
-        with st.expander("📊 Financial Snapshot & Projections (click to load)", expanded=False):
-          try:
+        
             from datetime import timedelta
             _fin_ticker = _yf_stock
             _financials = _fin_ticker.financials
