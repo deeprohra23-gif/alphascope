@@ -1868,6 +1868,10 @@ with main_tab4:
                 years_data = [y for y in years_data if not pd.isna(y['revenue'])]
                 years_data = sorted(years_data, key=lambda x: x['year'])
                 if len(years_data) > 4: years_data = years_data[-4:]
+                if years_data:
+                    cp = float(price) if not pd.isna(price) else np.nan
+                    if not pd.isna(cp) and not pd.isna(years_data[-1]['eps']) and years_data[-1]['eps'] > 0:
+                        years_data[-1]['pe'] = cp / years_data[-1]['eps']
                 if len(years_data) >= 2:
                     first, last = years_data[0], years_data[-1]
                     ny = len(years_data) - 1
