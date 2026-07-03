@@ -1781,7 +1781,10 @@ with main_tab4:
             """, unsafe_allow_html=True)
        # ── Shared yfinance data ──
         _yf_stock = yf.Ticker(sym)
-
+        show_financials = st.checkbox("📊 Show Financial Snapshot & Projections", value=False, key=f'fin_{sym}')
+        show_news = st.checkbox("📰 Show Recent News", value=False, key=f'news_{sym}')
+        if show financials:
+           try:
         # ── Financial Snapshot & Projections ──
         with st.expander("📊 Financial Snapshot & Projections (click to load)", expanded=False):
           try:
