@@ -1779,10 +1779,14 @@ with main_tab4:
                 {coverage_note}
             </div>
             """, unsafe_allow_html=True)
-       # ── Financial Snapshot & Projections ──
-        try:
+       # ── Shared yfinance data ──
+        _yf_stock = yf.Ticker(sym)
+
+        # ── Financial Snapshot & Projections ──
+        with st.expander("📊 Financial Snapshot & Projections (click to load)", expanded=False):
+          try:
             from datetime import timedelta
-            _fin_ticker = yf.Ticker(sym)
+            _fin_ticker = _yf_stock
             _financials = _fin_ticker.financials
             _balance = _fin_ticker.balance_sheet
             _cashflow = _fin_ticker.cashflow
@@ -1981,7 +1985,7 @@ with main_tab4:
                         with po_fund: show_table(other_cap_peers, FUNDAMENTAL_COLS, 'Composite Score', False, 'peer_oc_fund')
         # ── News + Analyst Distribution (single yfinance call) ──
         try:
-            _yf_ticker = yf.Ticker(sym)
+            _yf_ticker = _yf_stock
             
             # Analyst distribution
             recs = _yf_ticker.recommendations
