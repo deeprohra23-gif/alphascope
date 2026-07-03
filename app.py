@@ -1839,6 +1839,20 @@ with main_tab4:
                     fp = (fcf/np_*100) if not pd.isna(fcf) and not pd.isna(np_) and np_>0 else np.nan
                     roe = (np_/teq*100) if not pd.isna(np_) and not pd.isna(teq) and teq>0 else np.nan
                     hpe = np.nan
+                    if not pd.isna(eps) and eps > 0 and _hist_prices is not None:
+                        try:
+                            hp = _hist_prices.copy()
+                            hp.index = hp.index.tz_localize(None)
+                            nb = hp.loc[:col]
+                            if not nb.empty:
+                                hpe = nb['Close'].iloc[-1] / eps
+                        except Exception:
+                            try:
+                                cp = float(price) if not pd.isna(price) else np.nan
+                                if not pd.isna(cp) and col == fin_cols[-1]:
+                                    hpe = cp / eps
+                            except Exception:
+                                pass
                     if not pd.isna(eps) and eps>0 and _hist_prices is not None:
                         try:
                             td = col
@@ -1917,8 +1931,28 @@ with main_tab4:
                     health_html = f'<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Financial Health</div><div style="overflow-x:auto"><table style="{ts}"><tr style="{hb}"><th style="padding:0.4rem 0.6rem;text-align:left;color:#888;font-size:0.72rem"></th>{hhdr}</tr>{_mhr("Debt/Equity","de_ratio",_fr)}{_mhr("Net Debt/EBITDA","nd_ebitda",lambda v: f"{v:.2f}x")}{_mhr("Int Coverage","int_coverage",lambda v: f"{v:.1f}x")}{_mhr("FCF (Cr)","fcf",_fc)}{_mhr("FCF/Profit","fcf_profit",_fp)}</table></div><div style="font-size:0.55rem;color:#555;font-family:IBM Plex Mono,monospace;margin-top:0.4rem">Projections based on historical growth trends. Actual results will vary. Not investment advice.</div></div>'
                     st.markdown(health_html, unsafe_allow_html=True)
            except Exception:
-               pass
+                pass
 
+        if show_news:
+            try:
+                news_items = _yf_stock.news[:5] if _yf_stock.news else []
+                if news_items:
+                    news_html = '<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Recent News</div>'
+                    for item in news_items:
+                        content = item.get('content', {})
+                        n_title = content.get('title', '')
+                        n_summary = content.get('summary', '')
+                        n_date = content.get('pubDate', '')[:10]
+                        n_provider = content.get('provider', {}).get('displayName', '')
+                        n_link = content.get('clickThroughUrl', {}).get('url', '')
+                        if n_title:
+                            news_html += f'<div style="padding:0.5rem 0;border-bottom:1px solid #2a2a2a"><a href="{n_link}" target="_blank" style="color:#4da6ff;font-family:IBM Plex Mono,monospace;font-size:0.78rem;text-decoration:none;font-weight:600">{n_title[:120]}{"..." if len(n_title) > 120 else ""}</a><div style="font-size:0.65rem;color:#888;font-family:IBM Plex Mono,monospace;margin-top:0.2rem">{n_provider} · {n_date}</div><div style="font-size:0.7rem;color:#aaa;font-family:IBM Plex Mono,monospace;margin-top:0.2rem">{n_summary[:200]}{"..." if len(n_summary) > 200 else ""}</div></div>'
+                    news_html += '</div>'
+                    st.markdown(news_html, unsafe_allow_html=True)
+            except Exception:
+                pass
+
+        # ── Screen Membership ──
         # ── Screen Membership ──
     
             
