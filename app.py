@@ -1783,7 +1783,7 @@ with main_tab4:
         _yf_stock = yf.Ticker(sym)
         show_financials = st.checkbox("📊 Show Financial Snapshot & Projections", value=False, key=f'fin_{sym}')
         show_news = st.checkbox("📰 Show Recent News", value=False, key=f'news_{sym}')
-        if show financials:
+        if show_financials:
            try:
         # ── Financial Snapshot & Projections ──
         with st.expander("📊 Financial Snapshot & Projections (click to load)", expanded=False):
