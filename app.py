@@ -1641,7 +1641,7 @@ with ev_sub3:
 # TAB 3 — TOOLS (Stock Card, Compare, Watchlist)
 # ══════════════════════════════════════════════
 with main_tab4:
-    tools_sub1, tools_sub2, tools_sub3, tools_sub4 = st.tabs(["🪪 Stock Card", "⚖ Compare", "📌 Watchlist", "📚 Methodology"])
+    tools_sub1, tools_sub2, tools_sub3, tools_sub4, tools_sub5 = st.tabs(["🪪 Stock Card", "⚖ Compare", "📌 Watchlist", "📈 SIP Calculator", "📚 Methodology"])
 
     # Build stock lookup list
     stock_options = []
@@ -2441,8 +2441,262 @@ with main_tab4:
                 with wl_risk: show_table(watchlist_df, RISK_COLS, wl_sort, wl_asc, 'wl_risk')
                 with wl_fund: show_table(watchlist_df, FUNDAMENTAL_COLS, wl_sort, wl_asc, 'wl_fund')
 
-    # ── METHODOLOGY ─────────────────────────────
+    # ── SIP CALCULATOR ──────────────────────────
     with tools_sub4:
+        st.markdown("<p style='color:#888;font-size:0.75rem;font-family:IBM Plex Mono,monospace'>Simulate monthly SIP in up to 10 stocks. Uses 1st trading day of each month.</p>", unsafe_allow_html=True)
+
+        sip_col1, sip_col2, sip_col3 = st.columns(3)
+        with sip_col1:
+            sip_stocks = st.multiselect("Select stocks (up to 10)", options=sorted(scored[sym_col].unique().tolist()), max_selections=10, key='sip_stocks')
+        with sip_col2:
+            sip_amount = st.number_input("SIP amount per stock (₹)", min_value=500, max_value=1000000, value=5000, step=500, key='sip_amount')
+        with sip_col3:
+            sip_duration = st.selectbox("Duration", ["1 Year", "2 Years", "3 Years", "5 Years", "7 Years", "10 Years"], index=3, key='sip_duration')
+
+        if sip_stocks and st.button("Calculate SIP Returns", key='sip_calc'):
+            duration_map = {"1 Year": 1, "2 Years": 2, "3 Years": 3, "5 Years": 5, "7 Years": 7, "10 Years": 10}
+            years = duration_map[sip_duration]
+            period = f"{years}y" if years <= 5 else f"{years}y"
+
+            from scipy.optimize import brentq
+            from datetime import datetime as dt
+
+            def calc_xirr(cashflows, dates):
+                if len(cashflows) < 2:
+                    return np.nan
+                try:
+                    def npv(rate):
+                        return sum([cf / (1 + rate) ** ((d - dates[0]).days / 365.25) for cf, d in zip(cashflows, dates)])
+                    return brentq(npv, -0.5, 10.0, maxiter=1000)
+                except Exception:
+                    return np.nan
+
+            all_results = []
+            portfolio_invested = 0
+            portfolio_value = 0
+            portfolio_cashflows = []
+            portfolio_dates = []
+            portfolio_monthly_values = {}
+
+            with st.spinner("Fetching data and simulating SIP..."):
+                for stock in sip_stocks:
+                    try:
+                        hist = yf.Ticker(stock).history(period=f"{max(years, 1)}y")
+                        if hist is None or hist.empty:
+                            st.warning(f"{stock}: No data available")
+                            continue
+
+                        hist.index = hist.index.tz_localize(None)
+                        hist = hist.sort_index()
+
+                        start_date = dt.now() - timedelta(days=years * 365)
+                        hist = hist[hist.index >= start_date]
+
+                        if len(hist) < 21:
+                            st.warning(f"{stock}: Insufficient history")
+                            continue
+
+                        monthly = hist.resample('MS').first().dropna(subset=['Close'])
+                        if monthly.empty:
+                            continue
+
+                        units = 0
+                        invested = 0
+                        cash_leftover_total = 0
+                        cashflows = []
+                        cf_dates = []
+                        monthly_portfolio = []
+                        max_val = 0
+                        max_dd = 0
+                        dd_start = None
+                        worst_dd_start = None
+                        worst_dd_end = None
+                        recovery_months = 0
+                        max_recovery = 0
+                        monthly_returns = []
+                        prev_val = None
+
+                        for date, row_data in monthly.iterrows():
+                            price_val = row_data['Close']
+                            if pd.isna(price_val) or price_val <= 0:
+                                continue
+
+                            shares_bought = int(sip_amount // price_val)
+                            cost = shares_bought * price_val
+                            cash_left = sip_amount - cost
+
+                            units += shares_bought
+                            invested += cost
+                            cash_leftover_total += cash_left
+
+                            cashflows.append(-cost)
+                            cf_dates.append(date.to_pydatetime())
+
+                            current_val = units * price_val
+                            monthly_portfolio.append({'date': date, 'value': current_val, 'invested': invested})
+
+                            date_key = date.strftime('%Y-%m')
+                            if date_key not in portfolio_monthly_values:
+                                portfolio_monthly_values[date_key] = {'date': date, 'value': 0, 'invested': 0}
+                            portfolio_monthly_values[date_key]['value'] += current_val
+                            portfolio_monthly_values[date_key]['invested'] += invested
+
+                            if current_val > max_val:
+                                max_val = current_val
+                                recovery_months = 0
+                            else:
+                                recovery_months += 1
+                                max_recovery = max(max_recovery, recovery_months)
+
+                            dd = (current_val - max_val) / max_val * 100 if max_val > 0 else 0
+                            if dd < max_dd:
+                                max_dd = dd
+
+                            if prev_val is not None and prev_val > 0:
+                                monthly_returns.append((current_val - prev_val) / prev_val * 100)
+                            prev_val = current_val
+
+                        if units == 0:
+                            continue
+
+                        cmp = hist['Close'].iloc[-1]
+                        current_value = units * cmp
+                        avg_cost = invested / units if units > 0 else 0
+                        abs_return = (current_value - invested) / invested * 100 if invested > 0 else 0
+
+                        cashflows.append(current_value)
+                        cf_dates.append(dt.now())
+                        xirr = calc_xirr(cashflows, cf_dates) * 100
+
+                        vol = np.std(monthly_returns) * np.sqrt(12) if monthly_returns else 0
+                        best_month = max(monthly_returns) if monthly_returns else 0
+                        worst_month = min(monthly_returns) if monthly_returns else 0
+
+                        portfolio_cashflows.extend(cashflows[:-1])
+                        portfolio_dates.extend(cf_dates[:-1])
+                        portfolio_invested += invested
+                        portfolio_value += current_value
+
+                        actual_start = monthly.index[0].strftime('%b %Y')
+                        actual_months = len(monthly)
+
+                        all_results.append({
+                            'stock': stock, 'invested': invested, 'value': current_value,
+                            'units': units, 'avg_cost': avg_cost, 'cmp': cmp,
+                            'return_pct': abs_return, 'xirr': xirr,
+                            'max_dd': max_dd, 'recovery': max_recovery,
+                            'volatility': vol, 'best_month': best_month,
+                            'worst_month': worst_month, 'start': actual_start,
+                            'months': actual_months, 'cash_leftover': cash_leftover_total,
+                        })
+
+                    except Exception as e:
+                        st.warning(f"{stock}: Error — {e}")
+
+            if all_results:
+                port_xirr = np.nan
+                if portfolio_cashflows:
+                    portfolio_cashflows.append(portfolio_value)
+                    portfolio_dates.append(dt.now())
+                    port_xirr = calc_xirr(portfolio_cashflows, portfolio_dates) * 100
+
+                port_vals = sorted(portfolio_monthly_values.values(), key=lambda x: x['date'])
+                port_max = 0
+                port_max_dd = 0
+                port_recovery = 0
+                port_max_recovery = 0
+                port_monthly_ret = []
+                port_prev = None
+                for pv in port_vals:
+                    v = pv['value']
+                    if v > port_max:
+                        port_max = v
+                        port_recovery = 0
+                    else:
+                        port_recovery += 1
+                        port_max_recovery = max(port_max_recovery, port_recovery)
+                    dd = (v - port_max) / port_max * 100 if port_max > 0 else 0
+                    if dd < port_max_dd:
+                        port_max_dd = dd
+                    if port_prev is not None and port_prev > 0:
+                        port_monthly_ret.append((v - port_prev) / port_prev * 100)
+                    port_prev = v
+
+                port_vol = np.std(port_monthly_ret) * np.sqrt(12) if port_monthly_ret else 0
+                port_best = max(port_monthly_ret) if port_monthly_ret else 0
+                port_worst = min(port_monthly_ret) if port_monthly_ret else 0
+                port_return = (portfolio_value - portfolio_invested) / portfolio_invested * 100 if portfolio_invested > 0 else 0
+
+                total_cash_left = sum(r['cash_leftover'] for r in all_results)
+
+                summary_color = "#00d4aa" if port_return > 0 else "#ff4d4d"
+                st.markdown(f"""
+                <div class="stock-card">
+                    <div class="stock-card-section">Portfolio Summary</div>
+                    <div style="display:flex;gap:1rem;flex-wrap:wrap">
+                        <div style="flex:1;min-width:120px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                            <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase">Total Invested</div>
+                            <div style="font-size:1rem;color:#e0e0e0;font-family:IBM Plex Mono,monospace;font-weight:600">₹{portfolio_invested:,.0f}</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                            <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase">Current Value</div>
+                            <div style="font-size:1rem;color:{summary_color};font-family:IBM Plex Mono,monospace;font-weight:600">₹{portfolio_value:,.0f}</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                            <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase">Return</div>
+                            <div style="font-size:1rem;color:{summary_color};font-family:IBM Plex Mono,monospace;font-weight:600">{port_return:+.1f}%</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                            <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase">XIRR</div>
+                            <div style="font-size:1rem;color:{summary_color};font-family:IBM Plex Mono,monospace;font-weight:600">{port_xirr:.1f}%</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown(f"""
+                <div class="stock-card" style="margin-top:0.5rem">
+                    <div class="stock-card-section">Portfolio Risk</div>
+                    <div style="display:flex;gap:1rem;flex-wrap:wrap">
+                        <div style="flex:1;min-width:120px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                            <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase">Max Drawdown</div>
+                            <div style="font-size:1rem;color:#ff4d4d;font-family:IBM Plex Mono,monospace;font-weight:600">{port_max_dd:.1f}%</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                            <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase">Recovery</div>
+                            <div style="font-size:1rem;color:#e0e0e0;font-family:IBM Plex Mono,monospace;font-weight:600">{port_max_recovery} months</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                            <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase">Volatility</div>
+                            <div style="font-size:1rem;color:#e0e0e0;font-family:IBM Plex Mono,monospace;font-weight:600">{port_vol:.1f}%</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;padding:0.5rem;background:#0f1117;border-radius:4px">
+                            <div style="font-size:0.6rem;color:#888;font-family:IBM Plex Mono,monospace;text-transform:uppercase">Best / Worst Month</div>
+                            <div style="font-size:0.85rem;font-family:IBM Plex Mono,monospace"><span style="color:#00d4aa">{port_best:+.1f}%</span> / <span style="color:#ff4d4d">{port_worst:+.1f}%</span></div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                ts = 'border-collapse:collapse;width:100%;font-family:IBM Plex Mono,monospace'
+                hb = 'background:#0f1117'
+                stock_rows = ''
+                for r in all_results:
+                    ret_color = '#00d4aa' if r['return_pct'] > 0 else '#ff4d4d'
+                    xirr_color = '#00d4aa' if r['xirr'] > 0 else '#ff4d4d'
+                    stock_rows += f'<tr><td style="padding:0.4rem 0.5rem;color:#e0e0e0;font-size:0.72rem;font-weight:600">{r["stock"].replace(".NS","")}</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ccc;font-size:0.72rem">₹{r["invested"]:,.0f}</td><td style="padding:0.4rem 0.5rem;text-align:right;color:{ret_color};font-size:0.72rem">₹{r["value"]:,.0f}</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ccc;font-size:0.72rem">{r["units"]}</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ccc;font-size:0.72rem">₹{r["avg_cost"]:,.1f}</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ccc;font-size:0.72rem">₹{r["cmp"]:,.1f}</td><td style="padding:0.4rem 0.5rem;text-align:right;color:{ret_color};font-size:0.72rem">{r["return_pct"]:+.1f}%</td><td style="padding:0.4rem 0.5rem;text-align:right;color:{xirr_color};font-size:0.72rem">{r["xirr"]:.1f}%</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ff4d4d;font-size:0.72rem">{r["max_dd"]:.1f}%</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ccc;font-size:0.72rem">{r["recovery"]}mo</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ccc;font-size:0.72rem">{r["volatility"]:.1f}%</td></tr>'
+
+                port_ret_color = '#00d4aa' if port_return > 0 else '#ff4d4d'
+                port_xirr_color = '#00d4aa' if port_xirr > 0 else '#ff4d4d'
+                stock_rows += f'<tr style="border-top:2px solid #00d4aa33"><td style="padding:0.4rem 0.5rem;color:#00d4aa;font-size:0.72rem;font-weight:700">PORTFOLIO</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#e0e0e0;font-size:0.72rem;font-weight:600">₹{portfolio_invested:,.0f}</td><td style="padding:0.4rem 0.5rem;text-align:right;color:{port_ret_color};font-size:0.72rem;font-weight:600">₹{portfolio_value:,.0f}</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ccc;font-size:0.72rem">—</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ccc;font-size:0.72rem">—</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ccc;font-size:0.72rem">—</td><td style="padding:0.4rem 0.5rem;text-align:right;color:{port_ret_color};font-size:0.72rem;font-weight:600">{port_return:+.1f}%</td><td style="padding:0.4rem 0.5rem;text-align:right;color:{port_xirr_color};font-size:0.72rem;font-weight:600">{port_xirr:.1f}%</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#ff4d4d;font-size:0.72rem;font-weight:600">{port_max_dd:.1f}%</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#e0e0e0;font-size:0.72rem;font-weight:600">{port_max_recovery}mo</td><td style="padding:0.4rem 0.5rem;text-align:right;color:#e0e0e0;font-size:0.72rem;font-weight:600">{port_vol:.1f}%</td></tr>'
+
+                breakdown_html = f'<div class="stock-card" style="margin-top:0.5rem"><div class="stock-card-section">Stock-wise Breakdown</div><div style="overflow-x:auto"><table style="{ts}"><tr style="{hb}"><th style="padding:0.4rem 0.5rem;text-align:left;color:#888;font-size:0.65rem">Stock</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">Invested</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">Value</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">Units</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">Avg Cost</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">CMP</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">Return</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">XIRR</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">Max DD</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">Recovery</th><th style="padding:0.4rem 0.5rem;text-align:right;color:#888;font-size:0.65rem">Volatility</th></tr>{stock_rows}</table></div><div style="font-size:0.55rem;color:#555;font-family:IBM Plex Mono,monospace;margin-top:0.4rem">SIP on 1st trading day of each month · Whole shares only · Cash leftover from rounding: ₹{total_cash_left:,.0f} · Past performance does not guarantee future returns</div></div>'
+                st.markdown(breakdown_html, unsafe_allow_html=True)
+            elif sip_stocks:
+                st.warning("Could not fetch data for any selected stock.")
+
+    # ── METHODOLOGY ─────────────────────────────
+    with tools_sub5:
         methodology_path = None
         for p in ['METHODOLOGY.md', 'docs/METHODOLOGY.md']:
             if os.path.exists(p):
