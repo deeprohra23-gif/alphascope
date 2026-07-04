@@ -138,6 +138,7 @@ def get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret):
         rs_1m = rs_vs_benchmark(close, nifty_close, 21)
         rs_3m = rs_vs_benchmark(close, nifty_close, 63)
         rs_6m = rs_vs_benchmark(close, nifty_close, 126)
+        rs_12m = rs_vs_benchmark(close, nifty_close, 252)
         regime = market_regime(current_price, ema200, pct_from_high, roc_6m, tc)
         up_cap, down_cap, cap_ratio = capture_ratios(close, nifty_close)
 
@@ -174,6 +175,7 @@ def get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret):
             "1Y Max Drawdown %": r(max_dd),
             "1Y CAGR %": r(cagr_1y),
             "3Y CAGR %": r(cagr_3y),
+            "5Y CAGR %": r(cagr(close, 5)),
             "Market Regime": regime,
             "Drawdown Status": dd_stat,
             "Days Since 52W High": ds_high,
@@ -187,6 +189,7 @@ def get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret):
             "RS vs Nifty 1M %": rs_1m,
             "RS vs Nifty 3M %": rs_3m,
             "RS vs Nifty 6M %": rs_6m,
+            "RS vs Nifty 12M %": rs_12m,
             "Up Capture Ratio": up_cap,
             "Down Capture Ratio": down_cap,
             "Capture Ratio": cap_ratio,
