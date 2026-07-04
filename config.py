@@ -33,8 +33,8 @@ TECHNICAL_COLS = [
 RETURNS_COLS = [
     'Name', 'Current Price',
     'ROC 1M %', 'ROC 3M %', 'ROC 6M %',
-    '1Y CAGR %', '3Y CAGR %',
-    'RS vs Nifty 1M %', 'RS vs Nifty 3M %', 'RS vs Nifty 6M %',
+    '1Y CAGR %', '3Y CAGR %', '5Y CAGR %',
+    'RS vs Nifty 1M %', 'RS vs Nifty 3M %', 'RS vs Nifty 6M %', 'RS vs Nifty 12M %'
     'Momentum Rank 1M', 'Momentum Score',
 ]
 
