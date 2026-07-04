@@ -238,6 +238,7 @@ def calc_all(df, nifty_df=None):
         "ROC 1M %": roc(c, 21),
         "ROC 3M %": roc(c, 63),
         "ROC 6M %": roc6,
+        "ROC 12M %": roc(c, 252),
         "1Y CAGR %": cagr(c, 1),
         "3Y CAGR %": cagr(c, 3),
         "52W High": round(high52, 2),
