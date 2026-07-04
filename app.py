@@ -1338,6 +1338,11 @@ with main_tab2:
                                 idx_stocks[f'RS vs {short_name} 6M %'] = (
                                     pd.to_numeric(idx_stocks['ROC 6M %'], errors='coerce') - idx_roc_6m
                                 ).round(2)
+                                idx_roc_12m = pd.to_numeric(idx_row['ROC 12M %'].iloc[0], errors='coerce') if 'ROC 12M %' in idx_row.columns else None
+                            if idx_roc_12m is not None and not pd.isna(idx_roc_12m) and 'ROC 12M %' in idx_stocks.columns:
+                                idx_stocks[f'RS vs {short_name} 12M %'] = (
+                                    pd.to_numeric(idx_stocks['ROC 12M %'], errors='coerce') - idx_roc_12m
+                                ).round(2)
 
                     # Build list of RS vs index cols we just added (for display)
                     rs_vs_index_cols = [c for c in idx_stocks.columns if c.startswith('RS vs ') and c not in ['RS vs Nifty 1M %', 'RS vs Nifty 3M %', 'RS vs Nifty 6M %']]
@@ -1346,8 +1351,8 @@ with main_tab2:
                     RETURNS_COLS_DRILL = [
                         'Name', 'Current Price',
                         'ROC 1M %', 'ROC 3M %', 'ROC 6M %',
-                        '1Y CAGR %', '3Y CAGR %',
-                        'RS vs Nifty 1M %', 'RS vs Nifty 3M %', 'RS vs Nifty 6M %',
+                        '1Y CAGR %', '3Y CAGR %', '5Y CAGR %',
+                        'RS vs Nifty 1M %', 'RS vs Nifty 3M %', 'RS vs Nifty 6M %', 'RS vs NIfty 12M %',
                     ] + rs_vs_index_cols + ['Momentum Rank 1M', 'Momentum Score']
 
                     # Top 5 Gainers & Losers
