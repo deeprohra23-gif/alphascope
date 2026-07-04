@@ -2521,10 +2521,9 @@ with main_tab4:
                             if pd.isna(price_val) or price_val <= 0:
                                 continue
 
-                            shares_bought = int(sip_amount // price_val)
-                            cost = shares_bought * price_val
-                            cash_left = sip_amount - cost
-
+                            shares_bought = sip_amount / price_val
+                            cost = sip_amount
+                            cash_left = 0
                             units += shares_bought
                             invested += cost
                             cash_leftover_total += cash_left
@@ -2552,10 +2551,10 @@ with main_tab4:
                             if dd < max_dd:
                                 max_dd = dd
 
+                            per_unit_val = price_val
                             if prev_val is not None and prev_val > 0:
-                                monthly_returns.append((current_val - prev_val) / prev_val * 100)
-                            prev_val = current_val
-
+                                monthly_returns.append((per_unit_val - prev_val) / prev_val * 100)
+                            prev_val = per_unit_val
                         if units == 0:
                             continue
 
@@ -2618,10 +2617,11 @@ with main_tab4:
                     dd = (v - port_max) / port_max * 100 if port_max > 0 else 0
                     if dd < port_max_dd:
                         port_max_dd = dd
+                    inv = pv['invested']
+                    per_unit = v / inv if inv > 0 else 0
                     if port_prev is not None and port_prev > 0:
-                        port_monthly_ret.append((v - port_prev) / port_prev * 100)
-                    port_prev = v
-
+                        port_monthly_ret.append((per_unit - port_prev) / port_prev * 100)
+                    port_prev = per_unit
                 port_vol = np.std(port_monthly_ret) * np.sqrt(12) if port_monthly_ret else 0
                 port_best = max(port_monthly_ret) if port_monthly_ret else 0
                 port_worst = min(port_monthly_ret) if port_monthly_ret else 0
