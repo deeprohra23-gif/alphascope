@@ -1,0 +1,11 @@
+{
+  "name": "alphascope",
+  "version": "1.0.0",
+  "description": "Alphascope — Indian equities dashboard; static frontend (AG Grid) + Cloudflare Pages Functions",
+  "type": "module",
+  "scripts": {
+    "build:data": "python scripts/build_data.py",
+    "dev": "node dev-server.mjs"
+  },
+  "private": true
+}

@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alphascope</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.2/styles/ag-grid.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.2/styles/ag-theme-quartz.css">
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.2/dist/ag-grid-community.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="dot"></span> Alphascope <span class="brand-in">India</span></div>
+    <nav class="mainnav" id="mainnav">
+      <button class="mn active" data-tab="dashboard">Dashboard</button>
+      <button class="mn" data-tab="stocks">Stocks</button>
+      <button class="mn" data-tab="index">Index</button>
+      <button class="mn" data-tab="events">Events</button>
+      <button class="mn" data-tab="tools">Tools</button>
+    </nav>
+    <div class="freshness" id="freshness"></div>
+  </header>
+
+  <main id="main">
+    <!-- STOCKS TAB -->
+    <section class="tabpane" data-pane="stocks" hidden>
+      <nav class="substabs" id="stocksub">
+        <button class="sub active" data-sub="all">All Stocks</button>
+        <button class="sub" data-sub="screens">Pre-built Screens</button>
+        <button class="sub" data-sub="custom">Custom Screen</button>
+      </nav>
+
+      <div class="controls">
+        <input id="search" class="ctl" type="search" placeholder="Search name / symbol…" />
+        <select id="sector" class="ctl"></select>
+        <select id="cap" class="ctl">
+          <option value="">All caps</option><option>Large</option><option>Mid</option><option>Small</option>
+        </select>
+        <select id="insight" class="ctl">
+          <option value="">Any tech insight</option><option>Strong Buy</option><option>Buy</option><option>Hold</option><option>Sell</option><option>Strong Sell</option>
+        </select>
+        <button id="moreBtn" class="ctl ctl-btn2">More filters ▾</button>
+        <button id="exportBtn" class="ctl ctl-btn">Export CSV</button>
+      </div>
+
+      <!-- advanced filters (apply to every sub-tab) -->
+      <div class="filterpanel" id="filterpanel" hidden>
+        <div class="fp-grp"><label>Market Cap (Cr)</label><input id="mcMin" class="ctl fp-num" type="number" placeholder="min"><span>–</span><input id="mcMax" class="ctl fp-num" type="number" placeholder="max"></div>
+        <div class="fp-grp"><label>RSI 14</label><input id="rsiMin" class="ctl fp-num" type="number" placeholder="min"><span>–</span><input id="rsiMax" class="ctl fp-num" type="number" placeholder="max"></div>
+        <div class="fp-grp"><label>Regime</label><span id="regimeChks" class="chks"></span></div>
+        <div class="fp-grp"><label>Drawdown</label><span id="ddChks" class="chks"></span></div>
+        <div class="fp-grp"><label>Index</label><select id="indexMem" class="ctl"><option value="">Any index</option></select></div>
+        <button id="resetFilters" class="ctl ctl-btn2">Reset</button>
+      </div>
+
+      <!-- pre-built screens picker -->
+      <div class="screenwrap" id="screenwrap" hidden>
+        <nav class="cattabs" id="cattabs"></nav>
+        <div class="screencards" id="screencards"></div>
+        <div class="screeninfo" id="screeninfo" hidden></div>
+      </div>
+
+      <!-- custom screen builder -->
+      <div class="custombuilder" id="custombuilder" hidden>
+        <div id="condRows"></div>
+        <div class="cb-actions">
+          <button id="addCond" class="ctl ctl-btn2">+ Add condition</button>
+          <button id="runCustom" class="ctl ctl-btn">Run screen</button>
+          <span id="cbLogic">Match <select id="logic" class="ctl"><option value="all">ALL</option><option value="any">ANY</option></select> conditions</span>
+        </div>
+      </div>
+
+      <div class="extLabel" id="extLabel" hidden></div>
+      <nav class="viewtabs" id="viewtabs">
+        <button class="vt active" data-view="overview">Overview</button>
+        <button class="vt" data-view="technicals">Technicals</button>
+        <button class="vt" data-view="returns">Returns</button>
+        <button class="vt" data-view="risk">Risk</button>
+        <button class="vt" data-view="fundamentals">Fundamentals</button>
+      </nav>
+      <div id="grid" class="ag-theme-quartz sr-grid"></div>
+      <footer class="statusbar"><span id="count">—</span> · click any row for the stock card · sort &amp; filter are 100% client-side</footer>
+    </section>
+
+    <!-- PLACEHOLDER TABS (migrated in later phases) -->
+    <section class="tabpane" data-pane="dashboard">
+      <div class="dash">
+        <div id="spotlight" class="spotlight"></div>
+        <nav class="substabs" id="dashsub">
+          <button class="sub active" data-dsub="overview">Market Overview</button>
+          <button class="sub" data-dsub="picks">Quick Picks</button>
+          <button class="sub" data-dsub="changes">What Changed</button>
+          <button class="sub" data-dsub="rotation">Sector Rotation</button>
+          <button class="sub" data-dsub="signals">Signals</button>
+          <button class="sub" data-dsub="top5">Sector Top 5</button>
+        </nav>
+        <div class="dashbody" id="dashbody">
+          <div class="dsec" data-dsec="overview"></div>
+          <div class="dsec" data-dsec="picks" hidden></div>
+          <div class="dsec" data-dsec="changes" hidden></div>
+          <div class="dsec" data-dsec="rotation" hidden></div>
+          <div class="dsec" data-dsec="signals" hidden></div>
+          <div class="dsec" data-dsec="top5" hidden></div>
+        </div>
+      </div>
+    </section>
+    <section class="tabpane" data-pane="index" hidden>
+      <!-- LIST VIEW -->
+      <div id="idxList" class="idxlist">
+        <nav class="substabs" id="idxsub">
+          <button class="sub active" data-isub="indian">Indian Indices</button>
+          <button class="sub" data-isub="global">Global &amp; Commodities</button>
+        </nav>
+        <div class="controls">
+          <input id="idxSearch" class="ctl" type="search" placeholder="Search index…" />
+          <select id="idxCat" class="ctl"></select>
+          <span class="idxhint">click a row to drill into constituents</span>
+        </div>
+        <div id="idxGrid" class="ag-theme-quartz sr-grid"></div>
+      </div>
+      <!-- DRILL VIEW -->
+      <div id="idxDrill" class="idxdrill" hidden>
+        <div class="drill-top">
+          <button id="drillBack" class="ctl ctl-btn2">← Indices</button>
+          <div id="drillHead" class="drill-head"></div>
+        </div>
+        <div id="drillCards" class="drill-cards"></div>
+        <div class="gl-ctl">Top
+          <select id="glCount" class="ctl"><option>5</option><option>10</option><option>15</option></select>
+          gainers &amp; losers</div>
+        <div id="glWrap" class="gl-wrap"></div>
+        <nav class="viewtabs" id="drillViewtabs">
+          <button class="vt active" data-dview="overview">Overview</button>
+          <button class="vt" data-dview="technicals">Technicals</button>
+          <button class="vt" data-dview="returns">Returns</button>
+          <button class="vt" data-dview="risk">Risk</button>
+          <button class="vt" data-dview="fundamentals">Fundamentals</button>
+        </nav>
+        <div id="drillGrid" class="ag-theme-quartz sr-grid"></div>
+      </div>
+    </section>
+    <section class="tabpane" data-pane="events" hidden>
+      <nav class="substabs" id="evsub">
+        <button class="sub active" data-esub="fiidii">FII / DII</button>
+        <button class="sub" data-esub="corp">Corporate Actions</button>
+        <button class="sub" data-esub="deals">Bulk &amp; Block Deals</button>
+      </nav>
+      <div class="evbody" id="evbody">
+        <div class="esec" data-esec="fiidii"><div id="fiidiiOut" class="ev-out">Loading…</div></div>
+        <div class="esec" data-esec="corp" hidden>
+          <div class="controls">
+            <select id="caType" class="ctl"><option value="">All actions</option></select>
+            <label class="sip-lab"><input type="checkbox" id="caUniverse"> Only my universe</label>
+            <label class="sip-lab"><input type="checkbox" id="caUpcoming" checked> Only upcoming</label>
+          </div>
+          <div id="corpOut" class="ev-out">Loading…</div>
+        </div>
+        <div class="esec" data-esec="deals" hidden>
+          <div class="controls">
+            <select id="dealSide" class="ctl"><option value="">Buy &amp; Sell</option><option value="BUY">Buy only</option><option value="SELL">Sell only</option></select>
+            <label class="sip-lab"><input type="checkbox" id="dealUniverse"> Only my universe</label>
+          </div>
+          <div id="dealsOut" class="ev-out">Loading…</div>
+        </div>
+      </div>
+    </section>
+    <section class="tabpane" data-pane="tools" hidden>
+      <nav class="substabs" id="toolsub">
+        <button class="sub active" data-tsub="card">Stock Card</button>
+        <button class="sub" data-tsub="compare">Compare</button>
+        <button class="sub" data-tsub="watchlist">Watchlist</button>
+        <button class="sub" data-tsub="sip">SIP Calculator</button>
+        <button class="sub" data-tsub="method">Methodology</button>
+      </nav>
+      <div class="toolbody" id="toolbody">
+        <div class="tsec" data-tsec="card">
+          <div class="controls"><select id="cardSelect" class="ctl"></select><span class="idxhint">pick a stock to open its full card</span></div>
+        </div>
+        <div class="tsec" data-tsec="compare" hidden>
+          <div class="controls"><select id="cmpAdd" class="ctl"></select><span class="idxhint">add 2–4 stocks · best value per row highlighted</span></div>
+          <div id="cmpChips" class="cmp-chips"></div>
+          <div id="cmpTable" class="cmp-table-wrap"></div>
+        </div>
+        <div class="tsec" data-tsec="watchlist" hidden>
+          <div class="controls"><select id="wlAdd" class="ctl"></select><button id="wlClear" class="ctl ctl-btn2">Clear all</button><span class="idxhint">saved in your browser (localStorage) — persists across sessions</span></div>
+          <div id="wlSummary" class="wl-summary"></div>
+          <div id="wlChips" class="cmp-chips"></div>
+          <div id="wlTable" class="cmp-table-wrap"></div>
+        </div>
+        <div class="tsec" data-tsec="sip" hidden>
+          <div class="controls">
+            <select id="sipAdd" class="ctl"></select>
+            <label class="sip-lab">₹/month each <input id="sipAmt" class="ctl sip-num" type="number" value="5000" min="100" step="500"></label>
+            <label class="sip-lab">Duration <select id="sipDur" class="ctl"></select></label>
+            <button id="sipRun" class="ctl ctl-btn">Run SIP →</button>
+            <span class="idxhint">up to 10 stocks · fractional units · monthly on 1st trading day</span>
+          </div>
+          <div id="sipChips" class="cmp-chips"></div>
+          <div id="sipOut"></div>
+        </div>
+        <div class="tsec" data-tsec="method" hidden>
+          <div id="methodBody" class="method-body">Loading…</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside id="panel" class="panel"><button id="panelClose" class="panelClose">✕</button><div id="panelBody"></div></aside>
+  <div id="scrim" class="scrim"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="app.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="index-dash.js"></script>
+  <script src="tools.js"></script>
+  <script src="events.js"></script>
+</body>
+</html>
