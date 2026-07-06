@@ -50,8 +50,8 @@
       <div class="filterpanel" id="filterpanel" hidden>
         <div class="fp-grp"><label>Market Cap (Cr)</label><input id="mcMin" class="ctl fp-num" type="number" placeholder="min"><span>–</span><input id="mcMax" class="ctl fp-num" type="number" placeholder="max"></div>
         <div class="fp-grp"><label>RSI 14</label><input id="rsiMin" class="ctl fp-num" type="number" placeholder="min"><span>–</span><input id="rsiMax" class="ctl fp-num" type="number" placeholder="max"></div>
-        <div class="fp-grp"><label>Regime</label><span id="regimeChks" class="chks"></span></div>
-        <div class="fp-grp"><label>Drawdown</label><span id="ddChks" class="chks"></span></div>
+        <div class="fp-grp"><label>Regime</label><select id="regimeSel" class="ctl"><option value="">All regimes</option></select></div>
+        <div class="fp-grp"><label>Drawdown</label><select id="ddSel" class="ctl"><option value="">All drawdown</option></select></div>
         <div class="fp-grp"><label>Index</label><select id="indexMem" class="ctl"><option value="">Any index</option></select></div>
         <button id="resetFilters" class="ctl ctl-btn2">Reset</button>
       </div>
@@ -82,7 +82,7 @@
         <button class="vt" data-view="fundamentals">Fundamentals</button>
       </nav>
       <div id="grid" class="ag-theme-quartz sr-grid"></div>
-      <footer class="statusbar"><span id="count">—</span> · click any row for the stock card · sort &amp; filter are 100% client-side</footer>
+      <footer class="statusbar"><span id="count">—</span> <span id="sortInfo"></span> · click any row for the stock card</footer>
     </section>
 
     <!-- PLACEHOLDER TABS (migrated in later phases) -->

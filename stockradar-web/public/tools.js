@@ -159,7 +159,9 @@
     const INS = { 'Strong Buy': 'ins-sb', 'Buy': 'ins-b', 'Hold': 'ins-h', 'Sell': 'ins-s', 'Strong Sell': 'ins-ss' };
     let h = '<table class="cmp-table"><thead><tr><th>Stock</th><th>Price</th><th>Chg%</th><th>Regime</th><th>Tech</th><th>Fund</th><th>Composite</th></tr></thead><tbody>';
     for (const r of stocks) { const c = r['Day Change %']; h += `<tr data-sym="${r.Symbol}" style="cursor:pointer"><td>${window.stockLabel(r)}</td><td>${f(r['Current Price'])}</td><td class="${c > 0 ? 'pos' : c < 0 ? 'neg' : ''}">${f(c)}</td><td>${r['Market Regime'] || '—'}</td><td><span class="badge ${INS[r['Technical Insight']] || ''}">${r['Technical Insight'] || '—'}</span></td><td><span class="badge ${INS[r['Fundamental Insight']] || ''}">${r['Fundamental Insight'] || '—'}</span></td><td>${f(r['Composite Score'], 1)}</td></tr>`; }
-    $('wlTable').innerHTML = h + '</tbody></table>';
+    const openBtn = `<button class="viewall" id="wlOpenGrid" style="margin:0 0 10px">Open all in Stocks grid (every column, sort &amp; export) →</button>`;
+    $('wlTable').innerHTML = openBtn + h + '</tbody></table>';
+    $('wlOpenGrid').onclick = () => window.openInStocks(stocks, 'Watchlist');
     $('wlTable').querySelectorAll('tr[data-sym]').forEach(tr => tr.onclick = () => { const r = bySym(tr.dataset.sym); if (r && window.openPanel) window.openPanel(r); });
   }
 

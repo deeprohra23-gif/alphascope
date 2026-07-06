@@ -37,7 +37,7 @@ const VIEWS = {
     numCol('RSI 14',1,85), C('MACD Signal',{width:110}), C('Supertrend',{width:105}),
     numCol('Trend Consistency (12M)',1,150), numCol('Momentum Acceleration',2,160), C('Vol Trend',{width:95}), numCol('Technical Score',1,115) ],
   returns: [ symCol, nameCol, numCol('Current Price',2,105), numCol('ROC 1M %',2), numCol('ROC 3M %',2), numCol('ROC 6M %',2),
-    numCol('1Y CAGR %',2), numCol('3Y CAGR %',2), numCol('5Y CAGR %',2),
+    numCol('1Y CAGR %',2), numCol('3Y CAGR %',2),
     numCol('RS vs Nifty 1M %',2,135), numCol('RS vs Nifty 3M %',2,135), numCol('RS vs Nifty 6M %',2,135), numCol('RS vs Nifty 12M %',2,140),
     numCol('Momentum Rank 1M',0,135), numCol('Momentum Score',1,115) ],
   risk: [ symCol, nameCol, numCol('Current Price',2,105), numCol('Beta 1Y (Daily)',2,130), numCol('Beta 5Y (Monthly)',2,140),
@@ -59,7 +59,10 @@ const gridOptions = {
   columnDefs: VIEWS.overview,
   defaultColDef: { sortable:true, resizable:true, filter:true },
   rowSelection: 'single', animateRows: true,
+  autoSizeStrategy: { type: 'fitCellContents' },   // size every column to its content
   onRowClicked: e => openPanel(e.data),
+  onSortChanged: () => updateSortInfo(),
+  onFirstDataRendered: p => { p.api.applyColumnState({ state: [{ colId: 'Composite Score', sort: 'desc' }] }); p.api.autoSizeAllColumns(); updateSortInfo(); },
   onModelUpdated: () => { if (gridApi) document.getElementById('count').textContent = `${gridApi.getDisplayedRowCount()} stocks`; },
 };
 
@@ -115,6 +118,11 @@ function initStocks() {
 
 // ── unified row computation (source → shared filters) ──
 const getChecked = cid => [...document.querySelectorAll(`#${cid} input:checked`)].map(i => i.value);
+function updateSortInfo() {
+  const el = $('sortInfo'); if (!el || !gridApi) return;
+  const s = gridApi.getColumnState().filter(c => c.sort).sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0));
+  el.textContent = s.length ? '· sorted by ' + s.map(c => `${c.colId} ${c.sort === 'desc' ? '▼' : '▲'}`).join(', ') : '';
+}
 
 function sourceRows() {
   if (mode === 'external') return externalRows || [];
@@ -139,22 +147,22 @@ function computeRows() {
   const q = val('search').trim().toLowerCase(), sec = val('sector'), cap = val('cap'), ins = val('insight');
   const mcMin = parseFloat(val('mcMin')), mcMax = parseFloat(val('mcMax'));
   const rsiMin = parseFloat(val('rsiMin')), rsiMax = parseFloat(val('rsiMax'));
-  const regimes = getChecked('regimeChks'), dds = getChecked('ddChks'), idx = val('indexMem');
+  const regime = val('regimeSel'), dd = val('ddSel'), idx = val('indexMem');
   const rows = sourceRows().filter(r =>
     (!q || `${r.Name} ${r.Symbol}`.toLowerCase().includes(q)) &&
     (!sec || r.Sector === sec) && (!cap || r['Cap Category'] === cap) && (!ins || r['Technical Insight'] === ins) &&
     (isNaN(mcMin) || r['Market Cap (Cr)'] >= mcMin) && (isNaN(mcMax) || r['Market Cap (Cr)'] <= mcMax) &&
     (isNaN(rsiMin) || r['RSI 14'] >= rsiMin) && (isNaN(rsiMax) || r['RSI 14'] <= rsiMax) &&
-    (!regimes.length || regimes.includes(r['Market Regime'])) &&
-    (!dds.length || dds.includes(r['Drawdown Status'])) &&
+    (!regime || r['Market Regime'] === regime) &&
+    (!dd || r['Drawdown Status'] === dd) &&
     (!idx || (r['Index Membership'] || '').includes(idx)));
   gridApi.setGridOption('rowData', rows);
 }
 
 // ── advanced filters ──
 function buildAdvancedFilters() {
-  $('regimeChks').innerHTML = ['Strong Bull', 'Bull', 'Bear', 'Strong Bear'].map(r => `<label><input type="checkbox" value="${r}">${r}</label>`).join('');
-  $('ddChks').innerHTML = ['At High', 'Recovering', 'Correcting', 'Damaged'].map(r => `<label><input type="checkbox" value="${r}">${r}</label>`).join('');
+  $('regimeSel').innerHTML = '<option value="">All regimes</option>' + ['Strong Bull', 'Bull', 'Bear', 'Strong Bear'].map(r => `<option>${r}</option>`).join('');
+  $('ddSel').innerHTML = '<option value="">All drawdown</option>' + ['At High', 'Recovering', 'Correcting', 'Damaged'].map(r => `<option>${r}</option>`).join('');
   const idxs = [...new Set(ALL.flatMap(r => (r['Index Membership'] || '').split(/[;,]/).map(s => s.trim()).filter(Boolean)))].sort();
   $('indexMem').innerHTML = '<option value="">Any index</option>' + idxs.map(i => `<option>${i}</option>`).join('');
 }
@@ -221,8 +229,7 @@ $('addCond').addEventListener('click', addCondRow);
 $('runCustom').addEventListener('click', computeRows);
 $('resetFilters').addEventListener('click', () => {
   ['mcMin', 'mcMax', 'rsiMin', 'rsiMax'].forEach(id => $(id).value = '');
-  $('indexMem').value = '';
-  document.querySelectorAll('#regimeChks input,#ddChks input').forEach(i => i.checked = false);
+  ['indexMem', 'regimeSel', 'ddSel'].forEach(id => $(id).value = '');
   computeRows();
 });
 
@@ -233,16 +240,16 @@ document.getElementById('viewtabs').addEventListener('click', e => {
   const sort = gridApi.getColumnState().filter(c => c.sort).map(c => ({colId:c.colId,sort:c.sort,sortIndex:c.sortIndex}));
   gridApi.setGridOption('columnDefs', VIEWS[curView]);
   if (sort.length) gridApi.applyColumnState({ state: sort });  // global sort persists across views
+  setTimeout(() => gridApi.autoSizeAllColumns(), 30);          // re-fit widths to the new columns
 });
 
-['search', 'sector', 'cap', 'insight', 'mcMin', 'mcMax', 'rsiMin', 'rsiMax', 'indexMem'].forEach(id => $(id).addEventListener('input', computeRows));
-$('regimeChks').addEventListener('change', computeRows);
-$('ddChks').addEventListener('change', computeRows);
-$('exportBtn').addEventListener('click', () => gridApi.exportDataAsCsv({ fileName: `stockradar_${curView}.csv` }));
+['search', 'sector', 'cap', 'insight', 'mcMin', 'mcMax', 'rsiMin', 'rsiMax', 'indexMem', 'regimeSel', 'ddSel'].forEach(id => $(id).addEventListener('input', computeRows));
+$('exportBtn').addEventListener('click', () => gridApi.exportDataAsCsv({ fileName: `alphascope_${curView}.csv` }));
 
 // ── slide-in stock card ──
 const panel = document.getElementById('panel'), scrim = document.getElementById('scrim');
 const closePanel = () => { panel.classList.remove('open'); scrim.classList.remove('open'); };
+window.closePanel = closePanel;
 document.getElementById('panelClose').onclick = closePanel; scrim.onclick = closePanel;
 
 const f2 = v => (v == null || v === '') ? '—' : Number(v).toFixed(2);
@@ -273,12 +280,14 @@ function screensSection(d) {
 }
 function peersSection(d) {
   const peers = (window.ALL || []).filter(r => r.Industry === d.Industry && r['Cap Category'] === d['Cap Category'] && r.Symbol !== d.Symbol)
-    .sort((a, b) => (b['Composite Score'] || 0) - (a['Composite Score'] || 0)).slice(0, 6);
+    .sort((a, b) => (b['Composite Score'] || 0) - (a['Composite Score'] || 0)).slice(0, 8);
   if (!peers.length) return '';
-  const rp = r => `<tr data-sym="${r.Symbol}"><td>${stockLabel(r)}</td><td>${f2(r['Current Price'])}</td><td>${f2(r['PE Ratio'])}</td><td>${f2(r['ROE %'])}</td><td>${f2(r['Composite Score'], 1)}</td></tr>`;
+  const PC = [['Price', 'Current Price', 2], ['Chg%', 'Day Change %', 2], ['Comp', 'Composite Score', 1], ['Tech', 'Technical Score', 1], ['Fund', 'Fundamental Score', 1], ['RSI', 'RSI 14', 1], ['ROC 3M', 'ROC 3M %', 2], ['1Y CAGR', '1Y CAGR %', 2], ['PE', 'PE Ratio', 1], ['PB', 'PB Ratio', 1], ['EV/EBITDA', 'EV/EBITDA', 1], ['ROE', 'ROE %', 1], ['ROCE', 'ROCE %', 1], ['D/E', 'Debt/Equity', 2], ['Div%', 'Dividend Yield %', 2], ['SD 1Y', 'SD 1Y %', 1]];
+  const prow = (r, self) => `<tr ${self ? 'class="self"' : `data-sym="${r.Symbol}"`}><td>${stockLabel(r)}</td>${PC.map(([l, fld, dec]) => `<td>${f2(r[fld], dec)}</td>`).join('')}</tr>`;
   return `<div class="pc-sec">Peers — ${d.Industry || ''} · ${d['Cap Category'] || ''}</div>
-    <table class="pc-table"><thead><tr><th>Stock</th><th>Price</th><th>PE</th><th>ROE</th><th>Comp</th></tr></thead>
-    <tbody><tr class="self"><td>${stockLabel(d)}</td><td>${f2(d['Current Price'])}</td><td>${f2(d['PE Ratio'])}</td><td>${f2(d['ROE %'])}</td><td>${f2(d['Composite Score'], 1)}</td></tr>${peers.map(rp).join('')}</tbody></table>`;
+    <div class="pc-scroll"><table class="pc-table"><thead><tr><th>Stock</th>${PC.map(([l]) => `<th>${l}</th>`).join('')}</tr></thead>
+    <tbody>${prow(d, true)}${peers.map(r => prow(r, false)).join('')}</tbody></table></div>
+    <button class="pc-live" style="background:transparent;border:1px solid var(--border);color:var(--text2)" onclick="closePanel();window.openInStocks([${JSON.stringify(d.Symbol)},${peers.map(p => JSON.stringify(p.Symbol)).join(',')}].map(s=>window.ALL.find(x=>x.Symbol===s)),'Peers of ${tk(d.Symbol)}')">Open peers in grid (all columns) →</button>`;
 }
 function openPanel(d) {
   const chg = d['Day Change %'];

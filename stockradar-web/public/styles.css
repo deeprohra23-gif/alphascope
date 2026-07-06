@@ -35,6 +35,7 @@ input.ctl{min-width:200px}
 .ctl-btn2{cursor:pointer}.ctl-btn2:hover{border-color:var(--accent)}
 
 .filterpanel{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin:6px 16px 0;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.filterpanel[hidden]{display:none}
 .fp-grp{display:flex;align-items:center;gap:6px}
 .fp-grp>label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .fp-num{width:76px;min-width:0}
@@ -283,6 +284,9 @@ input.ctl{min-width:200px}
 .pc-table td:first-child{color:var(--text)}
 .pc-table tr[data-sym]{cursor:pointer}.pc-table tr[data-sym]:hover td{background:var(--hover)}
 .pc-table tr.self td{background:#10b98118;color:var(--text);font-weight:600}
+.pc-scroll{overflow-x:auto;margin-bottom:8px}
+.pc-scroll .pc-table{min-width:100%}
+.pc-scroll th,.pc-scroll td{white-space:nowrap}
 .pc-live{margin-top:8px;background:var(--blue);color:#fff;border:none;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .pc-live[disabled]{opacity:.6;cursor:default}
 .pc-note{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5}
