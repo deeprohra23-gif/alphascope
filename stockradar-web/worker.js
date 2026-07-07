@@ -4,6 +4,7 @@
 // (This is the Workers-with-static-assets equivalent of Pages Functions — same handler code.)
 import { onRequest as stock } from "./functions/api/stock.js";
 import { onRequest as history } from "./functions/api/history.js";
+import { onRequest as financials } from "./functions/api/financials.js";
 import { onRequest as fiidii } from "./functions/api/fiidii.js";
 import { onRequest as deals } from "./functions/api/deals.js";
 import { onRequest as corpactions } from "./functions/api/corpactions.js";
@@ -11,6 +12,7 @@ import { onRequest as corpactions } from "./functions/api/corpactions.js";
 const routes = {
   "/api/stock": stock,
   "/api/history": history,
+  "/api/financials": financials,
   "/api/fiidii": fiidii,
   "/api/deals": deals,
   "/api/corpactions": corpactions,

@@ -280,7 +280,7 @@ function insightReason(d) {
 function analystSection(d) {
   const rec = d['Analyst Recommendation']; if (!rec) return '';
   const tm = d['Target Mean Price'], cp = d['Current Price'], up = (tm && cp) ? (tm - cp) / cp * 100 : null;
-  return `<div class="pc-sec">Analyst Consensus</div><div class="pc-grid">
+  return `<div class="pc-sec">Projections &amp; Analyst Targets</div><div class="pc-grid">
     ${row('Rating', RECMAP[rec] || rec)}${row('Score', d['Analyst Score'] != null ? f2(d['Analyst Score']) + ' / 5' : '—')}
     ${row('Target Mean', tm ? '₹' + f2(tm) + (up != null ? ` (${up > 0 ? '+' : ''}${f2(up)}%)` : '') : '—')}${row('# Analysts', d['No. of Analysts'] ?? '—')}
     ${row('Target High', d['Target High Price'] ? '₹' + f2(d['Target High Price']) : '—')}${row('Target Low', d['Target Low Price'] ? '₹' + f2(d['Target Low Price']) : '—')}</div>`;
@@ -299,6 +299,91 @@ function peersSection(d) {
     <div class="pc-scroll"><table class="pc-table"><thead><tr><th>Stock</th>${PC.map(([l]) => `<th>${l}</th>`).join('')}</tr></thead>
     <tbody>${prow(d, true)}${peers.map(r => prow(r, false)).join('')}</tbody></table></div>
     <button class="pc-live" style="background:transparent;border:1px solid var(--border);color:var(--text2)" id="peerGridBtn" data-syms="${[d.Symbol, ...peers.map(p => p.Symbol)].join(',')}" data-label="Peers of ${tk(d.Symbol)}">Open peers in grid (all columns) →</button>`;
+}
+// full ratios table (all from the daily static data)
+function ratiosSection(d) {
+  const G = [
+    ['Valuation', ['PE Ratio', 'Sector PE', 'PB Ratio', 'Sector PB', 'EV/EBITDA', 'PEG Ratio']],
+    ['Profitability', ['ROE %', 'ROE 3Y Avg %', 'ROCE %', 'ROCE 3Y Avg %', 'ROA %', 'Net Profit Margin %']],
+    ['Growth', ['Sales Growth 1Y %', 'Sales Growth 3Y %', 'Profit Growth 1Y %', 'Profit Growth 3Y %', 'EPS Growth 1Y %', 'EPS Growth 3Y %']],
+    ['Earnings', ['EPS Current', 'EPS Last Year', 'Net Profit (Cr)', 'Net Profit Prev (Cr)']],
+    ['Balance Sheet & Cash', ['Debt/Equity', 'Interest Coverage', 'Free Cash Flow (Cr)', 'FCF Yield %']],
+    ['Ownership', ['Promoter Holding %', 'Pledge %', 'FII Change %', 'DII Change %']],
+    ['Dividends', ['Dividend Yield %', 'Dividend Payout %']],
+  ];
+  const has = G.map(([t, fs]) => [t, fs.filter(f => f in d)]).filter(([t, fs]) => fs.length);
+  if (!has.length) return '';
+  return `<div class="pc-sec">Financials &amp; Ratios</div>` + has.map(([title, fs]) =>
+    `<div class="pc-subh">${title}</div><div class="pc-grid">${fs.map(f => row(f, f2(d[f], 2))).join('')}</div>`).join('');
+}
+
+// ── multi-year Earnings Trajectory + projections (live from /api/financials) ──
+const fyLabel = ds => 'FY' + String(ds).slice(2, 4);
+function finTable(cols, rows, estCount) {
+  const est = i => (estCount && i >= cols.length - estCount) ? ' class="est"' : '';
+  const head = cols.map((c, i) => `<th${est(i)}>${c}</th>`).join('');
+  const body = rows.map(([lab, cells]) => `<tr><td class="fin-lab">${lab}</td>${cells.map((c, i) => `<td${est(i)}>${c}</td>`).join('')}</tr>`).join('');
+  return `<div class="pc-scroll"><table class="fin-table"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+function renderFinancials(d, S) {
+  const rev = S.annualTotalRevenue || [];
+  if (rev.length < 2) return null;
+  const dates = rev.map(x => x.d);
+  const map = arr => { const m = {}; (arr || []).forEach(x => m[x.d] = x.v); return m; };
+  const R = map(S.annualTotalRevenue), NI = map(S.annualNetIncome), EPS = map(S.annualBasicEPS), EBITDA = map(S.annualEBITDA),
+    EBIT = map(S.annualEBIT), INT = map(S.annualInterestExpense), DEBT = map(S.annualTotalDebt),
+    EQ = map(S.annualStockholdersEquity), CASH = map(S.annualCashAndCashEquivalents), FCF = map(S.annualFreeCashFlow);
+  const cr = v => v == null ? null : v / 1e7;
+  const fys = dates.map(fyLabel);
+  const revA = dates.map(dt => cr(R[dt])), niA = dates.map(dt => cr(NI[dt])), epsA = dates.map(dt => EPS[dt] ?? null);
+  const cagr = a => { const x = a.filter(v => v != null && !isNaN(v)); if (x.length < 2 || x[0] <= 0) return null; return Math.pow(x[x.length - 1] / x[0], 1 / (x.length - 1)) - 1; };
+  const revCAGR = cagr(revA), profCAGR = cagr(niA);
+  const cand = [revCAGR, profCAGR].filter(v => v != null);
+  let g = cand.length ? cand.reduce((s, v) => s + v, 0) / cand.length : 0.05;
+  g = Math.max(0.03, Math.min(0.20, g));
+  const lastNum = +fys[fys.length - 1].slice(2);
+  const eFY = k => 'FY' + String(lastNum + k).padStart(2, '0') + '(E)';
+  const lr = revA[revA.length - 1], ln = niA[niA.length - 1], le = epsA[epsA.length - 1];
+  const projRev = [lr * (1 + g), lr * (1 + g) ** 2], projNi = [ln * (1 + g), ln * (1 + g) ** 2];
+  const projEps = [le == null ? null : le * (1 + g), le == null ? null : le * (1 + g) ** 2];
+  const price = d['Current Price'];
+  const crF = v => v == null || isNaN(v) ? '—' : Math.round(v).toLocaleString('en-IN');
+  const n1 = (v, dp = 1) => v == null || isNaN(v) ? '—' : (+v).toFixed(dp);
+  const pe = e => (price && e) ? n1(price / e) + 'x' : '—';
+  const pct = v => v == null || isNaN(v) ? '—' : (v * 100).toFixed(1) + '%';
+
+  const traj = finTable([...fys, eFY(1), eFY(2)], [
+    ['Revenue (Cr)', [...revA.map(crF), ...projRev.map(crF)]],
+    ['Net Profit (Cr)', [...niA.map(crF), ...projNi.map(crF)]],
+    ['EPS', [...epsA.map(v => n1(v)), ...projEps.map(v => n1(v))]],
+    ['P/E · Fwd', [...epsA.map((v, i) => i === epsA.length - 1 ? pe(v) : '—'), ...projEps.map(pe)]],
+  ], 2);
+  const mg = (num, den) => dates.map(dt => (num[dt] != null && den[dt]) ? num[dt] / den[dt] : null);
+  const kr = finTable(fys, [
+    ['EBITDA Margin', mg(EBITDA, R).map(pct)], ['Net Margin', mg(NI, R).map(pct)], ['ROE', mg(NI, EQ).map(pct)],
+  ], 0);
+  const fh = finTable(fys, [
+    ['Debt/Equity', dates.map(dt => (DEBT[dt] != null && EQ[dt]) ? n1(DEBT[dt] / EQ[dt], 2) : '—')],
+    ['Net Debt/EBITDA', dates.map(dt => (DEBT[dt] != null && EBITDA[dt]) ? n1((DEBT[dt] - (CASH[dt] || 0)) / EBITDA[dt], 2) + 'x' : '—')],
+    ['Int Coverage', dates.map(dt => (EBIT[dt] != null && INT[dt]) ? n1(EBIT[dt] / INT[dt]) + 'x' : '—')],
+    ['FCF (Cr)', dates.map(dt => crF(cr(FCF[dt])))],
+    ['FCF/Profit', dates.map(dt => (FCF[dt] != null && NI[dt]) ? (FCF[dt] / NI[dt] * 100).toFixed(1) + '%' : '—')],
+  ], 0);
+
+  return `<div class="pc-fin-h">Earnings Trajectory</div>${traj}
+    <div class="pc-fin-note">Revenue CAGR ${pct(revCAGR)} · Profit CAGR ${pct(profCAGR)} · Projection uses ${(g * 100).toFixed(1)}%</div>
+    <div class="pc-fin-h">Key Ratios</div>${kr}
+    <div class="pc-fin-h">Financial Health</div>${fh}
+    <div class="pc-note">Projections are a simple extrapolation of historical growth. Actual results will vary. Not investment advice.</div>`;
+}
+async function loadFinancials(d) {
+  const el = document.getElementById('pcFin'); if (!el) return;
+  try {
+    const j = await fetch(`/api/financials?symbol=${encodeURIComponent(tk(d.Symbol))}`).then(r => r.json());
+    el.innerHTML = (j && j.series && renderFinancials(d, j.series)) || ratiosSection(d);
+  } catch (e) {
+    el.innerHTML = ratiosSection(d);
+  }
 }
 function openPanel(d) {
   const chg = d['Day Change %'];
@@ -320,32 +405,18 @@ function openPanel(d) {
     <div class="pc-grid">${row('RSI 14',f2(d['RSI 14']))}${row('Supertrend',d['Supertrend'])}${row('MACD',d['MACD Signal'])}${row('EMA Cross',d['EMA Cross'])}${row('EMA 50',f2(d['EMA 50']))}${row('EMA 200',f2(d['EMA 200']))}</div>
     <div class="pc-sec">Returns</div>
     <div class="pc-grid">${row('ROC 1M %',f2(d['ROC 1M %']))}${row('ROC 3M %',f2(d['ROC 3M %']))}${row('ROC 6M %',f2(d['ROC 6M %']))}${row('1Y CAGR %',f2(d['1Y CAGR %']))}${row('RS vs Nifty 3M',f2(d['RS vs Nifty 3M %']))}${row('3Y CAGR %',f2(d['3Y CAGR %']))}</div>
-    <div class="pc-sec">Valuation &amp; Quality</div>
-    <div class="pc-grid">${row('PE',f2(d['PE Ratio']))}${row('Sector PE',f2(d['Sector PE']))}${row('ROE %',f2(d['ROE %']))}${row('ROCE %',f2(d['ROCE %']))}${row('D/E',f2(d['Debt/Equity']))}${row('Div Yield %',f2(d['Dividend Yield %']))}</div>
+    <div class="pc-sec">Financials &amp; Projections</div>
+    <div id="pcFin" class="pc-fin"><div class="pc-note">Loading multi-year financials…</div></div>
     ${analystSection(d)}
     ${screensSection(d)}
-    ${peersSection(d)}
-    <div class="pc-sec">Live data (lazy)</div>
-    <button class="pc-live" onclick="loadLive('${d.Symbol}',this)">Load financials &amp; news →</button>
-    <div class="pc-note">Everything above is instant from the daily static JSON. This button calls the serverless function (functions/api/stock.js) for the few fields that must be live.</div>`;
+    ${peersSection(d)}`;
   panel.classList.add('open'); scrim.classList.add('open');
   document.querySelectorAll('#panelBody .pc-table tr[data-sym]').forEach(tr => tr.onclick = () => { const r = (window.ALL || []).find(x => x.Symbol === tr.dataset.sym); if (r) openPanel(r); });
   const pgb = document.getElementById('peerGridBtn');
   if (pgb) pgb.onclick = () => { closePanel(); window.openInStocks(pgb.dataset.syms.split(',').map(s => (window.ALL || []).find(x => x.Symbol === s)).filter(Boolean), pgb.dataset.label); };
+  loadFinancials(d);   // fetch + render the multi-year trajectory (falls back to static ratios on failure)
 }
 window.openPanel = openPanel;
-
-window.loadLive = async (sym, btn) => {
-  btn.disabled = true; btn.textContent = 'Loading…';
-  try {
-    const j = await fetch(`/api/stock?symbol=${encodeURIComponent(sym.replace(/\.(NS|BO)$/, ''))}`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); });
-    btn.insertAdjacentHTML('afterend', `<div class="pc-note">Live: price ₹${j.regularMarketPrice ?? '—'}, 52W ${j.fiftyTwoWeekLow ?? '—'}–${j.fiftyTwoWeekHigh ?? '—'}</div>`);
-    btn.textContent = 'Loaded ✓';
-  } catch (e) {
-    btn.textContent = 'Load financials & news →'; btn.disabled = false;
-    btn.insertAdjacentHTML('afterend', `<div class="pc-note">⚠ Serverless function not running locally — deploy to Cloudflare Pages / Vercel. (${e})</div>`);
-  }
-};
 
 // data freshness stamp (build writes it; fallback to fetch time)
 fetch('data/stocks.json', { method: 'HEAD' }).then(r => {
