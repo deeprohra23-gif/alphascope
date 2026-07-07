@@ -28,6 +28,13 @@ export default {
       // hand the same context shape the Pages Functions expect
       return handler({ request, env, ctx, waitUntil: (p) => ctx.waitUntil(p), next: () => env.ASSETS.fetch(request) });
     }
-    return env.ASSETS.fetch(request);
+    // serve static assets — but force code files to revalidate so deploys show up on a normal refresh
+    const res = await env.ASSETS.fetch(request);
+    if (pathname === '/' || /\.(html|js|css)$/.test(pathname)) {
+      const h = new Headers(res.headers);
+      h.set('Cache-Control', 'no-cache');
+      return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
+    }
+    return res;
   },
 };
