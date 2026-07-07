@@ -54,15 +54,15 @@ const VIEWS = {
 
 let ALL = [], gridApi = null, curView = 'overview';
 let SCREENS_META = [], mode = 'all', selScreen = null, FILTER_COLS = [], externalRows = null;
+let curSortCol = 'Composite Score', curSortDir = 'desc';
 
 const gridOptions = {
   columnDefs: VIEWS.overview,
-  defaultColDef: { sortable:true, resizable:true, filter:true },
+  defaultColDef: { sortable:false, resizable:true, filter:true },   // sorting is driven by the Sort-by dropdown
   rowSelection: 'single', animateRows: true,
   autoSizeStrategy: { type: 'fitCellContents' },   // size every column to its content
   onRowClicked: e => openPanel(e.data),
-  onSortChanged: () => updateSortInfo(),
-  onFirstDataRendered: p => { p.api.applyColumnState({ state: [{ colId: 'Composite Score', sort: 'desc' }] }); p.api.autoSizeAllColumns(); updateSortInfo(); },
+  onFirstDataRendered: p => p.api.autoSizeAllColumns(),
   onModelUpdated: () => { if (gridApi) document.getElementById('count').textContent = `${gridApi.getDisplayedRowCount()} stocks`; },
 };
 
@@ -110,6 +110,11 @@ function initStocks() {
     buildAdvancedFilters();
     buildScreens();
     FILTER_COLS = Object.keys(ALL[0]).filter(k => !['Screens', 'Description'].includes(k));
+    // Sort-by dropdown — every column, key ones first
+    const SORT_PREF = ['Composite Score', 'Momentum Score', 'Technical Score', 'Fundamental Score', 'Universe Rank', 'Market Cap (Cr)', 'Current Price', 'Day Change %', 'RSI 14', 'ROC 1M %', 'ROC 3M %', 'ROC 6M %', '1Y CAGR %', '3Y CAGR %', 'PE Ratio', 'ROE %', 'ROCE %', 'Debt/Equity', 'Dividend Yield %', 'Name', 'Sector', 'Industry'];
+    const ordered = [...SORT_PREF.filter(c => FILTER_COLS.includes(c)), ...FILTER_COLS.filter(c => !SORT_PREF.includes(c)).sort()];
+    $('sortCol').innerHTML = ordered.map(c => `<option value="${c}"${c === curSortCol ? ' selected' : ''}>${c}</option>`).join('');
+    $('sortDir').value = curSortDir;
     addCondRow();
     computeRows();
   })();
@@ -118,10 +123,15 @@ function initStocks() {
 
 // ── unified row computation (source → shared filters) ──
 const getChecked = cid => [...document.querySelectorAll(`#${cid} input:checked`)].map(i => i.value);
-function updateSortInfo() {
-  const el = $('sortInfo'); if (!el || !gridApi) return;
-  const s = gridApi.getColumnState().filter(c => c.sort).sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0));
-  el.textContent = s.length ? '· sorted by ' + s.map(c => `${c.colId} ${c.sort === 'desc' ? '▼' : '▲'}`).join(', ') : '';
+function sortRows(rows) {
+  const col = curSortCol, sign = curSortDir === 'asc' ? 1 : -1;
+  return rows.slice().sort((a, b) => {
+    let x = a[col], y = b[col];
+    const xn = x == null || x === '', yn = y == null || y === '';
+    if (xn && yn) return 0; if (xn) return 1; if (yn) return -1;   // blanks always last
+    if (typeof x === 'number' && typeof y === 'number') return sign * (x - y);
+    return sign * String(x).localeCompare(String(y));
+  });
 }
 
 function sourceRows() {
@@ -156,7 +166,8 @@ function computeRows() {
     (!regime || r['Market Regime'] === regime) &&
     (!dd || r['Drawdown Status'] === dd) &&
     (!idx || (r['Index Membership'] || '').includes(idx)));
-  gridApi.setGridOption('rowData', rows);
+  gridApi.setGridOption('rowData', sortRows(rows));
+  const si = $('sortInfo'); if (si) si.textContent = `· sorted by ${curSortCol} ${curSortDir === 'desc' ? '▼' : '▲'}`;
 }
 
 // ── advanced filters ──
@@ -237,13 +248,13 @@ document.getElementById('viewtabs').addEventListener('click', e => {
   const btn = e.target.closest('.vt'); if (!btn) return;
   document.querySelectorAll('.vt').forEach(b => b.classList.remove('active'));
   btn.classList.add('active'); curView = btn.dataset.view;
-  const sort = gridApi.getColumnState().filter(c => c.sort).map(c => ({colId:c.colId,sort:c.sort,sortIndex:c.sortIndex}));
-  gridApi.setGridOption('columnDefs', VIEWS[curView]);
-  if (sort.length) gridApi.applyColumnState({ state: sort });  // global sort persists across views
-  setTimeout(() => gridApi.autoSizeAllColumns(), 30);          // re-fit widths to the new columns
+  gridApi.setGridOption('columnDefs', VIEWS[curView]);   // row order (sort) is preserved automatically
+  setTimeout(() => gridApi.autoSizeAllColumns(), 30);    // re-fit widths to the new columns
 });
 
 ['search', 'sector', 'cap', 'insight', 'mcMin', 'mcMax', 'rsiMin', 'rsiMax', 'indexMem', 'regimeSel', 'ddSel'].forEach(id => $(id).addEventListener('input', computeRows));
+$('sortCol').addEventListener('change', () => { curSortCol = $('sortCol').value; computeRows(); });
+$('sortDir').addEventListener('change', () => { curSortDir = $('sortDir').value; computeRows(); });
 $('exportBtn').addEventListener('click', () => gridApi.exportDataAsCsv({ fileName: `alphascope_${curView}.csv` }));
 
 // ── slide-in stock card ──
@@ -287,7 +298,7 @@ function peersSection(d) {
   return `<div class="pc-sec">Peers — ${d.Industry || ''} · ${d['Cap Category'] || ''}</div>
     <div class="pc-scroll"><table class="pc-table"><thead><tr><th>Stock</th>${PC.map(([l]) => `<th>${l}</th>`).join('')}</tr></thead>
     <tbody>${prow(d, true)}${peers.map(r => prow(r, false)).join('')}</tbody></table></div>
-    <button class="pc-live" style="background:transparent;border:1px solid var(--border);color:var(--text2)" onclick="closePanel();window.openInStocks([${JSON.stringify(d.Symbol)},${peers.map(p => JSON.stringify(p.Symbol)).join(',')}].map(s=>window.ALL.find(x=>x.Symbol===s)),'Peers of ${tk(d.Symbol)}')">Open peers in grid (all columns) →</button>`;
+    <button class="pc-live" style="background:transparent;border:1px solid var(--border);color:var(--text2)" id="peerGridBtn" data-syms="${[d.Symbol, ...peers.map(p => p.Symbol)].join(',')}" data-label="Peers of ${tk(d.Symbol)}">Open peers in grid (all columns) →</button>`;
 }
 function openPanel(d) {
   const chg = d['Day Change %'];
@@ -319,13 +330,15 @@ function openPanel(d) {
     <div class="pc-note">Everything above is instant from the daily static JSON. This button calls the serverless function (functions/api/stock.js) for the few fields that must be live.</div>`;
   panel.classList.add('open'); scrim.classList.add('open');
   document.querySelectorAll('#panelBody .pc-table tr[data-sym]').forEach(tr => tr.onclick = () => { const r = (window.ALL || []).find(x => x.Symbol === tr.dataset.sym); if (r) openPanel(r); });
+  const pgb = document.getElementById('peerGridBtn');
+  if (pgb) pgb.onclick = () => { closePanel(); window.openInStocks(pgb.dataset.syms.split(',').map(s => (window.ALL || []).find(x => x.Symbol === s)).filter(Boolean), pgb.dataset.label); };
 }
 window.openPanel = openPanel;
 
 window.loadLive = async (sym, btn) => {
   btn.disabled = true; btn.textContent = 'Loading…';
   try {
-    const j = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); });
+    const j = await fetch(`/api/stock?symbol=${encodeURIComponent(sym.replace(/\.(NS|BO)$/, ''))}`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); });
     btn.insertAdjacentHTML('afterend', `<div class="pc-note">Live: price ₹${j.regularMarketPrice ?? '—'}, 52W ${j.fiftyTwoWeekLow ?? '—'}–${j.fiftyTwoWeekHigh ?? '—'}</div>`);
     btn.textContent = 'Loaded ✓';
   } catch (e) {

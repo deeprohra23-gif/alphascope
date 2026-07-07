@@ -17,8 +17,9 @@ export async function onRequest(context) {
   const symbol = url.searchParams.get('symbol');
   if (!symbol) return json({ error: 'symbol required' }, 400);
 
-  // Yahoo uses .NS suffix for NSE listings
-  const yhoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}.NS?range=1y&interval=1mo`;
+  // Yahoo uses .NS suffix for NSE listings (strip any suffix the caller already sent to avoid ".NS.NS")
+  const base = symbol.replace(/\.(NS|BO)$/i, '');
+  const yhoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(base)}.NS?range=1y&interval=1mo`;
 
   try {
     const res = await fetch(yhoo, { headers: { 'User-Agent': 'Mozilla/5.0' } });

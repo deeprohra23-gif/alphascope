@@ -25,6 +25,7 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .ctl{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;outline:none}
 .ctl:focus{border-color:var(--accent)}
 input.ctl{min-width:200px}
+.sortlab{font-size:12px;color:var(--muted);align-self:center;margin-left:4px}
 .ctl-btn{cursor:pointer;margin-left:auto}
 .ctl-btn:hover{border-color:var(--accent);color:var(--accent)}
 
