@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "build:data": "python scripts/build_data.py",
-    "dev": "node dev-server.mjs"
+    "dev": "node dev-server.mjs",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "wrangler": "^4.107.0"
+  }
 }
