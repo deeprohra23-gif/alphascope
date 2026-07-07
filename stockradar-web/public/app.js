@@ -385,6 +385,18 @@ async function loadFinancials(d) {
     el.innerHTML = ratiosSection(d);
   }
 }
+async function loadNews(d) {
+  const el = document.getElementById('pcNews'); if (!el) return;
+  try {
+    const j = await fetch(`/api/news?q=${encodeURIComponent(d.Name || tk(d.Symbol))}`).then(r => r.json());
+    const items = (j && j.items) || [];
+    el.innerHTML = items.length ? items.map(n =>
+      `<a class="news-item" href="${n.link}" target="_blank" rel="noopener noreferrer"><div class="news-t">${n.title}</div><div class="news-m">${n.source || ''}${n.pub ? ' · ' + new Date(n.pub).toLocaleDateString('en-GB') : ''}</div></a>`).join('')
+      : '<div class="pc-note">No recent news found.</div>';
+  } catch (e) {
+    el.innerHTML = '<div class="pc-note">News unavailable right now.</div>';
+  }
+}
 function openPanel(d) {
   const chg = d['Day Change %'];
   document.getElementById('panelBody').innerHTML = `
@@ -409,12 +421,15 @@ function openPanel(d) {
     <div id="pcFin" class="pc-fin"><div class="pc-note">Loading multi-year financials…</div></div>
     ${analystSection(d)}
     ${screensSection(d)}
-    ${peersSection(d)}`;
+    ${peersSection(d)}
+    <div class="pc-sec">Recent News</div>
+    <div id="pcNews" class="pc-news"><div class="pc-note">Loading news…</div></div>`;
   panel.classList.add('open'); scrim.classList.add('open');
   document.querySelectorAll('#panelBody .pc-table tr[data-sym]').forEach(tr => tr.onclick = () => { const r = (window.ALL || []).find(x => x.Symbol === tr.dataset.sym); if (r) openPanel(r); });
   const pgb = document.getElementById('peerGridBtn');
   if (pgb) pgb.onclick = () => { closePanel(); window.openInStocks(pgb.dataset.syms.split(',').map(s => (window.ALL || []).find(x => x.Symbol === s)).filter(Boolean), pgb.dataset.label); };
   loadFinancials(d);   // fetch + render the multi-year trajectory (falls back to static ratios on failure)
+  loadNews(d);         // fetch recent headlines
 }
 window.openPanel = openPanel;
 

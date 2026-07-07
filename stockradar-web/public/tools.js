@@ -77,10 +77,29 @@
         const base = sym.replace(/\.NS$/, '');
         const d = await fetch(`/api/history?symbol=${encodeURIComponent(base)}&years=${years}`).then(r => r.json());
         const sim = d.points ? simulate(d.points, amount) : null;
-        results.push({ sym, name, sim });
+        results.push({ sym, name, sim, points: d.points || null });
       } catch (e) { results.push({ sym, name, sim: null }); }
     }
     renderSip(results, amount, years);
+  }
+  // value-weighted portfolio volatility + max drawdown across the held stocks
+  function portfolioRisk(ok) {
+    const series = ok.filter(o => o.points && o.points.length > 4).map(o => ({ w: o.sim.value, pts: o.points.filter(p => p.c > 0) }));
+    if (!series.length) return null;
+    const totalW = series.reduce((s, x) => s + x.w, 0) || 1;
+    const minLen = Math.min(...series.map(x => x.pts.length));
+    if (minLen < 4) return null;
+    const rets = [];
+    for (let i = 1; i < minLen; i++) {
+      let r = 0;
+      for (const x of series) { const p = x.pts.slice(-minLen); r += (x.w / totalW) * (p[i].c / p[i - 1].c - 1); }
+      rets.push(r);
+    }
+    const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
+    const vol = Math.sqrt(rets.reduce((a, b) => a + (b - mean) ** 2, 0) / rets.length) * Math.sqrt(12) * 100;
+    let idx = 1, peak = 1, mdd = 0;
+    for (const r of rets) { idx *= (1 + r); if (idx > peak) peak = idx; const dd = (idx - peak) / peak * 100; if (dd < mdd) mdd = dd; }
+    return { vol, maxDD: mdd };
   }
   function renderSip(results, amount, years) {
     const ok = results.filter(r => r.sim);
@@ -89,13 +108,16 @@
     const allCf = []; ok.forEach(r => r.sim.cf.forEach(c => allCf.push(c)));
     allCf.sort((a, b) => a.date - b.date);
     const px = xirr(allCf);
+    const risk = portfolioRisk(ok);
+    const u = n => n == null ? '—' : n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
     const cards = [['Invested', '₹' + Math.round(inv).toLocaleString('en-IN')], ['Value', '₹' + Math.round(val).toLocaleString('en-IN')],
       ['Return', ((val - inv) / inv * 100).toFixed(1) + '%'], ['Portfolio XIRR', px != null ? (px * 100).toFixed(1) + '%' : '—']];
-    let h = '<div class="wl-summary">' + cards.map(([l, v]) => `<div class="wl-stat"><div class="v ${l === 'Return' && val < inv ? 'neg' : ''}">${v}</div><div class="l">${l}</div></div>`).join('') + '</div>';
-    h += '<div class="cmp-table-wrap"><table class="cmp-table"><thead><tr><th>Stock</th><th>Invested</th><th>Value</th><th>Return</th><th>XIRR</th><th>Avg Cost</th><th>CMP</th><th>Max DD</th><th>Volatility</th><th>Months</th></tr></thead><tbody>';
-    for (const r of ok) { const s = r.sim; h += `<tr><td><span class="tk">${window.tk(r.sym)}</span> <span class="nm">${r.name}</span></td><td>₹${Math.round(s.invested).toLocaleString('en-IN')}</td><td>₹${Math.round(s.value).toLocaleString('en-IN')}</td><td class="${s.ret >= 0 ? 'pos' : 'neg'}">${s.ret.toFixed(1)}%</td><td>${s.xirr != null ? s.xirr.toFixed(1) + '%' : '—'}</td><td>₹${s.avgCost.toFixed(2)}</td><td>₹${s.cmp.toFixed(2)}</td><td class="neg">${s.maxDD.toFixed(1)}%</td><td>${s.vol.toFixed(1)}%</td><td>${s.months}</td></tr>`; }
+    if (risk) cards.push(['Volatility (ann.)', risk.vol.toFixed(1) + '%'], ['Max Drawdown', risk.maxDD.toFixed(1) + '%']);
+    let h = '<div class="wl-summary">' + cards.map(([l, v]) => `<div class="wl-stat"><div class="v ${(l === 'Return' && val < inv) || l === 'Max Drawdown' ? 'neg' : ''}">${v}</div><div class="l">${l}</div></div>`).join('') + '</div>';
+    h += '<div class="cmp-table-wrap"><table class="cmp-table"><thead><tr><th>Stock</th><th>Invested</th><th>Value</th><th>Units</th><th>Return</th><th>XIRR</th><th>Avg Cost</th><th>CMP</th><th>Max DD</th><th>Volatility</th><th>Months</th></tr></thead><tbody>';
+    for (const r of ok) { const s = r.sim; h += `<tr><td><span class="tk">${window.tk(r.sym)}</span> <span class="nm">${r.name}</span></td><td>₹${Math.round(s.invested).toLocaleString('en-IN')}</td><td>₹${Math.round(s.value).toLocaleString('en-IN')}</td><td>${u(s.units)}</td><td class="${s.ret >= 0 ? 'pos' : 'neg'}">${s.ret.toFixed(1)}%</td><td>${s.xirr != null ? s.xirr.toFixed(1) + '%' : '—'}</td><td>₹${s.avgCost.toFixed(2)}</td><td>₹${s.cmp.toFixed(2)}</td><td class="neg">${s.maxDD.toFixed(1)}%</td><td>${s.vol.toFixed(1)}%</td><td>${s.months}</td></tr>`; }
     const failed = results.filter(r => !r.sim).map(r => r.name);
-    h += `<tr class="cmp-sec"><td>Portfolio</td><td>₹${Math.round(inv).toLocaleString('en-IN')}</td><td>₹${Math.round(val).toLocaleString('en-IN')}</td><td class="${val >= inv ? 'pos' : 'neg'}">${((val - inv) / inv * 100).toFixed(1)}%</td><td>${px != null ? (px * 100).toFixed(1) + '%' : '—'}</td><td colspan="4"></td></tr>`;
+    h += `<tr class="cmp-sec"><td>Portfolio</td><td>₹${Math.round(inv).toLocaleString('en-IN')}</td><td>₹${Math.round(val).toLocaleString('en-IN')}</td><td>—</td><td class="${val >= inv ? 'pos' : 'neg'}">${((val - inv) / inv * 100).toFixed(1)}%</td><td>${px != null ? (px * 100).toFixed(1) + '%' : '—'}</td><td>—</td><td>—</td><td class="neg">${risk ? risk.maxDD.toFixed(1) + '%' : '—'}</td><td>${risk ? risk.vol.toFixed(1) + '%' : '—'}</td><td>—</td></tr>`;
     h += '</tbody></table></div>';
     if (failed.length) h += `<p class="empty" style="margin:8px 16px">No data for: ${failed.join(', ')}</p>`;
     $('sipOut').innerHTML = h;
