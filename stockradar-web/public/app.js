@@ -397,6 +397,53 @@ async function loadNews(d) {
     el.innerHTML = '<div class="pc-note">News unavailable right now.</div>';
   }
 }
+// the always-on, static sections of the card (2-column grid)
+function cardSections(d) {
+  const N = v => (v == null || v === '') ? '—' : Number(v).toFixed(2);
+  const P = v => (v == null || v === '') ? '—' : Number(v).toFixed(2) + '%';
+  const M = v => (v == null || v === '') ? '—' : '₹' + Number(v).toFixed(2);
+  const C = (v, suf = '') => { if (v == null || v === '') return '—'; const n = +v; if (isNaN(n)) return String(v); return `<span class="${n > 0 ? 'pos' : n < 0 ? 'neg' : ''}">${n.toFixed(2)}${suf}</span>`; };
+  const pair = (a, b, fmt = N) => `${fmt(a)} / ${fmt(b)}`;
+  const card = (title, rows) => `<div class="pc-card"><h4>${title}</h4>${rows.map(([l, v]) => `<div class="pc-row"><span class="k">${l}</span><span class="v">${v}</span></div>`).join('')}</div>`;
+
+  const scores = `<div class="pc-card"><h4>Scores &amp; Regime</h4>
+    ${bar('Technical', d['Technical Score'])}${bar('Momentum', d['Momentum Score'])}${bar('Fundamental', d['Fundamental Score'])}${bar('Composite', d['Composite Score'])}
+    <div class="pc-row"><span class="k">Universe Rank</span><span class="v">${d['Universe Rank'] ?? '—'}</span></div>
+    <div class="pc-row"><span class="k">Market Regime</span><span class="v">${d['Market Regime'] || '—'}</span></div>
+    <div class="pc-row"><span class="k">Drawdown Status</span><span class="v">${d['Drawdown Status'] || '—'}</span></div></div>`;
+  const tech = card('Technical Signals', [
+    ['EMA 50 / 200', pair(d['EMA 50'], d['EMA 200'])], ['EMA Cross', d['EMA Cross'] || '—'],
+    ['RSI 14', N(d['RSI 14'])], ['MACD', d['MACD Signal'] || '—'], ['Supertrend', d['Supertrend'] || '—'],
+    ['Trend Consistency', d['Trend Consistency (12M)'] != null ? d['Trend Consistency (12M)'] + '/12' : '—'],
+    ['Vol Trend', d['Vol Trend'] || '—'],
+  ]);
+  const ret = card('Returns & Momentum', [
+    ['ROC 1M', C(d['ROC 1M %'], '%')], ['ROC 3M', C(d['ROC 3M %'], '%')], ['ROC 6M', C(d['ROC 6M %'], '%')],
+    ['1Y CAGR', C(d['1Y CAGR %'], '%')], ['3Y CAGR', C(d['3Y CAGR %'], '%')],
+    ['RS vs Nifty 1M/3M/6M', `${C(d['RS vs Nifty 1M %'])} / ${C(d['RS vs Nifty 3M %'])} / ${C(d['RS vs Nifty 6M %'])}`],
+    ['Momentum Quality', N(d['Momentum Quality'])],
+  ]);
+  const risk = card('Risk', [
+    ['Beta 1Y', N(d['Beta 1Y (Daily)'])], ['SD 1Y', P(d['SD 1Y %'])], ['ATR %', P(d['ATR % (14D)'])],
+    ['Max Drawdown 1Y', C(d['1Y Max Drawdown %'], '%')], ['52W High / Low', pair(d['52W High'], d['52W Low'], M)],
+    ['From 52W High', C(d['% from 52W High'], '%')], ['Capture Ratio', N(d['Capture Ratio'])],
+  ]);
+  const val = card('Valuation & Profitability', [
+    ['PE / Sector PE', pair(d['PE Ratio'], d['Sector PE'])], ['PB / Sector PB', pair(d['PB Ratio'], d['Sector PB'])],
+    ['EV/EBITDA', N(d['EV/EBITDA'])], ['PEG Ratio', N(d['PEG Ratio'])],
+    ['ROE / ROCE', `${P(d['ROE %'])} / ${P(d['ROCE %'])}`], ['Net Profit Margin', P(d['Net Profit Margin %'])],
+    ['D/E Ratio', N(d['Debt/Equity'])],
+  ]);
+  const grow = card('Growth &amp; Ownership', [
+    ['Sales Growth 1Y / 3Y', `${C(d['Sales Growth 1Y %'], '%')} / ${C(d['Sales Growth 3Y %'], '%')}`],
+    ['Profit Growth 1Y / 3Y', `${C(d['Profit Growth 1Y %'], '%')} / ${C(d['Profit Growth 3Y %'], '%')}`],
+    ['EPS Growth 1Y', C(d['EPS Growth 1Y %'], '%')], ['FCF Yield', P(d['FCF Yield %'])],
+    ['Div Yield / Payout', `${P(d['Dividend Yield %'])} / ${P(d['Dividend Payout %'])}`],
+    ['Promoter Holding', P(d['Promoter Holding %'])], ['Pledge %', P(d['Pledge %'])],
+    ['FII / DII Change', `${C(d['FII Change %'], '%')} / ${C(d['DII Change %'], '%')}`],
+  ]);
+  return `<div class="pc-cards">${scores}${tech}${ret}${risk}${val}${grow}</div>`;
+}
 function openPanel(d) {
   const chg = d['Day Change %'];
   document.getElementById('panelBody').innerHTML = `
@@ -410,13 +457,7 @@ function openPanel(d) {
       <span class="badge ${INS[d['Fundamental Insight']]||''}">FUND: ${d['Fundamental Insight']||'—'}</span></div>
     <div class="pc-reason">${insightReason(d)}</div>
     ${d.Description ? `<div class="pc-desc">${d.Description}</div>` : ''}
-    <div class="pc-sec">Scores &amp; Regime</div>
-    <div class="pc-scores">${bar('Composite',d['Composite Score'])}${bar('Technical',d['Technical Score'])}${bar('Momentum',d['Momentum Score'])}${bar('Fundamental',d['Fundamental Score'])}</div>
-    <div class="pc-grid" style="margin-top:10px">${row('Regime',d['Market Regime'])}${row('Drawdown',d['Drawdown Status'])}${row('Universe Rank',d['Universe Rank'])}${row('Mkt Cap (Cr)',d['Market Cap (Cr)'])}</div>
-    <div class="pc-sec">Technicals</div>
-    <div class="pc-grid">${row('RSI 14',f2(d['RSI 14']))}${row('Supertrend',d['Supertrend'])}${row('MACD',d['MACD Signal'])}${row('EMA Cross',d['EMA Cross'])}${row('EMA 50',f2(d['EMA 50']))}${row('EMA 200',f2(d['EMA 200']))}</div>
-    <div class="pc-sec">Returns</div>
-    <div class="pc-grid">${row('ROC 1M %',f2(d['ROC 1M %']))}${row('ROC 3M %',f2(d['ROC 3M %']))}${row('ROC 6M %',f2(d['ROC 6M %']))}${row('1Y CAGR %',f2(d['1Y CAGR %']))}${row('RS vs Nifty 3M',f2(d['RS vs Nifty 3M %']))}${row('3Y CAGR %',f2(d['3Y CAGR %']))}</div>
+    ${cardSections(d)}
     <div class="pc-sec">Financials &amp; Projections</div>
     <div id="pcFin" class="pc-fin"><div class="pc-note">Loading multi-year financials…</div></div>
     ${analystSection(d)}
