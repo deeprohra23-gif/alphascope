@@ -15,6 +15,9 @@
       window.ALL.slice().sort((a, b) => a.Name.localeCompare(b.Name)).map(r => `<option value="${r.Symbol}">${window.tk(r.Symbol)} — ${r.Name}</option>`).join('');
     ['cardSelect', 'cmpAdd', 'wlAdd', 'sipAdd'].forEach(id => $(id).innerHTML = opts);
     $('sipDur').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(y => `<option value="${y}"${y === 5 ? ' selected' : ''}>${y}Y</option>`).join('');
+    const now = new Date(), ym = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    $('sipStart').max = ym(now);
+    $('sipStart').min = ym(new Date(now.getFullYear() - 10, now.getMonth(), 1));
     try { wlList = JSON.parse(localStorage.getItem(WL_KEY)) || []; } catch (e) { wlList = []; }
 
     $('toolsub').addEventListener('click', e => {
@@ -68,7 +71,15 @@
   }
   async function runSip() {
     if (!sipList.length) { $('sipOut').innerHTML = '<p class="empty" style="margin:12px 16px">Add at least one stock.</p>'; return; }
-    const amount = Math.max(100, +$('sipAmt').value || 5000), years = +$('sipDur').value;
+    const amount = Math.max(100, +$('sipAmt').value || 5000);
+    // start month overrides duration: if set, SIP runs from that month → now
+    const startVal = $('sipStart').value;   // "YYYY-MM" or ""
+    let startTs = null, years = +$('sipDur').value;
+    if (startVal) {
+      const [y, m] = startVal.split('-').map(Number);
+      startTs = Math.floor(new Date(y, (m || 1) - 1, 1).getTime() / 1000);
+      years = Math.min(10, Math.max(1, Math.ceil((Date.now() / 1000 - startTs) / (365.25 * 86400)) + 1));
+    }
     $('sipOut').innerHTML = '<p class="empty" style="margin:12px 16px">Fetching price history…</p>';
     const results = [];
     for (const sym of sipList) {
@@ -76,8 +87,10 @@
       try {
         const base = sym.replace(/\.NS$/, '');
         const d = await fetch(`/api/history?symbol=${encodeURIComponent(base)}&years=${years}`).then(r => r.json());
-        const sim = d.points ? simulate(d.points, amount) : null;
-        results.push({ sym, name, sim, points: d.points || null });
+        let pts = d.points || [];
+        if (startTs) pts = pts.filter(p => p.t >= startTs);   // only months on/after the chosen start
+        const sim = pts.length > 1 ? simulate(pts, amount) : null;
+        results.push({ sym, name, sim, points: pts });
       } catch (e) { results.push({ sym, name, sim: null }); }
     }
     renderSip(results, amount, years);
