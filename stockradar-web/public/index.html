@@ -124,6 +124,13 @@
           <select id="glCount" class="ctl"><option>5</option><option>10</option><option>15</option></select>
           gainers &amp; losers</div>
         <div id="glWrap" class="gl-wrap"></div>
+        <div class="controls">
+          <span class="sortlab">Sort by</span>
+          <select id="drillSortCol" class="ctl"></select>
+          <select id="drillSortDir" class="ctl"><option value="desc">High → Low</option><option value="asc">Low → High</option></select>
+          <button id="drillAddFilterBtn" class="ctl ctl-btn2">+ Filter</button>
+        </div>
+        <div class="filterbar" id="drillFilterbar" hidden></div>
         <nav class="viewtabs" id="drillViewtabs">
           <button class="vt active" data-dview="overview">Overview</button>
           <button class="vt" data-dview="technicals">Technicals</button>

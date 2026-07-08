@@ -4,6 +4,9 @@
   let INDICES = null, GLOBAL = null, idxApi = null, drillApi = null;
   let curISub = 'indian', curDView = 'overview', curDrillRows = [], curIndexName = '';
   let curIdxSortCol = 'Day Change %', curIdxSortDir = 'desc';
+  let curDrillSortCol = 'Composite Score', curDrillSortDir = 'desc';
+  const MULTI = new Set(['Index Membership']);   // ;/,-joined list columns → matched with "contains"
+  const DRILL_PREF = ['Composite Score', 'Momentum Score', 'Technical Score', 'Fundamental Score', 'Universe Rank', 'Market Cap (Cr)', 'Current Price', 'Day Change %', 'RSI 14', 'ROC 1M %', 'ROC 3M %', 'ROC 6M %', '1Y CAGR %', '3Y CAGR %', 'PE Ratio', 'ROE %', 'ROCE %', 'Debt/Equity', 'Dividend Yield %', 'Name', 'Sector', 'Industry'];
   const $ = id => document.getElementById(id);
   const num = (v, d = 2) => (v == null || v === '' || isNaN(v)) ? '' : Number(v).toFixed(d);
   const C = (field, o = {}) => ({ field, headerName: o.h || field, ...o });
@@ -20,6 +23,76 @@
       return sign * String(x).localeCompare(String(y));
     });
   };
+
+  // ── drill constituents: Sort-by + dynamic "+ Filter" builder (mirrors the Stocks tab) ──
+  function drillColList() {
+    if (!curDrillRows.length) return [];
+    const keys = Object.keys(curDrillRows[0]).filter(k => !['Screens', 'Description'].includes(k));
+    return [...DRILL_PREF.filter(c => keys.includes(c)), ...keys.filter(c => !DRILL_PREF.includes(c)).sort()];
+  }
+  function isNumCol(col) {
+    let num = 0, tot = 0;
+    for (const r of curDrillRows) { const v = r[col]; if (v == null || v === '') continue; tot++; if (typeof v === 'number' || (!isNaN(parseFloat(v)) && isFinite(v))) num++; }
+    return tot > 0 && num / tot > 0.9;
+  }
+  function colVals(col) {
+    const raw = MULTI.has(col) ? curDrillRows.flatMap(r => String(r[col] ?? '').split(/[;,]/).map(s => s.trim())) : curDrillRows.map(r => r[col]);
+    return [...new Set(raw.filter(v => v != null && v !== ''))].sort((a, b) => String(a).localeCompare(String(b)));
+  }
+  function buildDrillVal(wrap, col) {
+    wrap.innerHTML = '';
+    if (!col) return;
+    if (isNumCol(col)) {
+      wrap.innerHTML = `<input class="ctl fp-num f-min" type="number" placeholder="min"><span class="f-dash">–</span><input class="ctl fp-num f-max" type="number" placeholder="max">`;
+      wrap.querySelectorAll('input').forEach(i => i.addEventListener('input', computeDrill));
+    } else {
+      wrap.innerHTML = `<select class="ctl f-sel"><option value="">Any value</option>${colVals(col).map(v => `<option>${v}</option>`).join('')}</select>`;
+      wrap.querySelector('select').addEventListener('change', computeDrill);
+    }
+  }
+  function addDrillFilterRow() {
+    const div = document.createElement('div'); div.className = 'filtrow';
+    const colSel = document.createElement('select'); colSel.className = 'ctl f-col';
+    colSel.innerHTML = `<option value="">Choose column…</option>` + drillColList().map(c => `<option value="${c}">${c}</option>`).join('');
+    const valWrap = document.createElement('span'); valWrap.className = 'f-val';
+    const rm = document.createElement('button'); rm.className = 'rm'; rm.title = 'remove'; rm.textContent = '✕';
+    rm.onclick = () => { div.remove(); if (!$('drillFilterbar').children.length) $('drillFilterbar').hidden = true; computeDrill(); };
+    colSel.onchange = () => { buildDrillVal(valWrap, colSel.value); computeDrill(); };
+    div.append(colSel, valWrap, rm);
+    $('drillFilterbar').appendChild(div);
+    $('drillFilterbar').hidden = false;
+  }
+  function readDrillFilters() {
+    return [...document.querySelectorAll('#drillFilterbar .filtrow')].map(d => {
+      const col = d.querySelector('.f-col').value; if (!col) return null;
+      const sel = d.querySelector('.f-sel');
+      if (sel) return { col, type: 'cat', v: sel.value };
+      return { col, type: 'num', min: (d.querySelector('.f-min') || {}).value || '', max: (d.querySelector('.f-max') || {}).value || '' };
+    }).filter(Boolean);
+  }
+  function matchF(r, f) {
+    if (f.type === 'cat') {
+      if (!f.v) return true;
+      if (MULTI.has(f.col)) return String(r[f.col] ?? '').split(/[;,]/).map(s => s.trim()).includes(f.v);
+      return String(r[f.col]) === f.v;
+    }
+    const v = parseFloat(r[f.col]), mn = parseFloat(f.min), mx = parseFloat(f.max);
+    if (!isNaN(mn) && !(v >= mn)) return false;
+    if (!isNaN(mx) && !(v <= mx)) return false;
+    return true;
+  }
+  function fillDrillSort() {
+    const cols = drillColList();
+    if (!cols.includes(curDrillSortCol)) curDrillSortCol = cols.includes('Composite Score') ? 'Composite Score' : cols[0];
+    $('drillSortCol').innerHTML = cols.map(c => `<option value="${c}"${c === curDrillSortCol ? ' selected' : ''}>${c}</option>`).join('');
+    $('drillSortDir').value = curDrillSortDir;
+  }
+  function computeDrill() {
+    if (!drillApi) return;
+    const filters = readDrillFilters();
+    const rows = curDrillRows.filter(r => filters.every(f => matchF(r, f)));
+    drillApi.setGridOption('rowData', sortBy(rows, curDrillSortCol, curDrillSortDir));
+  }
 
   const IDX_COLS = [
     C('Index', { pinned: 'left', width: 200, cellClass: 'cell-name', filter: 'agTextColumnFilter' }),
@@ -122,13 +195,15 @@
     renderGL(+$('glCount').value);
 
     if (!drillApi) drillApi = agGrid.createGrid($('drillGrid'), {
-      columnDefs: drillViews().overview, defaultColDef: { sortable: true, resizable: true, filter: true },
+      columnDefs: drillViews().overview, defaultColDef: { sortable: false, resizable: true, filter: true },
       rowSelection: 'single', animateRows: true, onRowClicked: e => window.openPanel && window.openPanel(e.data),
     });
     curDView = 'overview';
     document.querySelectorAll('#drillViewtabs .vt').forEach(x => x.classList.toggle('active', x.dataset.dview === 'overview'));
+    $('drillFilterbar').innerHTML = ''; $('drillFilterbar').hidden = true;   // fresh filters per index
+    fillDrillSort();
     drillApi.setGridOption('columnDefs', drillViews().overview);
-    drillApi.setGridOption('rowData', curDrillRows);
+    computeDrill();
     $('idxList').hidden = true; $('idxDrill').hidden = false;
   }
 
@@ -145,9 +220,11 @@
     const b = e.target.closest('.vt'); if (!b) return;
     document.querySelectorAll('#drillViewtabs .vt').forEach(x => x.classList.remove('active'));
     b.classList.add('active'); curDView = b.dataset.dview;
-    const sort = drillApi.getColumnState().filter(c => c.sort).map(c => ({ colId: c.colId, sort: c.sort, sortIndex: c.sortIndex }));
     drillApi.setGridOption('columnDefs', drillViews()[curDView]);
-    if (sort.length) drillApi.applyColumnState({ state: sort });
+    computeDrill();   // row order/filters are preserved across view tabs
   });
+  $('drillAddFilterBtn').addEventListener('click', addDrillFilterRow);
+  $('drillSortCol').addEventListener('change', () => { curDrillSortCol = $('drillSortCol').value; computeDrill(); });
+  $('drillSortDir').addEventListener('change', () => { curDrillSortDir = $('drillSortDir').value; computeDrill(); });
   $('drillBack').addEventListener('click', () => { $('idxDrill').hidden = true; $('idxList').hidden = false; });
 })();
