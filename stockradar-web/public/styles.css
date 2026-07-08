@@ -15,7 +15,9 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .mn{background:transparent;border:none;color:var(--text2);padding:8px 14px;font-size:13.5px;font-weight:500;border-radius:8px;cursor:pointer;font-family:inherit}
 .mn:hover{background:var(--hover);color:var(--text)}
 .mn.active{color:var(--text);background:var(--surface)}
-.freshness{margin-left:auto;font-size:11px;color:var(--muted)}
+.freshness{margin-left:auto;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.fresh-badge{background:rgba(0,212,170,.12);color:var(--accent);border:1px solid rgba(0,212,170,.35);font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:5px;cursor:help}
+.fresh-txt{white-space:nowrap}
 
 #main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .tabpane{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}

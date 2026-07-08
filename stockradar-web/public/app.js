@@ -10,7 +10,9 @@ const GREEN_RED = new Set(['Day Change %','ROC 1M %','ROC 3M %','ROC 6M %','1Y C
   'EPS Growth 1Y %','EPS Growth 3Y %','FCF Yield %','FII Change %','DII Change %','Momentum Acceleration','Capture Ratio']);
 
 const numFmt = d => p => (p.value == null || p.value === '' || isNaN(p.value)) ? '' : Number(p.value).toFixed(d);
-const grClass = p => (p.value == null || p.value === '') ? '' : p.value > 0 ? 'pos' : p.value < 0 ? 'neg' : '';
+// keep numbers right-aligned (matches the numericColumn header) AND add the green/red class.
+// A colDef cellClass overrides numericColumn's built-in 'ag-right-aligned-cell', so we must re-add it.
+const grClass = p => 'ag-right-aligned-cell' + (p.value > 0 ? ' pos' : p.value < 0 ? ' neg' : '');
 
 const INS = {'Strong Buy':'ins-sb','Buy':'ins-b','Hold':'ins-h','Sell':'ins-s','Strong Sell':'ins-ss'};
 const insightRenderer = p => p.value ? `<span class="badge ${INS[p.value]||''}">${p.value}</span>` : '';
@@ -20,7 +22,7 @@ const DD = {'At High':'dd-high','Recovering':'dd-rec','Correcting':'dd-cor','Dam
 const ddRenderer = p => p.value ? `<span class="${DD[p.value]||''}">${p.value}</span>` : '';
 
 const C = (field, o = {}) => ({ field, headerName: o.h || field, ...o });
-const numCol = (field, d = 2, w) => C(field, { type:'numericColumn', valueFormatter:numFmt(d), cellClass:GREEN_RED.has(field)?grClass:'', width:w, filter:'agNumberColumnFilter' });
+const numCol = (field, d = 2, w) => C(field, { type:'numericColumn', valueFormatter:numFmt(d), cellClass:GREEN_RED.has(field)?grClass:'ag-right-aligned-cell', width:w, filter:'agNumberColumnFilter' });
 const symCol = C('Symbol', { pinned:'left', width:100, cellClass:'cell-name', filter:'agTextColumnFilter', valueFormatter: p => (p.value || '').replace(/\.(NS|BO)$/,'') });
 const nameCol = C('Name', { width:230, filter:'agTextColumnFilter' });
 
@@ -513,8 +515,18 @@ function openPanel(d) {
 }
 window.openPanel = openPanel;
 
-// data freshness stamp (build writes it; fallback to fetch time)
-fetch('data/stocks.json', { method: 'HEAD' }).then(r => {
-  const lm = r.headers.get('last-modified');
-  if (lm) { const d = new Date(lm), p = n => String(n).padStart(2, '0'); document.getElementById('freshness').textContent = `Data: ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`; }
-}).catch(() => {});
+// data freshness stamp — prefer the real EOD trading date from changes.json ("today"), fall back to file mtime
+(function stampFreshness() {
+  const el = document.getElementById('freshness'); if (!el) return;
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const fmtISO = iso => { const [y, m, d] = iso.split('-').map(Number); return `${d} ${MON[m - 1]} ${y}`; };
+  const show = txt => { el.innerHTML = `<span class="fresh-badge" title="End-of-day data — refreshed after NSE market close on trading days">EOD</span><span class="fresh-txt">Updated ${txt}</span>`; };
+  fetch('data/changes.json').then(r => r.json()).then(j => {
+    if (j && j.today) show(fmtISO(j.today)); else throw 0;
+  }).catch(() => {
+    fetch('data/stocks.json', { method: 'HEAD' }).then(r => {
+      const lm = r.headers.get('last-modified');
+      show(lm ? new Date(lm).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
+    }).catch(() => show('—'));
+  });
+})();
