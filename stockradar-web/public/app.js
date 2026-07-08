@@ -53,8 +53,10 @@ const VIEWS = {
 };
 
 let ALL = [], gridApi = null, curView = 'overview';
-let SCREENS_META = [], mode = 'all', selScreen = null, FILTER_COLS = [], externalRows = null;
+let SCREENS_META = [], mode = 'all', selScreen = null, FILTER_COLS = [], SORT_ORDER = [], externalRows = null;
 let curSortCol = 'Composite Score', curSortDir = 'desc';
+// columns whose values are ;/,-joined lists → matched with "contains" and expanded in the value dropdown
+const MULTI_COLS = new Set(['Index Membership']);
 
 const gridOptions = {
   columnDefs: VIEWS.overview,
@@ -105,15 +107,12 @@ function initStocks() {
     try { await ensureData(); }
     catch (e) { $('count').textContent = 'Failed to load data/stocks.json — serve over http'; throw e; }
     gridApi = agGrid.createGrid($('grid'), gridOptions);
-    const sectors = [...new Set(ALL.map(r => r.Sector).filter(Boolean))].sort();
-    $('sector').innerHTML = '<option value="">All sectors</option>' + sectors.map(s => `<option>${s}</option>`).join('');
-    buildAdvancedFilters();
     buildScreens();
     FILTER_COLS = Object.keys(ALL[0]).filter(k => !['Screens', 'Description'].includes(k));
-    // Sort-by dropdown — every column, key ones first
+    // shared column order (used by both the Sort-by dropdown and the "+ Filter" column picker) — key ones first
     const SORT_PREF = ['Composite Score', 'Momentum Score', 'Technical Score', 'Fundamental Score', 'Universe Rank', 'Market Cap (Cr)', 'Current Price', 'Day Change %', 'RSI 14', 'ROC 1M %', 'ROC 3M %', 'ROC 6M %', '1Y CAGR %', '3Y CAGR %', 'PE Ratio', 'ROE %', 'ROCE %', 'Debt/Equity', 'Dividend Yield %', 'Name', 'Sector', 'Industry'];
-    const ordered = [...SORT_PREF.filter(c => FILTER_COLS.includes(c)), ...FILTER_COLS.filter(c => !SORT_PREF.includes(c)).sort()];
-    $('sortCol').innerHTML = ordered.map(c => `<option value="${c}"${c === curSortCol ? ' selected' : ''}>${c}</option>`).join('');
+    SORT_ORDER = [...SORT_PREF.filter(c => FILTER_COLS.includes(c)), ...FILTER_COLS.filter(c => !SORT_PREF.includes(c)).sort()];
+    $('sortCol').innerHTML = SORT_ORDER.map(c => `<option value="${c}"${c === curSortCol ? ' selected' : ''}>${c}</option>`).join('');
     $('sortDir').value = curSortDir;
     addCondRow();
     computeRows();
@@ -154,28 +153,73 @@ window.openInStocks = async function (rows, label) {
 };
 function computeRows() {
   if (!gridApi) return;
-  const q = val('search').trim().toLowerCase(), sec = val('sector'), cap = val('cap'), ins = val('insight');
-  const mcMin = parseFloat(val('mcMin')), mcMax = parseFloat(val('mcMax'));
-  const rsiMin = parseFloat(val('rsiMin')), rsiMax = parseFloat(val('rsiMax'));
-  const regime = val('regimeSel'), dd = val('ddSel'), idx = val('indexMem');
+  const q = val('search').trim().toLowerCase();
+  const filters = readFilters();
   const rows = sourceRows().filter(r =>
     (!q || `${r.Name} ${r.Symbol}`.toLowerCase().includes(q)) &&
-    (!sec || r.Sector === sec) && (!cap || r['Cap Category'] === cap) && (!ins || r['Technical Insight'] === ins) &&
-    (isNaN(mcMin) || r['Market Cap (Cr)'] >= mcMin) && (isNaN(mcMax) || r['Market Cap (Cr)'] <= mcMax) &&
-    (isNaN(rsiMin) || r['RSI 14'] >= rsiMin) && (isNaN(rsiMax) || r['RSI 14'] <= rsiMax) &&
-    (!regime || r['Market Regime'] === regime) &&
-    (!dd || r['Drawdown Status'] === dd) &&
-    (!idx || (r['Index Membership'] || '').includes(idx)));
+    filters.every(f => matchFilter(r, f)));
   gridApi.setGridOption('rowData', sortRows(rows));
   const si = $('sortInfo'); if (si) si.textContent = `· sorted by ${curSortCol} ${curSortDir === 'desc' ? '▼' : '▲'}`;
 }
 
-// ── advanced filters ──
-function buildAdvancedFilters() {
-  $('regimeSel').innerHTML = '<option value="">All regimes</option>' + ['Strong Bull', 'Bull', 'Bear', 'Strong Bear'].map(r => `<option>${r}</option>`).join('');
-  $('ddSel').innerHTML = '<option value="">All drawdown</option>' + ['At High', 'Recovering', 'Correcting', 'Damaged'].map(r => `<option>${r}</option>`).join('');
-  const idxs = [...new Set(ALL.flatMap(r => (r['Index Membership'] || '').split(/[;,]/).map(s => s.trim()).filter(Boolean)))].sort();
-  $('indexMem').innerHTML = '<option value="">Any index</option>' + idxs.map(i => `<option>${i}</option>`).join('');
+// ── dynamic "+ Filter" builder (pick any column → categorical dropdown or numeric min/max) ──
+function colIsNumeric(col) {
+  let num = 0, tot = 0;
+  for (const r of ALL) {
+    const v = r[col]; if (v == null || v === '') continue;
+    tot++; if (typeof v === 'number' || (!isNaN(parseFloat(v)) && isFinite(v))) num++;
+    if (tot >= 300) break;
+  }
+  return tot > 0 && num / tot > 0.9;
+}
+function colValues(col) {
+  const raw = MULTI_COLS.has(col)
+    ? ALL.flatMap(r => String(r[col] ?? '').split(/[;,]/).map(s => s.trim()))
+    : ALL.map(r => r[col]);
+  return [...new Set(raw.filter(v => v != null && v !== ''))].sort((a, b) => String(a).localeCompare(String(b)));
+}
+function buildValControl(wrap, col) {
+  wrap.innerHTML = '';
+  if (!col) return;
+  if (colIsNumeric(col)) {
+    wrap.innerHTML = `<input class="ctl fp-num f-min" type="number" placeholder="min"><span class="f-dash">–</span><input class="ctl fp-num f-max" type="number" placeholder="max">`;
+    wrap.querySelectorAll('input').forEach(i => i.addEventListener('input', computeRows));
+  } else {
+    wrap.innerHTML = `<select class="ctl f-sel"><option value="">Any value</option>${colValues(col).map(v => `<option>${v}</option>`).join('')}</select>`;
+    wrap.querySelector('select').addEventListener('change', computeRows);
+  }
+}
+function addFilterRow(preCol) {
+  const div = document.createElement('div'); div.className = 'filtrow';
+  const colSel = document.createElement('select'); colSel.className = 'ctl f-col';
+  colSel.innerHTML = `<option value="">Choose column…</option>` + SORT_ORDER.map(c => `<option value="${c}">${c}</option>`).join('');
+  const valWrap = document.createElement('span'); valWrap.className = 'f-val';
+  const rm = document.createElement('button'); rm.className = 'rm'; rm.title = 'remove'; rm.textContent = '✕';
+  rm.onclick = () => { div.remove(); if (!$('filterbar').children.length) $('filterbar').hidden = true; computeRows(); };
+  colSel.onchange = () => { buildValControl(valWrap, colSel.value); computeRows(); };
+  div.append(colSel, valWrap, rm);
+  $('filterbar').appendChild(div);
+  $('filterbar').hidden = false;
+  if (preCol) { colSel.value = preCol; buildValControl(valWrap, preCol); }
+}
+function readFilters() {
+  return [...document.querySelectorAll('#filterbar .filtrow')].map(d => {
+    const col = d.querySelector('.f-col').value; if (!col) return null;
+    const sel = d.querySelector('.f-sel');
+    if (sel) return { col, type: 'cat', v: sel.value };
+    return { col, type: 'num', min: (d.querySelector('.f-min') || {}).value || '', max: (d.querySelector('.f-max') || {}).value || '' };
+  }).filter(Boolean);
+}
+function matchFilter(r, f) {
+  if (f.type === 'cat') {
+    if (!f.v) return true;
+    if (MULTI_COLS.has(f.col)) return String(r[f.col] ?? '').split(/[;,]/).map(s => s.trim()).includes(f.v);
+    return String(r[f.col]) === f.v;
+  }
+  const v = parseFloat(r[f.col]), mn = parseFloat(f.min), mx = parseFloat(f.max);
+  if (!isNaN(mn) && !(v >= mn)) return false;
+  if (!isNaN(mx) && !(v <= mx)) return false;
+  return true;
 }
 
 // ── pre-built screens ──
@@ -235,14 +279,9 @@ $('stocksub').addEventListener('click', e => {
   $('extLabel').hidden = true;
   computeRows();
 });
-$('moreBtn').addEventListener('click', () => { $('filterpanel').hidden = !$('filterpanel').hidden; });
+$('addFilterBtn').addEventListener('click', () => addFilterRow());
 $('addCond').addEventListener('click', addCondRow);
 $('runCustom').addEventListener('click', computeRows);
-$('resetFilters').addEventListener('click', () => {
-  ['mcMin', 'mcMax', 'rsiMin', 'rsiMax'].forEach(id => $(id).value = '');
-  ['indexMem', 'regimeSel', 'ddSel'].forEach(id => $(id).value = '');
-  computeRows();
-});
 
 document.getElementById('viewtabs').addEventListener('click', e => {
   const btn = e.target.closest('.vt'); if (!btn) return;
@@ -252,7 +291,7 @@ document.getElementById('viewtabs').addEventListener('click', e => {
   setTimeout(() => gridApi.autoSizeAllColumns(), 30);    // re-fit widths to the new columns
 });
 
-['search', 'sector', 'cap', 'insight', 'mcMin', 'mcMax', 'rsiMin', 'rsiMax', 'indexMem', 'regimeSel', 'ddSel'].forEach(id => $(id).addEventListener('input', computeRows));
+$('search').addEventListener('input', computeRows);
 $('sortCol').addEventListener('change', () => { curSortCol = $('sortCol').value; computeRows(); });
 $('sortDir').addEventListener('change', () => { curSortDir = $('sortDir').value; computeRows(); });
 $('exportBtn').addEventListener('click', () => gridApi.exportDataAsCsv({ fileName: `screenedge_${curView}.csv` }));

@@ -35,29 +35,15 @@
 
       <div class="controls">
         <input id="search" class="ctl" type="search" placeholder="Search name / symbol…" />
-        <select id="sector" class="ctl"></select>
-        <select id="cap" class="ctl">
-          <option value="">All caps</option><option>Large</option><option>Mid</option><option>Small</option>
-        </select>
-        <select id="insight" class="ctl">
-          <option value="">Any tech insight</option><option>Strong Buy</option><option>Buy</option><option>Hold</option><option>Sell</option><option>Strong Sell</option>
-        </select>
         <span class="sortlab">Sort by</span>
         <select id="sortCol" class="ctl"></select>
         <select id="sortDir" class="ctl"><option value="desc">High → Low</option><option value="asc">Low → High</option></select>
-        <button id="moreBtn" class="ctl ctl-btn2">More filters ▾</button>
+        <button id="addFilterBtn" class="ctl ctl-btn2">+ Filter</button>
         <button id="exportBtn" class="ctl ctl-btn">Export CSV</button>
       </div>
 
-      <!-- advanced filters (apply to every sub-tab) -->
-      <div class="filterpanel" id="filterpanel" hidden>
-        <div class="fp-grp"><label>Market Cap (Cr)</label><input id="mcMin" class="ctl fp-num" type="number" placeholder="min"><span>–</span><input id="mcMax" class="ctl fp-num" type="number" placeholder="max"></div>
-        <div class="fp-grp"><label>RSI 14</label><input id="rsiMin" class="ctl fp-num" type="number" placeholder="min"><span>–</span><input id="rsiMax" class="ctl fp-num" type="number" placeholder="max"></div>
-        <div class="fp-grp"><label>Regime</label><select id="regimeSel" class="ctl"><option value="">All regimes</option></select></div>
-        <div class="fp-grp"><label>Drawdown</label><select id="ddSel" class="ctl"><option value="">All drawdown</option></select></div>
-        <div class="fp-grp"><label>Index</label><select id="indexMem" class="ctl"><option value="">Any index</option></select></div>
-        <button id="resetFilters" class="ctl ctl-btn2">Reset</button>
-      </div>
+      <!-- dynamic filter builder: pick any column → categorical value dropdown or numeric min/max -->
+      <div class="filterbar" id="filterbar" hidden></div>
 
       <!-- pre-built screens picker -->
       <div class="screenwrap" id="screenwrap" hidden>
