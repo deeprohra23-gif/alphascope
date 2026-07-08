@@ -1,7 +1,7 @@
 // dashboard.js — Phase 2. Spotlight + Market Overview, Quick Picks, Sector Rotation,
 // Signals, Sector Top 5. All computed client-side from the same static stocks.json.
 (function () {
-  let inited = false, CHANGES = null;
+  let inited = false, CHANGES = null, MARKET = null;
   const sec = k => document.querySelector(`.dsec[data-dsec="${k}"]`);
   const num = (v, d = 2) => (v == null || v === '' || isNaN(v)) ? '—' : Number(v).toFixed(d);
   const avg = a => { const x = a.filter(v => v != null && !isNaN(v)).map(Number); return x.length ? x.reduce((s, v) => s + v, 0) / x.length : null; };
@@ -15,6 +15,7 @@
     if (inited) return;
     try { await ensureData(); } catch (e) { return; }
     try { CHANGES = await fetch('data/changes.json').then(r => r.json()); } catch (e) { CHANGES = { groups: {} }; }
+    try { const [idx, glb] = await Promise.all([fetch('data/indices.json').then(r => r.json()), fetch('data/global.json').then(r => r.json())]); MARKET = { idx, glb }; } catch (e) { MARKET = null; }
     inited = true;
     renderSpotlight(); renderOverview(); renderPicks(); renderChanges(); renderRotation(); renderSignals(); renderTop5();
     document.getElementById('dashsub').addEventListener('click', e => {
@@ -24,23 +25,36 @@
     });
   };
 
-  // ── Spotlight ──
+  // ── Market Pulse (macro ribbon: key Indian indices, currency, volatility, commodities, US) ──
+  // [source, lookup-key, display label] — idx=indices.json (by Index), glb=global.json (by Name)
+  const PULSE = [
+    ['idx', 'Nifty 50', 'NIFTY 50'],
+    ['idx', 'Nifty Bank', 'NIFTY BANK'],
+    ['glb', 'India VIX', 'INDIA VIX'],
+    ['glb', 'USD/INR', 'USD / INR'],
+    ['glb', 'Gold', 'GOLD'],
+    ['glb', 'Silver', 'SILVER'],
+    ['glb', 'Crude Oil', 'CRUDE OIL'],
+    ['glb', 'Nasdaq', 'NASDAQ'],
+  ];
+  // level format: thousands→comma integer (indices), else 2dp (FX / VIX / commodities)
+  const lvl = v => (v == null || v === '' || isNaN(v)) ? '—' : (Math.abs(+v) >= 1000 ? Math.round(+v).toLocaleString('en-IN') : (+v).toFixed(2));
+
   function renderSpotlight() {
-    const buy = new Set(['Buy', 'Strong Buy']);
-    const picks = window.ALL.filter(r => buy.has(r['Technical Insight']) && buy.has(r['Fundamental Insight']))
-      .sort((a, b) => (b['Composite Score'] || 0) - (a['Composite Score'] || 0)).slice(0, 8);
-    document.getElementById('spotlight').innerHTML =
-      `<div class="spot-h">★ Spotlight <span>Technical &amp; Fundamental both Buy / Strong Buy · top ${picks.length} by Composite</span></div>
-       <div class="spot-cards">` + picks.map(r => {
-        const c = r['Day Change %'];
-        return `<div class="spot-card" data-sym="${r.Symbol}">
-          <div class="sc-name">${window.tk(r.Symbol)}</div>
-          <div class="sc-nm">${r.Name}</div>
-          <div class="sc-price">₹${num(r['Current Price'])} <span class="${c > 0 ? 'pos' : c < 0 ? 'neg' : ''}">${c > 0 ? '+' : ''}${num(c)}%</span></div>
-          <div class="sc-badges"><span class="badge ${INSB[r['Technical Insight']]}">${r['Technical Insight']}</span><span class="sc-comp">${num(r['Composite Score'], 1)}</span></div>
-        </div>`;
-      }).join('') + `</div>`;
-    clickable(document.querySelectorAll('#spotlight .spot-card'));
+    const el = document.getElementById('spotlight');
+    if (!MARKET) { el.innerHTML = ''; return; }   // no macro data → hide the ribbon
+    const find = (src, key) => src === 'idx' ? MARKET.idx.find(r => r.Index === key) : MARKET.glb.find(r => r.Name === key);
+    const tiles = PULSE.map(([src, key, label]) => {
+      const r = find(src, key); if (!r) return '';
+      const c = r['Day Change %'], cls = c > 0 ? 'pos' : c < 0 ? 'neg' : '', arrow = c > 0 ? '▲' : c < 0 ? '▼' : '·';
+      return `<div class="pulse-tile">
+        <div class="pt-label">${label}</div>
+        <div class="pt-val">${lvl(r['Current Price'])}</div>
+        <div class="pt-chg ${cls}">${arrow} ${c > 0 ? '+' : ''}${num(c)}%</div>
+      </div>`;
+    }).join('');
+    el.innerHTML = `<div class="spot-h">◆ Market Pulse <span>key indices, currency, volatility &amp; commodities · today's change</span></div>
+      <div class="pulse">${tiles}</div>`;
   }
 
   // ── Market Overview ──

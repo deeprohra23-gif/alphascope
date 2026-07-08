@@ -113,6 +113,12 @@ input.ctl{min-width:200px}
 .spot-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
 .spot-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .12s}
 .spot-card:hover{border-color:var(--accent)}
+/* Market Pulse ribbon */
+.pulse{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.pulse-tile{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
+.pt-label{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.pt-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--text);margin-top:3px}
+.pt-chg{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;margin-top:2px;color:var(--muted)}
 .sc-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sc-price{font-size:13px;font-family:'JetBrains Mono';margin:4px 0}
 .sc-badges{display:flex;align-items:center;gap:6px}
