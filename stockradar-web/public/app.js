@@ -485,6 +485,28 @@ function cardSections(d) {
   ]);
   return `<div class="pc-cards">${scores}${tech}${ret}${risk}${val}${grow}</div>`;
 }
+// map a card section header's text → icon name, then prepend the inline icon
+function cardHeaderIcon(txt) {
+  const t = (txt || '').toLowerCase();
+  if (t.includes('scores') || t.includes('regime')) return 'gauge';
+  if (t.includes('technical')) return 'activity';
+  if (t.includes('returns') || t.includes('momentum')) return 'trending';
+  if (t.includes('risk')) return 'shield';
+  if (t.includes('valuation') || t.includes('profitab')) return 'scale';
+  if (t.includes('growth') || t.includes('ownership')) return 'sprout';
+  if (t.includes('analyst')) return 'target';
+  if (t.includes('financ')) return 'bars';
+  if (t.includes('screen')) return 'grid';
+  if (t.includes('peers')) return 'users';
+  if (t.includes('news')) return 'newspaper';
+  return null;
+}
+function decorateCardHeaders() {
+  if (!window.icon) return;
+  document.querySelectorAll('#panelBody .pc-card h4, #panelBody .pc-sec').forEach(h => {
+    const n = cardHeaderIcon(h.textContent); if (n) h.insertAdjacentHTML('afterbegin', window.icon(n));
+  });
+}
 function openPanel(d) {
   const chg = d['Day Change %'];
   document.getElementById('panelBody').innerHTML = `
@@ -507,6 +529,7 @@ function openPanel(d) {
     <div class="pc-sec">Recent News</div>
     <div id="pcNews" class="pc-news"><div class="pc-note">Loading news…</div></div>`;
   panel.classList.add('open'); scrim.classList.add('open');
+  decorateCardHeaders();
   document.querySelectorAll('#panelBody .pc-table tr[data-sym]').forEach(tr => tr.onclick = () => { const r = (window.ALL || []).find(x => x.Symbol === tr.dataset.sym); if (r) openPanel(r); });
   const pgb = document.getElementById('peerGridBtn');
   if (pgb) pgb.onclick = () => { closePanel(); window.openInStocks(pgb.dataset.syms.split(',').map(s => (window.ALL || []).find(x => x.Symbol === s)).filter(Boolean), pgb.dataset.label); };

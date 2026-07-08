@@ -123,7 +123,8 @@ input.ctl{min-width:200px}
 /* Market Pulse ribbon */
 .pulse{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 .pulse-tile{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
-.pt-label{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.pt-label{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--muted);display:flex;align-items:center;gap:5px}
+.pt-label .ic{width:13px;height:13px}
 .pt-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--text);margin-top:3px}
 .pt-chg{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;margin-top:2px;color:var(--muted)}
 .sc-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -291,7 +292,8 @@ input.ctl{min-width:200px}
 .pc-h1{font-size:19px;font-weight:700;margin:2px 0 2px}.pc-sub{color:var(--muted);font-size:12px;margin-bottom:14px}
 .pc-price{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace}
 .pc-badges{display:flex;gap:8px;margin:12px 0 16px;flex-wrap:wrap}
-.pc-sec{margin:16px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.pc-sec{margin:16px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:7px}
+.pc-sec .ic{width:14px;height:14px}
 .pc-subh{margin:10px 0 3px;font-size:11.5px;color:var(--text2);font-weight:600}
 .pc-fin-h{margin:16px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
 .pc-fin-note{font-size:11px;color:var(--muted);margin:6px 0 2px;font-family:'JetBrains Mono'}
@@ -312,7 +314,8 @@ input.ctl{min-width:200px}
 .pc-scores{display:grid;gap:10px;margin-top:6px}
 .pc-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
 .pc-card{background:#0f0f11;border:1px solid var(--border);border-radius:12px;padding:14px 16px}
-.pc-card h4{margin:0 0 10px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
+.pc-card h4{margin:0 0 10px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700;display:flex;align-items:center;gap:7px}
+.pc-card h4 .ic{width:14px;height:14px}
 .pc-card .pc-bar{margin-bottom:8px}
 @media(max-width:760px){.pc-cards{grid-template-columns:1fr}}
 .pc-reason{font-size:12px;color:var(--text2);margin:6px 0 8px;font-family:'JetBrains Mono'}

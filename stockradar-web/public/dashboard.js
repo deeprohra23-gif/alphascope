@@ -28,14 +28,14 @@
   // ── Market Pulse (macro ribbon: key Indian indices, currency, volatility, commodities, US) ──
   // [source, lookup-key, display label] — idx=indices.json (by Index), glb=global.json (by Name)
   const PULSE = [
-    ['idx', 'Nifty 50', 'NIFTY 50'],
-    ['idx', 'Nifty Bank', 'NIFTY BANK'],
-    ['glb', 'India VIX', 'INDIA VIX'],
-    ['glb', 'USD/INR', 'USD / INR'],
-    ['glb', 'Gold', 'GOLD'],
-    ['glb', 'Silver', 'SILVER'],
-    ['glb', 'Crude Oil', 'CRUDE OIL'],
-    ['glb', 'Nasdaq', 'NASDAQ'],
+    ['idx', 'Nifty 50', 'NIFTY 50', 'landmark'],
+    ['idx', 'Nifty Bank', 'NIFTY BANK', 'landmark'],
+    ['glb', 'India VIX', 'INDIA VIX', 'activity'],
+    ['glb', 'USD/INR', 'USD / INR', 'rupee'],
+    ['glb', 'Gold', 'GOLD', 'gem'],
+    ['glb', 'Silver', 'SILVER', 'gem'],
+    ['glb', 'Crude Oil', 'CRUDE OIL', 'droplet'],
+    ['glb', 'Nasdaq', 'NASDAQ', 'globe'],
   ];
   // level format: thousands→comma integer (indices), else 2dp (FX / VIX / commodities)
   const lvl = v => (v == null || v === '' || isNaN(v)) ? '—' : (Math.abs(+v) >= 1000 ? Math.round(+v).toLocaleString('en-IN') : (+v).toFixed(2));
@@ -44,11 +44,11 @@
     const el = document.getElementById('spotlight');
     if (!MARKET) { el.innerHTML = ''; return; }   // no macro data → hide the ribbon
     const find = (src, key) => src === 'idx' ? MARKET.idx.find(r => r.Index === key) : MARKET.glb.find(r => r.Name === key);
-    const tiles = PULSE.map(([src, key, label]) => {
+    const tiles = PULSE.map(([src, key, label, ic]) => {
       const r = find(src, key); if (!r) return '';
       const c = r['Day Change %'], cls = c > 0 ? 'pos' : c < 0 ? 'neg' : '', arrow = c > 0 ? '▲' : c < 0 ? '▼' : '·';
       return `<div class="pulse-tile">
-        <div class="pt-label">${label}</div>
+        <div class="pt-label">${window.icon ? window.icon(ic) : ''}${label}</div>
         <div class="pt-val">${lvl(r['Current Price'])}</div>
         <div class="pt-chg ${cls}">${arrow} ${c > 0 ? '+' : ''}${num(c)}%</div>
       </div>`;
