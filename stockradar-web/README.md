@@ -1,4 +1,4 @@
-# Alphascope — Indian equities dashboard (static + AG Grid)
+# ScreenEdge — Indian equities dashboard (static + AG Grid)
 
 Migration of the Streamlit app to a **static frontend + one serverless function**.
 Free, always-on hosting (Cloudflare Pages); the data is a daily batch artifact, so ~95%

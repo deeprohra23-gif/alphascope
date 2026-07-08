@@ -1,4 +1,4 @@
-// Alphascope — web app. Data is static JSON built daily by scripts/build_data.py (reuses the real scoring/insights).
+// ScreenEdge — web app. Data is static JSON built daily by scripts/build_data.py (reuses the real scoring/insights).
 
 // shared stock-identifier helpers: ticker (clean, .NS stripped) as primary, name muted beside it
 const tk = s => (s || '').replace(/\.(NS|BO)$/, '');
@@ -255,7 +255,7 @@ document.getElementById('viewtabs').addEventListener('click', e => {
 ['search', 'sector', 'cap', 'insight', 'mcMin', 'mcMax', 'rsiMin', 'rsiMax', 'indexMem', 'regimeSel', 'ddSel'].forEach(id => $(id).addEventListener('input', computeRows));
 $('sortCol').addEventListener('change', () => { curSortCol = $('sortCol').value; computeRows(); });
 $('sortDir').addEventListener('change', () => { curSortDir = $('sortDir').value; computeRows(); });
-$('exportBtn').addEventListener('click', () => gridApi.exportDataAsCsv({ fileName: `alphascope_${curView}.csv` }));
+$('exportBtn').addEventListener('click', () => gridApi.exportDataAsCsv({ fileName: `screenedge_${curView}.csv` }));
 
 // ── slide-in stock card ──
 const panel = document.getElementById('panel'), scrim = document.getElementById('scrim');

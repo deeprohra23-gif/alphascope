@@ -1,4 +1,4 @@
-# Alphascope — Methodology
+# ScreenEdge — Methodology
 
 This document explains how every metric, score, and rating in the screener is calculated. All indicators are computed from daily OHLCV data (via Yahoo Finance) and fundamental data (scraped from screener.in). No AI predictions, no news sentiment — pure rule-based calculations.
 
