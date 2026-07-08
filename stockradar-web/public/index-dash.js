@@ -3,10 +3,23 @@
 (function () {
   let INDICES = null, GLOBAL = null, idxApi = null, drillApi = null;
   let curISub = 'indian', curDView = 'overview', curDrillRows = [], curIndexName = '';
+  let curIdxSortCol = 'Day Change %', curIdxSortDir = 'desc';
   const $ = id => document.getElementById(id);
   const num = (v, d = 2) => (v == null || v === '' || isNaN(v)) ? '' : Number(v).toFixed(d);
   const C = (field, o = {}) => ({ field, headerName: o.h || field, ...o });
   const parts = s => (s || '').split(/[;,]/).map(x => x.trim());
+  // dropdown-driven sort (mirrors the Stocks tab): blanks always last
+  const sortBy = (rows, col, dir) => {
+    if (!col) return rows;
+    const sign = dir === 'asc' ? 1 : -1;
+    return rows.slice().sort((a, b) => {
+      let x = a[col], y = b[col];
+      const xn = x == null || x === '', yn = y == null || y === '';
+      if (xn && yn) return 0; if (xn) return 1; if (yn) return -1;
+      if (typeof x === 'number' && typeof y === 'number') return sign * (x - y);
+      return sign * String(x).localeCompare(String(y));
+    });
+  };
 
   const IDX_COLS = [
     C('Index', { pinned: 'left', width: 200, cellClass: 'cell-name', filter: 'agTextColumnFilter' }),
@@ -33,23 +46,34 @@
     catch (e) { return; }
     try { await ensureData(); } catch (e) { }
     idxApi = agGrid.createGrid($('idxGrid'), {
-      columnDefs: IDX_COLS, defaultColDef: { sortable: true, resizable: true, filter: true },
+      columnDefs: IDX_COLS, defaultColDef: { sortable: false, resizable: true, filter: true },
       rowSelection: 'single', animateRows: true,
       onRowClicked: e => { if (curISub === 'indian') openDrill(e.data); },
     });
     const cats = [...new Set(INDICES.map(r => r.Category).filter(Boolean))].sort();
     $('idxCat').innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option>${c}</option>`).join('');
+    fillIdxSort();
     applyIdx();
   };
+
+  // populate the Sort-by dropdown from the current sub-tab's columns, keeping selection if still valid
+  function fillIdxSort() {
+    const cols = (curISub === 'indian' ? IDX_COLS : GLB_COLS).map(c => c.field);
+    if (!cols.includes(curIdxSortCol)) curIdxSortCol = cols.includes('Day Change %') ? 'Day Change %' : cols[0];
+    $('idxSortCol').innerHTML = cols.map(c => `<option value="${c}"${c === curIdxSortCol ? ' selected' : ''}>${c}</option>`).join('');
+    $('idxSortDir').value = curIdxSortDir;
+  }
 
   function applyIdx() {
     const q = $('idxSearch').value.trim().toLowerCase(), cat = $('idxCat').value;
     if (curISub === 'indian') {
       idxApi.setGridOption('columnDefs', IDX_COLS);
-      idxApi.setGridOption('rowData', INDICES.filter(r => (!q || (r.Index || '').toLowerCase().includes(q)) && (!cat || r.Category === cat)));
+      const rows = INDICES.filter(r => (!q || (r.Index || '').toLowerCase().includes(q)) && (!cat || r.Category === cat));
+      idxApi.setGridOption('rowData', sortBy(rows, curIdxSortCol, curIdxSortDir));
     } else {
       idxApi.setGridOption('columnDefs', GLB_COLS);
-      idxApi.setGridOption('rowData', GLOBAL.filter(r => !q || (r.Name || '').toLowerCase().includes(q)));
+      const rows = GLOBAL.filter(r => !q || (r.Name || '').toLowerCase().includes(q));
+      idxApi.setGridOption('rowData', sortBy(rows, curIdxSortCol, curIdxSortDir));
     }
   }
 
@@ -58,10 +82,13 @@
     curISub = b.dataset.isub;
     document.querySelectorAll('#idxsub .sub').forEach(x => x.classList.toggle('active', x === b));
     $('idxCat').style.display = curISub === 'indian' ? '' : 'none';
+    fillIdxSort();
     applyIdx();
   });
   $('idxSearch').addEventListener('input', applyIdx);
   $('idxCat').addEventListener('change', applyIdx);
+  $('idxSortCol').addEventListener('change', () => { curIdxSortCol = $('idxSortCol').value; applyIdx(); });
+  $('idxSortDir').addEventListener('change', () => { curIdxSortDir = $('idxSortDir').value; applyIdx(); });
 
   // ── drill-down ──
   function drillViews() {
