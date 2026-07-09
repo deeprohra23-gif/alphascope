@@ -6,8 +6,12 @@
     </linearGradient>
   </defs>
   <rect width="32" height="32" rx="7" fill="url(#se)"/>
-  <g fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M5 21 L12.5 13.5 L17.5 18.5 L27 9"/>
-    <path d="M20 9 L27 9 L27 16"/>
+  <!-- magnifier lens (Screen) over ascending bars (Edge) -->
+  <circle cx="13" cy="13" r="8.7" fill="#ffffff"/>
+  <line x1="18.9" y1="18.9" x2="25.8" y2="25.8" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+  <g fill="#059669">
+    <rect x="9.2" y="13.4" width="2.1" height="3.9" rx="0.6"/>
+    <rect x="12.0" y="10.9" width="2.1" height="6.4" rx="0.6"/>
+    <rect x="14.8" y="8.7" width="2.1" height="8.6" rx="0.6"/>
   </g>
 </svg>
