@@ -514,7 +514,7 @@ function openPanel(d) {
     <div class="pc-name-row">${d.Name || ''}</div>
     <div class="pc-sub">${d.Sector||''} · ${d.Industry||''} · ${d['Cap Category']||''}</div>
     <span class="pc-price">₹${f2(d['Current Price'])}</span>
-    <span class="${chg>0?'pos':chg<0?'neg':''}" style="font-family:'JetBrains Mono';font-weight:600;margin-left:8px">${chg>0?'+':''}${f2(chg)}%</span>
+    <span class="${chg>0?'pos':chg<0?'neg':''}" style="font-family:'JetBrains Mono',monospace;font-weight:600;margin-left:8px">${chg>0?'+':''}${f2(chg)}%</span>
     <div class="pc-badges">
       <span class="badge ${INS[d['Technical Insight']]||''}">TECH: ${d['Technical Insight']||'—'}</span>
       <span class="badge ${INS[d['Fundamental Insight']]||''}">FUND: ${d['Fundamental Insight']||'—'}</span></div>
