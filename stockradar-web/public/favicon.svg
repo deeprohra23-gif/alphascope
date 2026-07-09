@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="7" fill="#ffffff"/>
-  <!-- magnifier lens over a colored bar-chart (Screen the market) -->
-  <circle cx="13.5" cy="13" r="9.3" fill="#6dcff6" stroke="#2b3a52" stroke-width="1.7"/>
-  <g stroke="#2b3a52" stroke-width="0.9" stroke-linejoin="round">
-    <rect x="8.6" y="13.5" width="2.4" height="4.6" rx="0.7" fill="#6dbe45"/>
-    <rect x="12.3" y="10.5" width="2.4" height="7.6" rx="0.7" fill="#f6a937"/>
-    <rect x="16" y="8.2" width="2.4" height="9.9" rx="0.7" fill="#ea5a4e"/>
+  <!-- colorful bar-chart being screened -->
+  <g stroke="#2b3a52" stroke-width="1" stroke-linejoin="round">
+    <rect x="4.5" y="17" width="3.4" height="9" rx="1" fill="#6dbe45"/>
+    <rect x="8.7" y="13" width="3.4" height="13" rx="1" fill="#f6a937"/>
+    <rect x="12.9" y="9.5" width="3.4" height="16.5" rx="1" fill="#ec5f9e"/>
+    <rect x="17.1" y="6.5" width="3.4" height="19.5" rx="1" fill="#ea5a4e"/>
   </g>
-  <line x1="20.4" y1="20" x2="28" y2="28" stroke="#2b3a52" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- magnifier examining the chart -->
+  <line x1="26.5" y1="24.5" x2="30" y2="28" stroke="#2b3a52" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="23" cy="21" r="6.4" fill="#6dcff6" stroke="#2b3a52" stroke-width="1.6"/>
+  <path d="M20.4 21.5 h1.6 v-2 h1.6 v-2 h1.6" fill="none" stroke="#2b3a52" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
