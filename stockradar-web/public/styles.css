@@ -27,6 +27,10 @@ input[type="search"].ctl{background-image:url("data:image/svg+xml,%3Csvg xmlns='
 .ev-loading{display:flex;align-items:center;justify-content:center;gap:9px;padding:32px 16px;color:var(--muted);font-size:13px}
 .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* site footer disclaimer */
+.site-foot{padding:16px 20px;border-top:1px solid var(--border);color:var(--muted);font-size:11.5px;line-height:1.6;text-align:center}
+.site-foot .foot-brand{color:var(--text2);font-weight:700}
+.site-foot strong{color:var(--text2);font-weight:600}
 
 #main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .tabpane{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
@@ -89,7 +93,8 @@ input.ctl{min-width:200px}
 
 .extLabel{margin:8px 16px 0;padding:7px 12px;background:#10b98118;border:1px solid var(--accent);border-radius:8px;font-size:12px;color:var(--accent);font-weight:600}
 .viewtabs{display:flex;gap:4px;padding:2px 16px 0}
-.vt{background:transparent;border:none;color:var(--text2);padding:7px 14px;font-size:13px;font-weight:500;border-radius:8px 8px 0 0;cursor:pointer;font-family:inherit}
+.vt{background:transparent;border:none;color:var(--text2);padding:7px 14px;font-size:13px;font-weight:500;border-radius:8px 8px 0 0;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.vt .ic{width:14px;height:14px}
 .vt:hover{background:var(--hover);color:var(--text)}
 .vt.active{background:var(--surface);color:var(--text);border-bottom:2px solid var(--accent)}
 

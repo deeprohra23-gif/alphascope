@@ -51,6 +51,9 @@
     dec('#dashsub .sub', 'data-dsub', { overview: 'gauge', picks: 'target', changes: 'swap', rotation: 'pie', signals: 'zap', top5: 'trophy' });
     dec('#evsub .sub', 'data-esub', { fiidii: 'building', corp: 'megaphone', deals: 'shuffle' });
     dec('#toolsub .sub', 'data-tsub', { card: 'card', compare: 'compare', watchlist: 'bookmark', sip: 'calculator', method: 'book' });
+    const VIEWMAP = { overview: 'gauge', technicals: 'activity', returns: 'trending', risk: 'shield', fundamentals: 'bars' };
+    dec('#viewtabs .vt', 'data-view', VIEWMAP);
+    dec('#drillViewtabs .vt', 'data-dview', VIEWMAP);
     [['exportBtn', 'download'], ['addFilterBtn', 'filter'], ['drillAddFilterBtn', 'filter']].forEach(([id, n]) => { const el = document.getElementById(id); if (el) el.insertAdjacentHTML('afterbegin', wrap(n)); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
