@@ -23,6 +23,10 @@ input[type="search"].ctl{background-image:url("data:image/svg+xml,%3Csvg xmlns='
 .freshness{margin-left:auto;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}
 .fresh-badge{background:rgba(0,212,170,.12);color:var(--accent);border:1px solid rgba(0,212,170,.35);font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:5px;cursor:help}
 .fresh-txt{white-space:nowrap}
+/* loading spinner (Events async panels) */
+.ev-loading{display:flex;align-items:center;justify-content:center;gap:9px;padding:32px 16px;color:var(--muted);font-size:13px}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 #main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .tabpane{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}

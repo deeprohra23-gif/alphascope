@@ -40,7 +40,7 @@
         <input id="search" class="ctl" type="search" placeholder="Search name / symbol…" />
         <span class="sortlab">Sort by</span>
         <select id="sortCol" class="ctl"></select>
-        <select id="sortDir" class="ctl"><option value="desc">High → Low</option><option value="asc">Low → High</option></select>
+        <select id="sortDir" class="ctl"><option value="desc">High to Low</option><option value="asc">Low to High</option></select>
         <button id="addFilterBtn" class="ctl ctl-btn2">Filter</button>
         <button id="exportBtn" class="ctl ctl-btn">Export CSV</button>
       </div>
@@ -111,7 +111,7 @@
           <select id="idxCat" class="ctl"></select>
           <span class="sortlab">Sort by</span>
           <select id="idxSortCol" class="ctl"></select>
-          <select id="idxSortDir" class="ctl"><option value="desc">High → Low</option><option value="asc">Low → High</option></select>
+          <select id="idxSortDir" class="ctl"><option value="desc">High to Low</option><option value="asc">Low to High</option></select>
           <span class="idxhint">click a row to drill into constituents</span>
         </div>
         <div id="idxGrid" class="ag-theme-quartz sr-grid"></div>
@@ -130,7 +130,7 @@
         <div class="controls">
           <span class="sortlab">Sort by</span>
           <select id="drillSortCol" class="ctl"></select>
-          <select id="drillSortDir" class="ctl"><option value="desc">High → Low</option><option value="asc">Low → High</option></select>
+          <select id="drillSortDir" class="ctl"><option value="desc">High to Low</option><option value="asc">Low to High</option></select>
           <button id="drillAddFilterBtn" class="ctl ctl-btn2">Filter</button>
         </div>
         <div class="filterbar" id="drillFilterbar" hidden></div>
@@ -151,21 +151,21 @@
         <button class="sub" data-esub="deals">Bulk &amp; Block Deals</button>
       </nav>
       <div class="evbody" id="evbody">
-        <div class="esec" data-esec="fiidii"><div id="fiidiiOut" class="ev-out">Loading…</div></div>
+        <div class="esec" data-esec="fiidii"><div id="fiidiiOut" class="ev-out"><div class="ev-loading"><span class="spinner"></span> Loading…</div></div></div>
         <div class="esec" data-esec="corp" hidden>
           <div class="controls">
             <select id="caType" class="ctl"><option value="">All actions</option></select>
             <label class="sip-lab"><input type="checkbox" id="caUniverse"> Only my universe</label>
             <label class="sip-lab"><input type="checkbox" id="caUpcoming" checked> Only upcoming</label>
           </div>
-          <div id="corpOut" class="ev-out">Loading…</div>
+          <div id="corpOut" class="ev-out"><div class="ev-loading"><span class="spinner"></span> Loading…</div></div>
         </div>
         <div class="esec" data-esec="deals" hidden>
           <div class="controls">
             <select id="dealSide" class="ctl"><option value="">Buy &amp; Sell</option><option value="BUY">Buy only</option><option value="SELL">Sell only</option></select>
             <label class="sip-lab"><input type="checkbox" id="dealUniverse"> Only my universe</label>
           </div>
-          <div id="dealsOut" class="ev-out">Loading…</div>
+          <div id="dealsOut" class="ev-out"><div class="ev-loading"><span class="spinner"></span> Loading…</div></div>
         </div>
       </div>
     </section>

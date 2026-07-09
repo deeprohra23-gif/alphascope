@@ -449,7 +449,7 @@ function cardSections(d) {
 
   const scores = `<div class="pc-card"><h4>Scores &amp; Regime</h4>
     ${bar('Technical', d['Technical Score'])}${bar('Momentum', d['Momentum Score'])}${bar('Fundamental', d['Fundamental Score'])}${bar('Composite', d['Composite Score'])}
-    <div class="pc-row"><span class="k">Universe Rank</span><span class="v">${d['Universe Rank'] ?? '—'}</span></div>
+    <div class="pc-row"><span class="k" title="Rank by Composite Score across all stocks">Universe Rank</span><span class="v">${d['Universe Rank'] ?? '—'}${d['Universe Rank'] != null && window.ALL ? ` <span style="color:var(--muted)">/ ${window.ALL.length}</span>` : ''}</span></div>
     <div class="pc-row"><span class="k">Market Regime</span><span class="v">${d['Market Regime'] || '—'}</span></div>
     <div class="pc-row"><span class="k">Drawdown Status</span><span class="v">${d['Drawdown Status'] || '—'}</span></div></div>`;
   const tech = card('Technical Signals', [

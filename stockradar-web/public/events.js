@@ -4,6 +4,7 @@
   let inited = false, UNIV = new Set(), corpData = null, dealsData = null;
   const $ = id => document.getElementById(id);
   const err = msg => `<p class="empty" style="margin:14px 16px">⚠ ${msg}<br><span style="font-size:11px">NSE can block server IPs — if this fails after deploy, it's the NSE endpoint, not the app.</span></p>`;
+  const SPIN = '<div class="ev-loading"><span class="spinner"></span> Loading…</div>';
   const money = v => { const n = parseFloat(v); return isNaN(n) ? (v ?? '—') : '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 }); };
 
   window.initEvents = async function () {
@@ -23,6 +24,7 @@
 
   // ── FII / DII ──
   async function loadFiiDii() {
+    $('fiidiiOut').innerHTML = SPIN;
     try {
       const d = await fetch('/api/fiidii').then(r => r.json());
       if (!d.rows || !d.rows.length) return $('fiidiiOut').innerHTML = err('No FII/DII data returned.');
@@ -51,6 +53,7 @@
   const parseDate = s => { const m = /(\d{2})-(\w{3})-(\d{4})/.exec(s || ''); if (!m) return null; return new Date(`${m[2]} ${m[1]} ${m[3]}`); };
   async function loadCorp() {
     if (corpData) return;
+    $('corpOut').innerHTML = SPIN;
     try {
       const d = await fetch('/api/corpactions').then(r => r.json());
       corpData = (d.rows || []).map(r => ({ ...r, _type: caType(r.subject), _ex: parseDate(r.exDate) }));
@@ -74,6 +77,7 @@
   // ── Bulk & Block deals ──
   async function loadDeals() {
     if (dealsData) return;
+    $('dealsOut').innerHTML = SPIN;
     try {
       dealsData = await fetch('/api/deals').then(r => r.json());
       renderDeals();
