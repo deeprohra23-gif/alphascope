@@ -1,39 +1,41 @@
 Index,ETF_Symbol
-Nifty Energy,ENERGY
-Nifty CPSE,CPSEETF
-Nifty Capital Markets,GROWWCAPM
-Nifty Metal,METALIETF
-Nifty India Defence,MODEFENCE
-Nifty PSE,ABSLPSE
-Nifty Commodities,COMMOIETF
-Nifty Alpha 50,ALPHA
-Nifty PSU Bank,PSUBNKBEES
-Nifty MNC,MNC
-Nifty Smallcap 250,HDFCSML250
-Nifty India Manufacturing,MAKEINDIA
-Nifty Midcap 150,MID150BEES
-Nifty Infrastructure,INFRAIETF
-Nifty200 Momentum 30,MOM30IETF
-Nifty Pharma,PHARMABEES
-Nifty Healthcare Index,HEALTHY
-Nifty Oil & Gas,OILIETF
-Nifty Total Market,AONETOTAL
-Nifty 500,MONIFTY500
-Nifty 200,GROWWN200
-Nifty Financial Services,BFSI
-NIFTY100 ESG,ESG
-Nifty EV & New Age Automotive,EVINDIA
 Nifty 100,TOP100CASE
-Nifty India Railways PSU,GROWWRAIL
-Nifty India New Age Consumption,CONSUMER
-Nifty Bank,BANKBEES
-Nifty India Consumption,CONSUMBEES
-Nifty Auto,AUTOBEES
-Nifty Private Bank,PVTBANIETF
+Nifty 200,GROWWN200
 Nifty 50,NIFTYBEES
-Nifty FMCG,FMCGIETF
-Nifty Services Sector,MOSERVICE
-Nifty India Tourism,MOTOUR
-Nifty Realty,MOREALTY
+Nifty 500,MONIFTY500
+Nifty Alpha 50,ALPHA
+Nifty Auto,AUTOBEES
+Nifty Bank,BANKBEES
+Nifty Capital Markets,GROWWCAPM
+Nifty Commodities,COMMOIETF
+Nifty Cpse,CPSEETF
+Nifty Dividend Oppurtunities 50,DIVOPPBEES
+Nifty Energy,ENERGY
+Nifty Ev & New Age Automotive,EVINDIA
+Nifty Financial Services,BFSI
+Nifty Fmcg,FMCGIETF
+Nifty Healthcare Index,HEALTHY
+Nifty India Consumption,CONSUMBEES
+Nifty India Defence,MODEFENCE
 Nifty India Digital,TNIDETF
-Nifty IT,ITBEES
+Nifty India Manufacturing,MAKEINDIA
+Nifty India New Age Consumption,CONSUMER
+Nifty India Railways Psu,GROWWRAIL
+Nifty India Tourism,MOTOUR
+Nifty Infrastructure,INFRAIETF
+Nifty It,ITBEES
+Nifty Metal,METALIETF
+Nifty Midcap 150,MID150BEES
+Nifty MNC,MNC
+Nifty Oil & Gas,OILIETF
+Nifty Pharma,PHARMABEES
+Nifty Private Bank,PVTBANIETF
+Nifty Pse,ABSLPSE
+Nifty Psu Bank,PSUBNKBEES
+Nifty Realty,MOREALTY
+Nifty Services Sector,MOSERVICE
+Nifty Smallcap 250,HDFCSML250
+Nifty Total Market,AONETOTAL
+NIFTY100 ESG,ESG
+Nifty200 Momentum 30,MOM30IETF
+Nifty Next 50,JUNIROBEES
