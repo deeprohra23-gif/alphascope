@@ -128,17 +128,28 @@ def get_date_range(years=5):
     return dates
 
 
+# resilience knobs — bail fast when NSE throttles the runner IP instead of
+# grinding through ~1,300 timeouts and blowing the 90-min job cap.
+REQ_TIMEOUT = 8            # seconds per archive request (was 15)
+MAX_FAIL_STREAK = 30       # consecutive *unreachable* days → assume IP blocked, abort
+MAX_SECONDS = 1500         # 25-min wall-clock budget for the whole download
+MIN_TRADING_DAYS = 400     # below this the history is too thin to trust → keep last-good
+
+
 def fetch_day(session, date):
+    """Returns (df_or_None, reached_server). reached_server=False only on a
+    connection/timeout error — a plain 'no data' (holiday/404) still counts as
+    reached, so holidays don't trip the block detector."""
     url = ARCHIVE_URL.format(date=date.strftime("%d%m%Y"))
     try:
-        r = session.get(url, headers=HEADERS, timeout=15)
+        r = session.get(url, headers=HEADERS, timeout=REQ_TIMEOUT)
         if r.status_code == 200 and len(r.text) > 100:
             df = pd.read_csv(io.StringIO(r.text))
             df.columns = [c.strip() for c in df.columns]
-            return df
+            return df, True
+        return None, True
     except Exception:
-        pass
-    return None
+        return None, False
 
 
 def build_history(years=5):
@@ -147,21 +158,34 @@ def build_history(years=5):
     all_rows = []
     total = len(dates)
     success = 0
+    fail_streak = 0
+    aborted = False
+    t0 = time.time()
 
     print(f"Downloading {total} daily CSVs ({years} years)...")
 
     for i, date in enumerate(dates):
-        df = fetch_day(session, date)
+        df, reached = fetch_day(session, date)
         if df is not None:
             all_rows.append(df)
             success += 1
+        fail_streak = 0 if reached else fail_streak + 1
+        if fail_streak >= MAX_FAIL_STREAK:
+            print(f"\n⚠️  {fail_streak} consecutive NSE failures — runner IP looks blocked. Aborting early.")
+            aborted = True
+            break
+        if time.time() - t0 > MAX_SECONDS:
+            print(f"\n⚠️  Download exceeded {MAX_SECONDS // 60} min — aborting to stay under the job timeout.")
+            aborted = True
+            break
         if (i + 1) % 100 == 0:
             print(f"  {i + 1}/{total} — {success} trading days found")
         time.sleep(0.15)
 
-    print(f"\n✓ Download complete — {success} trading days\n")
+    print(f"\n✓ Download finished — {success} trading days{' (ABORTED)' if aborted else ''}\n")
 
-    if not all_rows:
+    if aborted or success < MIN_TRADING_DAYS or not all_rows:
+        print(f"⚠️  Insufficient index history ({success} days) — keeping the last-good indices_technicals.csv.")
         return None
 
     master = pd.concat(all_rows, ignore_index=True)

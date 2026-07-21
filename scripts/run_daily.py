@@ -70,19 +70,25 @@ def main():
     start = datetime.now()
     print(f"StockRadar Daily Pipeline — {start.strftime('%Y-%m-%d %H:%M:%S')}")
 
-    # Run in order: global (fast) → indices (slow download) → stocks (slowest)
+    # Stages are independent: a failure in one (e.g. NSE blocking the indices
+    # download) must NOT stop the others or the downstream build. Each failed
+    # stage simply leaves its last-good CSV in place. We never raise, so the
+    # workflow always proceeds to build + commit.
+    results = {}
     if not args.skip_global:
-        run_script("fetch_global.py")
-
+        results["global technicals"] = run_script("fetch_global.py")
     if not args.skip_indices:
-        run_script("fetch_indices.py")
-
+        results["index technicals"] = run_script("fetch_indices.py")
     if not args.skip_stocks:
-        run_script("fetch_technicals.py")
+        results["stock technicals"] = run_script("fetch_technicals.py")
 
     elapsed = (datetime.now() - start).total_seconds()
     print(f"\n{'=' * 60}")
     print(f"Pipeline complete in {elapsed / 60:.1f} minutes")
+    for stage, ok in results.items():
+        print(f"  {'✓' if ok else '⚠ FAILED — kept last-good'}  {stage}")
+    if results and not all(results.values()):
+        print("Some stages failed; the build will reuse the last-good data for those.")
     print(f"{'=' * 60}")
 
     if args.push:
