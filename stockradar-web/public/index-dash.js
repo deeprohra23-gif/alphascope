@@ -162,6 +162,7 @@
   $('idxCat').addEventListener('change', applyIdx);
   $('idxSortCol').addEventListener('change', () => { curIdxSortCol = $('idxSortCol').value; applyIdx(); });
   $('idxSortDir').addEventListener('change', () => { curIdxSortDir = $('idxSortDir').value; applyIdx(); });
+  $('idxExportBtn').addEventListener('click', () => idxApi && idxApi.exportDataAsCsv({ fileName: `screenedge_${curISub === 'indian' ? 'indices' : 'global'}.csv` }));
 
   // ── drill-down ──
   function drillViews() {
@@ -226,5 +227,6 @@
   $('drillAddFilterBtn').addEventListener('click', addDrillFilterRow);
   $('drillSortCol').addEventListener('change', () => { curDrillSortCol = $('drillSortCol').value; computeDrill(); });
   $('drillSortDir').addEventListener('change', () => { curDrillSortDir = $('drillSortDir').value; computeDrill(); });
+  $('drillExportBtn').addEventListener('click', () => drillApi && drillApi.exportDataAsCsv({ fileName: `screenedge_${(curIndexName || 'index').replace(/[^\w]+/g, '_').toLowerCase()}_constituents.csv` }));
   $('drillBack').addEventListener('click', () => { $('idxDrill').hidden = true; $('idxList').hidden = false; });
 })();

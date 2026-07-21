@@ -54,7 +54,7 @@
     const VIEWMAP = { overview: 'gauge', technicals: 'activity', returns: 'trending', risk: 'shield', fundamentals: 'bars' };
     dec('#viewtabs .vt', 'data-view', VIEWMAP);
     dec('#drillViewtabs .vt', 'data-dview', VIEWMAP);
-    [['exportBtn', 'download'], ['addFilterBtn', 'filter'], ['drillAddFilterBtn', 'filter']].forEach(([id, n]) => { const el = document.getElementById(id); if (el) el.insertAdjacentHTML('afterbegin', wrap(n)); });
+    [['exportBtn', 'download'], ['idxExportBtn', 'download'], ['drillExportBtn', 'download'], ['addFilterBtn', 'filter'], ['drillAddFilterBtn', 'filter']].forEach(([id, n]) => { const el = document.getElementById(id); if (el) el.insertAdjacentHTML('afterbegin', wrap(n)); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
   window.icon = wrap;   // expose for JS-built markup (stock card headers, Market Pulse tiles)

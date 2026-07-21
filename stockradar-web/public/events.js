@@ -23,19 +23,38 @@
   };
 
   // ── FII / DII ──
+  // one net/buy/sell card (latest day)
+  const fdCard = (cat, date, o) => {
+    const net = parseFloat(o.net);
+    return `<div class="ev-card"><div class="ev-cat">${cat}</div><div class="ev-date">${date}</div>
+      <div class="ev-net ${net >= 0 ? 'pos' : 'neg'}">${net >= 0 ? '+' : ''}${money(o.net)}<span>net</span></div>
+      <div class="ev-bs"><span>Buy ${money(o.buy)}</span><span>Sell ${money(o.sell)}</span></div></div>`;
+  };
+  const netCell = v => { const n = parseFloat(v); return `<td class="${n >= 0 ? 'pos' : 'neg'}">${n >= 0 ? '+' : ''}${money(v)}</td>`; };
+  function renderFiiDii(days) {
+    const recent = days.slice(-5).reverse();           // newest first, up to 5
+    const latest = recent[0];
+    const cards = latest ? `<div class="ev-cards">${fdCard('FII / FPI', latest.date, latest.fii)}${fdCard('DII', latest.date, latest.dii)}</div>` : '';
+    const table = recent.length > 1 ? `<h3 class="ev-h">Last ${recent.length} days <span class="cnt2">net · ₹ cr</span></h3>
+      <div class="cmp-table-wrap"><table class="cmp-table"><thead><tr><th>Date</th><th>FII Buy</th><th>FII Sell</th><th>FII Net</th><th>DII Buy</th><th>DII Sell</th><th>DII Net</th></tr></thead><tbody>` +
+      recent.map(d => `<tr><td>${d.date}</td><td>${money(d.fii.buy)}</td><td>${money(d.fii.sell)}</td>${netCell(d.fii.net)}<td>${money(d.dii.buy)}</td><td>${money(d.dii.sell)}</td>${netCell(d.dii.net)}</tr>`).join('') +
+      '</tbody></table></div>' : '';
+    $('fiidiiOut').innerHTML = cards + table + `<p class="idxhint" style="margin:12px 16px">₹ crore · provisional cash-market figures. History archived daily by the build pipeline.</p>`;
+  }
   async function loadFiiDii() {
     $('fiidiiOut').innerHTML = SPIN;
+    // prefer the daily-archived multi-day history; fall back to the live single-day API
+    let hist = [];
+    try { hist = await fetch('data/fiidii.json').then(r => r.ok ? r.json() : []); } catch (e) { hist = []; }
+    if (Array.isArray(hist) && hist.length) return renderFiiDii(hist);
     try {
       const d = await fetch('/api/fiidii').then(r => r.json());
       if (!d.rows || !d.rows.length) return $('fiidiiOut').innerHTML = err('No FII/DII data returned.');
-      const card = r => {
-        const net = parseFloat(r.netValue);
-        return `<div class="ev-card"><div class="ev-cat">${r.category}</div><div class="ev-date">${r.date}</div>
-          <div class="ev-net ${net >= 0 ? 'pos' : 'neg'}">${net >= 0 ? '+' : ''}${money(r.netValue)}<span>net</span></div>
-          <div class="ev-bs"><span>Buy ${money(r.buyValue)}</span><span>Sell ${money(r.sellValue)}</span></div></div>`;
-      };
-      $('fiidiiOut').innerHTML = `<div class="ev-cards">${d.rows.map(card).join('')}</div>
-        <p class="idxhint" style="margin:12px 16px">₹ crore · provisional cash-market figures for ${d.rows[0].date}. (5-day history planned via daily pipeline archival.)</p>`;
+      // normalise the live NSE rows (FII row + DII row) into one day
+      const pick = re => d.rows.find(r => re.test(r.category || '')) || {};
+      const fii = pick(/FII|FPI/i), dii = pick(/DII/i);
+      const day = { date: (fii.date || dii.date || ''), fii: { buy: fii.buyValue, sell: fii.sellValue, net: fii.netValue }, dii: { buy: dii.buyValue, sell: dii.sellValue, net: dii.netValue } };
+      renderFiiDii([day]);
     } catch (e) { $('fiidiiOut').innerHTML = err('Could not reach /api/fiidii — is the dev server / deployment running?'); }
   }
 
