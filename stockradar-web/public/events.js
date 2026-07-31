@@ -32,14 +32,15 @@
   };
   const netCell = v => { const n = parseFloat(v); return `<td class="${n >= 0 ? 'pos' : 'neg'}">${n >= 0 ? '+' : ''}${money(v)}</td>`; };
   function renderFiiDii(days) {
-    const recent = days.slice(-5).reverse();           // newest first, up to 5
-    const latest = recent[0];
+    const ordered = days.slice(-6).reverse();          // up to 6 newest-first
+    const latest = ordered[0];
+    const prev = ordered.slice(1);                     // previous days only — latest is already in the cards
     const cards = latest ? `<div class="ev-cards">${fdCard('FII / FPI', latest.date, latest.fii)}${fdCard('DII', latest.date, latest.dii)}</div>` : '';
-    const table = recent.length > 1 ? `<h3 class="ev-h">Last ${recent.length} days <span class="cnt2">net · ₹ cr</span></h3>
+    const table = prev.length ? `<h3 class="ev-h">Previous ${prev.length} day${prev.length > 1 ? 's' : ''} <span class="cnt2">net · ₹ cr</span></h3>
       <div class="cmp-table-wrap"><table class="cmp-table"><thead><tr><th>Date</th><th>FII Buy</th><th>FII Sell</th><th>FII Net</th><th>DII Buy</th><th>DII Sell</th><th>DII Net</th></tr></thead><tbody>` +
-      recent.map(d => `<tr><td>${d.date}</td><td>${money(d.fii.buy)}</td><td>${money(d.fii.sell)}</td>${netCell(d.fii.net)}<td>${money(d.dii.buy)}</td><td>${money(d.dii.sell)}</td>${netCell(d.dii.net)}</tr>`).join('') +
+      prev.map(d => `<tr><td>${d.date}</td><td>${money(d.fii.buy)}</td><td>${money(d.fii.sell)}</td>${netCell(d.fii.net)}<td>${money(d.dii.buy)}</td><td>${money(d.dii.sell)}</td>${netCell(d.dii.net)}</tr>`).join('') +
       '</tbody></table></div>' : '';
-    $('fiidiiOut').innerHTML = cards + table + `<p class="idxhint" style="margin:12px 16px">₹ crore · provisional cash-market figures. History archived daily by the build pipeline.</p>`;
+    $('fiidiiOut').innerHTML = cards + table + `<p class="idxhint" style="margin:12px 16px">₹ crore · provisional cash-market figures.</p>`;
   }
   async function loadFiiDii() {
     $('fiidiiOut').innerHTML = SPIN;

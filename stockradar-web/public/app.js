@@ -191,19 +191,30 @@ function buildValControl(wrap, col) {
     wrap.querySelector('select').addEventListener('change', computeRows);
   }
 }
+function updateFilterUi() {
+  const any = $('filterbar').children.length > 0;
+  $('filterbar').hidden = !any;
+  const clr = $('clearFilterBtn'); if (clr) clr.hidden = !any;
+}
 function addFilterRow(preCol) {
+  // don't stack empty rows — if one is already waiting for a column, focus it instead
+  if (!preCol) {
+    const empty = [...document.querySelectorAll('#filterbar .filtrow')].find(d => !d.querySelector('.f-col').value);
+    if (empty) { empty.querySelector('.f-col').focus(); return; }
+  }
   const div = document.createElement('div'); div.className = 'filtrow';
   const colSel = document.createElement('select'); colSel.className = 'ctl f-col';
   colSel.innerHTML = `<option value="">Choose column…</option>` + SORT_ORDER.map(c => `<option value="${c}">${c}</option>`).join('');
   const valWrap = document.createElement('span'); valWrap.className = 'f-val';
-  const rm = document.createElement('button'); rm.className = 'rm'; rm.title = 'remove'; rm.textContent = '✕';
-  rm.onclick = () => { div.remove(); if (!$('filterbar').children.length) $('filterbar').hidden = true; computeRows(); };
+  const rm = document.createElement('button'); rm.className = 'rm'; rm.title = 'remove filter'; rm.textContent = '✕';
+  rm.onclick = () => { div.remove(); updateFilterUi(); computeRows(); };
   colSel.onchange = () => { buildValControl(valWrap, colSel.value); computeRows(); };
   div.append(colSel, valWrap, rm);
   $('filterbar').appendChild(div);
-  $('filterbar').hidden = false;
+  updateFilterUi();
   if (preCol) { colSel.value = preCol; buildValControl(valWrap, preCol); }
 }
+function clearAllFilters() { $('filterbar').innerHTML = ''; updateFilterUi(); computeRows(); }
 function readFilters() {
   return [...document.querySelectorAll('#filterbar .filtrow')].map(d => {
     const col = d.querySelector('.f-col').value; if (!col) return null;
@@ -282,6 +293,7 @@ $('stocksub').addEventListener('click', e => {
   computeRows();
 });
 $('addFilterBtn').addEventListener('click', () => addFilterRow());
+$('clearFilterBtn').addEventListener('click', clearAllFilters);
 $('addCond').addEventListener('click', addCondRow);
 $('runCustom').addEventListener('click', computeRows);
 

@@ -155,7 +155,7 @@
     ['section', 'Risk'],
     ['Beta 1Y (Daily)', 'Beta 1Y (Daily)', 'none', 2], ['SD 1Y %', 'SD 1Y %', 'low', 2], ['1Y Max Drawdown %', '1Y Max Drawdown %', 'high', 2],
     ['section', 'Fundamentals'],
-    ['PE Ratio', 'PE Ratio', 'low', 1], ['PB Ratio', 'PB Ratio', 'low', 1], ['EV/EBITDA', 'EV/EBITDA', 'low', 1], ['PEG Ratio', 'PEG Ratio', 'low', 2],
+    ['PE Ratio', 'PE Ratio', 'low', 1], ['Sector PE', 'Sector PE', 'none', 1], ['PB Ratio', 'PB Ratio', 'low', 1], ['Sector PB', 'Sector PB', 'none', 1], ['EV/EBITDA', 'EV/EBITDA', 'low', 1], ['PEG Ratio', 'PEG Ratio', 'low', 2],
     ['ROE %', 'ROE %', 'high', 1], ['ROCE %', 'ROCE %', 'high', 1], ['Net Profit Margin %', 'Net Profit Margin %', 'high', 1],
     ['Sales Growth 3Y %', 'Sales Growth 3Y %', 'high', 1], ['Profit Growth 3Y %', 'Profit Growth 3Y %', 'high', 1],
     ['Debt/Equity', 'Debt/Equity', 'low', 2], ['Dividend Yield %', 'Dividend Yield %', 'high', 2], ['Dividend Payout %', 'Dividend Payout %', 'none', 1],

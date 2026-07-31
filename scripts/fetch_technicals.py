@@ -345,6 +345,24 @@ def main():
         if OUTPUT_CSV.exists():
             try:
                 prev = pd.read_csv(OUTPUT_CSV)
+                # carry forward any cell Yahoo returned blank this run (e.g. Market Cap
+                # sometimes comes back null even when history is fine) using yesterday's value
+                pi, di = prev.set_index("Symbol"), df.set_index("Symbol")
+                MISS = {"", "nan", "none", "n/a", "unknown"}
+                filled = 0
+                for c in [c for c in di.columns if c in pi.columns]:
+                    pc = pi[c].reindex(di.index)
+                    miss = di[c].isna()
+                    if di[c].dtype == object:
+                        miss = miss | di[c].astype(str).str.strip().str.lower().isin(MISS)
+                    fillable = miss & pc.notna()
+                    n = int(fillable.sum())
+                    if n:
+                        di.loc[fillable, c] = pc[fillable]
+                        filled += n
+                if filled:
+                    print(f"   Carried forward {filled} blank cell(s) from the previous run")
+                df = di.reset_index()
                 new_syms = set(df['Symbol'].tolist())
                 valid_syms = set(tickers)  # current symbol list
                 old_kept = prev[

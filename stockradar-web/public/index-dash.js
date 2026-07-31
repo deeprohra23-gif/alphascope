@@ -92,6 +92,7 @@
     const filters = readDrillFilters();
     const rows = curDrillRows.filter(r => filters.every(f => matchF(r, f)));
     drillApi.setGridOption('rowData', sortBy(rows, curDrillSortCol, curDrillSortDir));
+    setTimeout(() => drillApi && drillApi.autoSizeAllColumns(), 30);   // refit after column/row swap
   }
 
   const IDX_COLS = [
@@ -121,6 +122,8 @@
     idxApi = agGrid.createGrid($('idxGrid'), {
       columnDefs: IDX_COLS, defaultColDef: { sortable: false, resizable: true, filter: true },
       rowSelection: 'single', animateRows: true,
+      autoSizeStrategy: { type: 'fitCellContents' },   // size every column to content + header (no truncated labels)
+      onFirstDataRendered: p => p.api.autoSizeAllColumns(),
       onRowClicked: e => { if (curISub === 'indian') openDrill(e.data); },
     });
     const cats = [...new Set(INDICES.map(r => r.Category).filter(Boolean))].sort();
@@ -148,6 +151,7 @@
       const rows = GLOBAL.filter(r => !q || (r.Name || '').toLowerCase().includes(q));
       idxApi.setGridOption('rowData', sortBy(rows, curIdxSortCol, curIdxSortDir));
     }
+    setTimeout(() => idxApi && idxApi.autoSizeAllColumns(), 30);   // refit after column/row swap
   }
 
   $('idxsub').addEventListener('click', e => {
@@ -197,7 +201,10 @@
 
     if (!drillApi) drillApi = agGrid.createGrid($('drillGrid'), {
       columnDefs: drillViews().overview, defaultColDef: { sortable: false, resizable: true, filter: true },
-      rowSelection: 'single', animateRows: true, onRowClicked: e => window.openPanel && window.openPanel(e.data),
+      rowSelection: 'single', animateRows: true,
+      autoSizeStrategy: { type: 'fitCellContents' },
+      onFirstDataRendered: p => p.api.autoSizeAllColumns(),
+      onRowClicked: e => window.openPanel && window.openPanel(e.data),
     });
     curDView = 'overview';
     document.querySelectorAll('#drillViewtabs .vt').forEach(x => x.classList.toggle('active', x.dataset.dview === 'overview'));
