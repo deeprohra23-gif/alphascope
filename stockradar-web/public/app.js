@@ -118,6 +118,7 @@ function activateMainTab(tab) {
   if (tab === 'stocks') initStocks();
   if (tab === 'dashboard' && window.initDashboard) window.initDashboard();
   if (tab === 'index' && window.initIndex) window.initIndex();
+  if (tab === 'funds' && window.initFunds) window.initFunds();
   if (tab === 'tools' && window.initTools) window.initTools();
   if (tab === 'events' && window.initEvents) window.initEvents();
 }

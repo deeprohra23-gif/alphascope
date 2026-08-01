@@ -46,7 +46,8 @@
   const wrap = n => I[n] ? `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>` : '';
   const dec = (sel, attr, map) => document.querySelectorAll(sel).forEach(b => { const n = map[b.getAttribute(attr)]; if (n) b.insertAdjacentHTML('afterbegin', wrap(n)); });
   function run() {
-    dec('#mainnav .mn', 'data-tab', { dashboard: 'dashboard', stocks: 'stocks', index: 'index', events: 'events', tools: 'tools' });
+    dec('#mainnav .mn', 'data-tab', { dashboard: 'dashboard', stocks: 'stocks', index: 'index', funds: 'pie', events: 'events', tools: 'tools' });
+    dec('#fundsub .sub', 'data-fsub', { all: 'list', screens: 'grid' });
     dec('#stocksub .sub', 'data-sub', { all: 'list', screens: 'grid', custom: 'sliders' });
     dec('#idxsub .sub', 'data-isub', { indian: 'landmark', global: 'globe' });
     dec('#dashsub .sub', 'data-dsub', { overview: 'gauge', picks: 'target', changes: 'swap', rotation: 'pie', signals: 'zap', top5: 'trophy' });

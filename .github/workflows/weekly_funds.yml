@@ -1,0 +1,42 @@
+# Mutual-fund screener data (AMFI). Separate from the daily equity pipeline:
+# fund metrics move on month-end NAVs, so a weekly refresh is plenty, and keeping
+# it in its own workflow means an AMFI outage can never block the daily stock run.
+
+name: Weekly Fund Data
+
+on:
+  schedule:
+    - cron: '30 13 * * 6'   # 7:00 PM IST, Saturday
+  workflow_dispatch:
+
+jobs:
+  update-funds:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch AMFI fund data
+        run: python scripts/fetch_funds.py
+        timeout-minutes: 20
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/funds.csv stockradar-web/public/data/funds.json
+          git diff --staged --quiet || git commit -m "Weekly fund data update $(date -u +%Y-%m-%d)"
+          git pull --rebase
+          git push

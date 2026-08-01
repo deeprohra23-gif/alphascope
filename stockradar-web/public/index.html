@@ -35,6 +35,7 @@
       <button class="mn active" data-tab="dashboard">Dashboard</button>
       <button class="mn" data-tab="stocks">Stocks</button>
       <button class="mn" data-tab="index">Index</button>
+      <button class="mn" data-tab="funds">Funds</button>
       <button class="mn" data-tab="events">Events</button>
       <button class="mn" data-tab="tools">Tools</button>
     </nav>
@@ -115,6 +116,35 @@
         </div>
       </div>
     </section>
+    <!-- FUNDS TAB — mutual fund screener (AMFI NAV data) -->
+    <section class="tabpane" data-pane="funds" hidden>
+      <nav class="substabs" id="fundsub">
+        <button class="sub active" data-fsub="all">All Funds</button>
+        <button class="sub" data-fsub="screens">Pre-built Screens</button>
+      </nav>
+      <div class="controls">
+        <input id="fundSearch" class="ctl" type="search" placeholder="Search fund / fund house…" />
+        <select id="fundCat" class="ctl"></select>
+        <select id="fundPlan" class="ctl">
+          <option value="Direct">Direct plans</option>
+          <option value="Regular">Regular plans</option>
+          <option value="">Both plans</option>
+        </select>
+        <span class="sortlab">Sort by</span>
+        <select id="fundSortCol" class="ctl"></select>
+        <select id="fundSortDir" class="ctl"><option value="desc">High to Low</option><option value="asc">Low to High</option></select>
+        <button id="fundAddFilterBtn" class="ctl ctl-btn2">Filter</button>
+        <button class="ctl ctl-btn2 colsBtn mobonly"><span class="cb-t">All columns</span></button>
+        <button id="fundExportBtn" class="ctl ctl-btn">Export CSV</button>
+      </div>
+      <div class="filterbar" id="fundFilterbar" hidden></div>
+      <div class="screenwrap" id="fundScreenwrap" hidden>
+        <div class="screencards" id="fundScreencards"></div>
+      </div>
+      <div id="fundGrid" class="ag-theme-quartz sr-grid"></div>
+      <footer class="statusbar"><span id="fundCount">—</span> <span id="fundAsOf"></span></footer>
+    </section>
+
     <section class="tabpane" data-pane="index" hidden>
       <!-- LIST VIEW -->
       <div id="idxList" class="idxlist">
@@ -243,6 +273,7 @@
   <script src="app.js"></script>
   <script src="dashboard.js"></script>
   <script src="index-dash.js"></script>
+  <script src="funds.js"></script>
   <script src="tools.js"></script>
   <script src="events.js"></script>
 </body>

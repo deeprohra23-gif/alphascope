@@ -347,6 +347,23 @@ Requires accumulated snapshots to populate. Starts showing 1M data after ~30 day
 
 ---
 
+## 🏦 Mutual Funds
+
+Everything on the Funds tab comes from AMFI's public NAV files — no third-party estimates.
+
+- **Universe** — open-ended Equity, Hybrid, Solution-Oriented and Index schemes. Payout options (IDCW/dividend/bonus) are excluded because a distribution knocks the NAV down and makes the series non-comparable; only growth options are shown, in both Direct and Regular plans.
+- **NAV** — the latest published NAV (`NAVAll.txt`), with its date shown under the grid.
+- **Returns** — computed from month-end NAVs over the last five years. **1Y Return** is point-to-point; **3Y** and **5Y** are CAGRs. The base NAV is picked by date, so a scheme that missed a month-end report is still measured over the correct window.
+- **SD (Annualised)** — standard deviation of monthly returns × √12.
+- **Sharpe (3Y)** — (3Y CAGR − 6.5% risk-free) ÷ annualised SD.
+- **Max Drawdown** — largest peak-to-trough fall in the month-end NAV series.
+- **Positive Months %** — share of months with a gain.
+- **Rank in Category** — position within the same AMFI category *and* plan, so Direct is never ranked against Regular.
+
+**Limitations:** monthly sampling means drawdowns measured between month-ends understate intra-month falls; expense ratio and AUM are not published in the AMFI NAV feed, so they aren't shown; funds younger than the window simply have no 3Y/5Y figure rather than a partial one.
+
+---
+
 ## ⚠️ Important Notes
 
 **What this is:** A screening and monitoring tool. It cuts 880+ stocks down to a manageable shortlist based on consistent rules.
