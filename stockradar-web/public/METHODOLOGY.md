@@ -359,8 +359,10 @@ Everything on the Funds tab comes from AMFI's public NAV files — no third-part
 - **Max Drawdown** — largest peak-to-trough fall in the month-end NAV series.
 - **Positive Months %** — share of months with a gain.
 - **Rank in Category** — position within the same AMFI category *and* plan, so Direct is never ranked against Regular.
+- **Expense Ratio** — AMFI's **Base Expense Ratio**: the recurring annual fee SEBI caps, and the number investors actually compare between funds. Taken from AMFI's TER disclosure for the latest published month, and matched to the Direct or Regular figure for the plan you're looking at. Matched for ~96% of the universe; the rest are legacy Institutional/ECO/Wealth plan variants AMFI doesn't list a TER for, and they're left blank rather than guessed.
+- **TER incl. Costs** — the all-in figure: base fee plus brokerage, transaction cost and statutory levies. AMFI annualises those add-ons over the reference period, which on a fund that has only been trading for days can produce absurd numbers (one hybrid fund showed levies of 23%), so values above 5% are treated as bad data and left blank. Where both are shown, the Expense Ratio is the fairer comparison.
 
-**Limitations:** monthly sampling means drawdowns measured between month-ends understate intra-month falls; expense ratio and AUM are not published in the AMFI NAV feed, so they aren't shown; funds younger than the window simply have no 3Y/5Y figure rather than a partial one.
+**Limitations:** monthly sampling means drawdowns measured between month-ends understate intra-month falls; AUM is not published in the AMFI NAV feed, so it isn't shown; funds younger than the window simply have no 3Y/5Y figure rather than a partial one.
 
 ---
 

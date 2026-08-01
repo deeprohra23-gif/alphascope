@@ -18,10 +18,11 @@
 
   const COLS = [
     nameCol, C('Fund House', { width: 190 }), C('Category', { width: 210 }), C('Plan', { width: 90 }),
-    num('NAV', 2, 95), num('1Y Return %', 2, 110), num('3Y CAGR %', 2, 105), num('5Y CAGR %', 2, 105),
+    num('NAV', 2, 95), num('Expense Ratio %', 2, 125),
+    num('1Y Return %', 2, 110), num('3Y CAGR %', 2, 105), num('5Y CAGR %', 2, 105),
     num('SD (Annualised) %', 2, 130), num('Sharpe (3Y)', 2, 105), num('Max Drawdown %', 2, 130),
     num('Positive Months %', 1, 130), num('3Y Rank in Category', 0, 140), num('1Y Rank in Category', 0, 140),
-    num('History (Months)', 0, 120),
+    num('TER incl. Costs %', 2, 140), num('History (Months)', 0, 120),
   ];
   const MOBILE = ['NAV', '1Y Return %', '3Y CAGR %'];
   const cols = () => window.compactCols(COLS, MOBILE, curSortCol);
@@ -40,6 +41,11 @@
       fn: r => r['Positive Months %'] >= 65 },
     { name: 'Index funds', desc: 'Passive funds tracking an index', tag: 'type',
       fn: r => r.Category === 'Other Scheme - Index Funds' },
+    { name: 'Low cost', desc: 'Expense ratio under 0.75% — mostly Direct plans and index funds', tag: 'cost',
+      fn: r => r['Expense Ratio %'] != null && r['Expense Ratio %'] < 0.75 },
+    { name: 'Cheap and performing', desc: 'Expense ratio under 1% and top 10 in its category on 3Y', tag: 'cost',
+      fn: r => r['Expense Ratio %'] != null && r['Expense Ratio %'] < 1
+        && r['3Y Rank in Category'] != null && r['3Y Rank in Category'] <= 10 },
   ];
 
   const sortBy = (rows, col, dir) => {

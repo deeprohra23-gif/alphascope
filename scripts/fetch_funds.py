@@ -25,6 +25,7 @@ from pathlib import Path
 import calendar
 import json
 import math
+import re
 import sys
 import time
 
@@ -36,7 +37,14 @@ OUT_JSON = ROOT / "stockradar-web" / "public" / "data" / "funds.json"
 
 NAV_ALL = "https://www.amfiindia.com/spages/NAVAll.txt"
 NAV_HIST = "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx?frmdt={d}&todt={d}"
+# TER (expense ratio) — the JSON API behind amfiindia.com/ter-of-mf-schemes.
+# Rows are daily per scheme and carry BOTH plans: D_TER (Direct) and R_TER (Regular).
+TER_MONTHS = "https://www.amfiindia.com/api/populate-ter-month?year={fy}"
+TER_DATA = ("https://www.amfiindia.com/api/populate-te-rdata-revised"
+            "?MF_ID=All&Month={m}&strCat=-1&strType=-1&page={p}&pageSize=2000")
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125 Safari/537.36"}
+TER_HEADERS = dict(HEADERS, Referer="https://www.amfiindia.com/ter-of-mf-schemes",
+                   Accept="application/json, text/plain, */*")
 
 MONTHS_BACK = 63          # 61 completed month-ends: 60 months back plus the base point for 5Y
 RISK_FREE = 6.5           # % — used for Sharpe
@@ -52,17 +60,20 @@ KEEP_CATEGORY_PREFIXES = ("Equity Scheme", "Hybrid Scheme", "Solution Oriented S
 KEEP_CATEGORY_EXACT = ("Other Scheme - Index Funds",)
 
 # Payout options make NAV series non-comparable (NAV drops on each distribution).
-DROP_NAME_TOKENS = ("idcw", "dividend", "bonus", "payout", "unclaimed", "segregated")
+# "Income Distribution cum capital withdrawal" is IDCW spelled out — same thing,
+# and it slips past a plain "idcw" check.
+DROP_NAME_TOKENS = ("idcw", "dividend", "bonus", "payout", "unclaimed", "segregated",
+                    "income distribution", "reinvestment")
 
 
 # ─────────────────────────────────────────────
 # FETCH + PARSE
 # ─────────────────────────────────────────────
 
-def _get(url, tries=3):
+def _get(url, tries=3, headers=None):
     for i in range(tries):
         try:
-            r = requests.get(url, headers=HEADERS, timeout=REQ_TIMEOUT)
+            r = requests.get(url, headers=headers or HEADERS, timeout=REQ_TIMEOUT)
             if r.status_code == 200 and r.text:
                 return r.text
         except Exception as e:
@@ -152,6 +163,99 @@ def fetch_month_end(d, back=6):
         if len(navs) >= MIN_SCHEMES:
             return day, navs
     return None, {}
+
+
+# ─────────────────────────────────────────────
+# EXPENSE RATIO (TER)
+# ─────────────────────────────────────────────
+
+# TER rows are keyed by NSDL scheme code and name the *base* scheme ("HDFC Flexi Cap
+# Fund") while NAV rows name the plan+option ("HDFC Flexi Cap Fund - Direct - Growth"),
+# and there is no shared identifier — so the join is by normalised name.
+_PLAN_JUNK = re.compile(
+    r"\b(direct|regular|growth|option|plan|payout|reinvestment|idcw|dividend|bonus|cumulative|and)\b")
+
+
+def norm_name(n):
+    n = n.lower().replace("income distribution cum capital withdrawal", " ").replace("&", " and ")
+    n = re.sub(r"\(.*?\)", " ", n)          # "(erstwhile Bluechip Fund)"
+    n = re.sub(r"[-–—]", " ", n)
+    n = _PLAN_JUNK.sub(" ", n)
+    n = re.sub(r"[^a-z0-9 ]", " ", n)
+    return re.sub(r"\s+", " ", n).strip()
+
+
+def tight_name(n):
+    """Space-insensitive fallback key with a trailing 'fund' dropped — catches
+    'Flexicap' vs 'Flexi Cap' and 'Motilal Oswal Large Cap' vs '… Large Cap Fund'."""
+    k = norm_name(n).replace(" ", "")
+    return k[:-4] if k.endswith("fund") else k
+
+
+def fetch_ter():
+    """{normalised name: row} for the most recent month AMFI has published."""
+    today = date.today()
+    fy = f"{today.year}-{today.year + 1}" if today.month >= 4 else f"{today.year - 1}-{today.year}"
+    body = _get(TER_MONTHS.format(fy=fy), headers=TER_HEADERS)
+    months = json.loads(body) if body else []
+    if not months:
+        print("   ! TER: no months listed for FY", fy)
+        return {}, {}, None
+
+    for m in months:                        # newest first; the current month is often empty
+        mn = m.get("MonthNumber")
+        rows, page = {}, 1
+        while True:
+            body = _get(TER_DATA.format(m=mn, p=page), headers=TER_HEADERS)
+            if not body:
+                break
+            j = json.loads(body)
+            for r in j.get("data", []):
+                k = r["NSDLSchemeCode"]     # keep the latest day in the month
+                if k not in rows or r["TER_Date"] > rows[k]["TER_Date"]:
+                    rows[k] = r
+            meta = j.get("meta", {})
+            if page >= meta.get("pageCount", 0):
+                break
+            page += 1
+        if len(rows) > 500:
+            by_norm, by_tight = {}, {}
+            for r in rows.values():
+                by_norm.setdefault(norm_name(r["Scheme_Name"]), r)
+                by_tight.setdefault(tight_name(r["Scheme_Name"]), r)
+            print(f"  TER: {len(rows)} schemes for {m.get('MonthYear')}")
+            return by_norm, by_tight, m.get("MonthYear")
+        print(f"   . TER: {m.get('MonthYear')} empty, trying the previous month")
+    return {}, {}, None
+
+
+MAX_PLAUSIBLE_TER = 5.0   # SEBI caps the fee near 2.25%; see below
+
+
+def ter_for(fund, by_norm, by_tight):
+    """(expense ratio, all-in TER) for this fund's plan — None where unmatched.
+
+    "Expense Ratio" is AMFI's Base Expense Ratio: the recurring fee SEBI caps and
+    the number investors compare. The all-in TER adds brokerage, transaction cost
+    and statutory levies, and AMFI annualises those over the reference period — on
+    a fund that has only traded for days that produces nonsense (levies of 23% on
+    one hybrid fund), so implausible all-in values are dropped rather than shown.
+    """
+    row = by_norm.get(norm_name(fund["name"])) or by_tight.get(tight_name(fund["name"]))
+    if not row:
+        return None, None
+    p = "D" if plan_of(fund["name"]) == "Direct" else "R"
+
+    def val(key, ceiling=None):
+        try:
+            v = float(row.get(key))
+        except (TypeError, ValueError):
+            return None
+        if v <= 0 or (ceiling and v > ceiling):
+            return None
+        return round(v, 2)
+
+    return val(f"{p}_BER"), val(f"{p}_TER", MAX_PLAUSIBLE_TER)
 
 
 # ─────────────────────────────────────────────
@@ -267,6 +371,8 @@ def main():
         print("FATAL — too little history to compute returns; keeping previous output")
         return 1
 
+    ter_norm, ter_tight, ter_month = fetch_ter()
+
     rows = []
     for code, f in universe.items():
         h = history.get(code, {})
@@ -280,6 +386,7 @@ def main():
         r5 = cagr(latest, nav_near(pts, years_ago(last_dt, 5)), 5) if last_dt else None
         sd, mdd, pos = series_metrics(navs)
         sharpe = round((r3 - RISK_FREE) / sd, 2) if (r3 is not None and sd) else None
+        expense, all_in_ter = ter_for(f, ter_norm, ter_tight)
 
         rows.append({
             "Scheme Code": code,
@@ -289,6 +396,8 @@ def main():
             "Plan": plan_of(f["name"]),
             "NAV": round(latest, 4),
             "NAV Date": f["nav_date"],
+            "Expense Ratio %": expense,
+            "TER incl. Costs %": all_in_ter,
             "1Y Return %": r1,
             "3Y CAGR %": r3,
             "5Y CAGR %": r5,
@@ -315,6 +424,7 @@ def main():
     rows.sort(key=lambda r: (r["Category"], -(r["3Y CAGR %"] if r["3Y CAGR %"] is not None else -999)))
 
     cols = ["Scheme Code", "Scheme Name", "Fund House", "Category", "Plan", "NAV", "NAV Date",
+            "Expense Ratio %", "TER incl. Costs %",
             "1Y Return %", "3Y CAGR %", "5Y CAGR %", "SD (Annualised) %", "Sharpe (3Y)",
             "Max Drawdown %", "Positive Months %", "1Y Rank in Category", "3Y Rank in Category",
             "1Y Category Size", "3Y Category Size", "History (Months)", "ISIN"]
@@ -335,8 +445,11 @@ def main():
             w.writerow({c: r[c] for c in cols})
 
     with_3y = sum(1 for r in rows if r["3Y CAGR %"] is not None)
+    with_ter = sum(1 for r in rows if r["Expense Ratio %"] is not None)
     print(f"\n[ok] {len(rows)} funds → {OUT_JSON}")
     print(f"     {with_3y} with a 3Y CAGR · NAV as of {rows[0]['NAV Date'] if rows else '?'}")
+    print(f"     {with_ter} with an expense ratio ({with_ter / len(rows) * 100:.1f}%)"
+          f"{f' · TER month {ter_month}' if ter_month else ''}")
     return 0
 
 
