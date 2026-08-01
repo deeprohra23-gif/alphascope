@@ -25,8 +25,11 @@
     num('1Y Return %', 2, 110), num('3Y CAGR %', 2, 105), num('5Y CAGR %', 2, 105),
     num('SD (Annualised) %', 2, 130), num('Sharpe (3Y)', 2, 105), num('Max Drawdown %', 2, 130),
     num('Positive Months %', 1, 130), num('3Y Rank in Category', 0, 140), num('1Y Rank in Category', 0, 140),
-    num('TER incl. Costs %', 2, 140), num('History (Months)', 0, 120),
+    num('History (Months)', 0, 120),
   ];
+  // "TER incl. Costs %" is in funds.json but deliberately not shown: AMFI annualises
+  // the brokerage/levy add-ons, so it's distorted for recently-launched funds and the
+  // base Expense Ratio is the fair comparison.
   const MOBILE = ['NAV', '1Y Return %', '3Y CAGR %'];
   const cols = () => window.compactCols(COLS, MOBILE, curSortCol);
 
