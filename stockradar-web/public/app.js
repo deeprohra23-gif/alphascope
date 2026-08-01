@@ -54,6 +54,43 @@ const VIEWS = {
     numCol('Promoter Holding %',1,150), numCol('Pledge %',1,90), numCol('Fundamental Score',1,140) ],
 };
 
+// ── mobile: compact default column set ──
+// Phone screens can't show 15 columns, so below 640px each view drops to its
+// most-scannable few. The "All columns" button (mobile-only) restores the full set;
+// pinned identity columns always survive the filter.
+const MQ_COMPACT = window.matchMedia('(max-width:640px)');
+const MOBILE_FIELDS = {
+  overview: ['Current Price', 'Day Change %', 'Technical Insight'],
+  technicals: ['Current Price', 'RSI 14', 'MACD Signal', 'Supertrend'],
+  returns: ['ROC 1M %', 'ROC 3M %', '1Y CAGR %'],
+  risk: ['SD 1Y %', '1Y Max Drawdown %', '% from 52W High'],
+  fundamentals: ['PE Ratio', 'ROE %', 'Debt/Equity'],
+};
+// shorter headers so the compact set fits a phone without sideways scrolling
+const SHORT_H = {
+  'Current Price': 'Price', 'Day Change %': 'Chg %', 'Composite Score': 'Score',
+  'Technical Score': 'Tech Sc', 'Fundamental Score': 'Fund Sc', 'Momentum Score': 'Mom',
+  'Beta 1Y (Daily)': 'Beta', '1Y Max Drawdown %': 'Max DD', '% from 52W High': '% 52WH',
+  'Debt/Equity': 'D/E', 'Market Regime': 'Regime', 'Dividend Yield %': 'Div %',
+};
+let allCols = false;   // user opted out of the compact set
+const compactOn = () => MQ_COMPACT.matches && !allCols;
+// keep = fields to retain; pinned columns and the active sort column are always kept
+// (sorting by a column you can't see is useless on a phone)
+const compactCols = (defs, keep, sortCol) => (!compactOn() || !keep) ? defs
+  : defs.filter(c => c.pinned || keep.includes(c.field) || c.field === sortCol)
+        .map(c => ({ ...c, headerName: SHORT_H[c.field] || c.headerName || c.field,
+                     // floors so tickers/prices aren't truncated; if the set can't fit,
+                     // the grid scrolls horizontally rather than shrinking to unreadable
+                     minWidth: c.pinned ? 108 : 72 }));
+const viewCols = view => compactCols(VIEWS[view], MOBILE_FIELDS[view], curSortCol);
+// compact mode fills the viewport instead of sizing to content (which overflows a phone)
+const refitGrid = api => { if (!api) return; compactOn() ? api.sizeColumnsToFit() : api.autoSizeAllColumns(); };
+const autoSizeStrategy = () => compactOn() ? { type: 'fitGridWidth' } : { type: 'fitCellContents' };
+// modules that own a grid re-apply their columnDefs on this event
+const emitColsMode = () => window.dispatchEvent(new Event('colsmode'));
+MQ_COMPACT.addEventListener('change', emitColsMode);
+
 let ALL = [], gridApi = null, curView = 'overview';
 let SCREENS_META = [], mode = 'all', selScreen = null, FILTER_COLS = [], SORT_ORDER = [], externalRows = null;
 let curSortCol = 'Composite Score', curSortDir = 'desc';
@@ -61,18 +98,19 @@ let curSortCol = 'Composite Score', curSortDir = 'desc';
 const MULTI_COLS = new Set(['Index Membership']);
 
 const gridOptions = {
-  columnDefs: VIEWS.overview,
+  columnDefs: viewCols('overview'),
   defaultColDef: { sortable:false, resizable:true, filter:true },   // sorting is driven by the Sort-by dropdown
   rowSelection: 'single', animateRows: true,
   autoSizeStrategy: { type: 'fitCellContents' },   // size every column to its content
   onRowClicked: e => openPanel(e.data),
-  onFirstDataRendered: p => p.api.autoSizeAllColumns(),
+  onFirstDataRendered: p => refitGrid(p.api),
   onModelUpdated: () => { if (gridApi) document.getElementById('count').textContent = `${gridApi.getDisplayedRowCount()} stocks`; },
 };
 
 // ── tab navigation ──
 // expose grid helpers so index.js can reuse the same column styling
-Object.assign(window, { VIEWS, numCol, grClass, numFmt, insightRenderer, regimeRenderer, ddRenderer, gridOptions, tk, stockLabel });
+Object.assign(window, { VIEWS, numCol, grClass, numFmt, insightRenderer, regimeRenderer, ddRenderer, gridOptions, tk, stockLabel,
+  MOBILE_FIELDS, compactCols, refitGrid, autoSizeStrategy });
 
 function activateMainTab(tab) {
   document.querySelectorAll('.mn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
@@ -108,7 +146,12 @@ function initStocks() {
   if (!_stocksInit) _stocksInit = (async () => {
     try { await ensureData(); }
     catch (e) { $('count').textContent = 'Failed to load data/stocks.json — serve over http'; throw e; }
-    gridApi = agGrid.createGrid($('grid'), gridOptions);
+    // Resolve both at grid-creation time, not module load — the viewport may have settled since.
+    // AG Grid applies autoSizeStrategy at init and it wins over a later sizeColumnsToFit,
+    // so pick the right one up front: fill the viewport on phones, size to content on desktop.
+    gridOptions.columnDefs = viewCols(curView);
+    gridOptions.autoSizeStrategy = autoSizeStrategy();
+    gridApi = window.gridApi = agGrid.createGrid($('grid'), gridOptions);
     buildScreens();
     FILTER_COLS = Object.keys(ALL[0]).filter(k => !['Screens', 'Description'].includes(k));
     // shared column order (used by both the Sort-by dropdown and the "+ Filter" column picker) — key ones first
@@ -301,12 +344,28 @@ document.getElementById('viewtabs').addEventListener('click', e => {
   const btn = e.target.closest('.vt'); if (!btn) return;
   document.querySelectorAll('.vt').forEach(b => b.classList.remove('active'));
   btn.classList.add('active'); curView = btn.dataset.view;
-  gridApi.setGridOption('columnDefs', VIEWS[curView]);   // row order (sort) is preserved automatically
-  setTimeout(() => gridApi.autoSizeAllColumns(), 30);    // re-fit widths to the new columns
+  gridApi.setGridOption('columnDefs', viewCols(curView));   // row order (sort) is preserved automatically
+  setTimeout(() => refitGrid(gridApi), 30);                 // re-fit widths to the new columns
+});
+
+// "All columns" (mobile only) — toggles every grid between the compact and full column set
+document.querySelectorAll('.colsBtn').forEach(b => b.addEventListener('click', () => {
+  allCols = !allCols;
+  document.querySelectorAll('.colsBtn .cb-t').forEach(t => { t.textContent = allCols ? 'Fewer columns' : 'All columns'; });
+  emitColsMode();
+}));
+window.addEventListener('colsmode', () => {
+  if (!gridApi) return;
+  gridApi.setGridOption('columnDefs', viewCols(curView));
+  setTimeout(() => refitGrid(gridApi), 30);
 });
 
 $('search').addEventListener('input', computeRows);
-$('sortCol').addEventListener('change', () => { curSortCol = $('sortCol').value; computeRows(); });
+$('sortCol').addEventListener('change', () => {
+  curSortCol = $('sortCol').value;
+  if (compactOn()) { gridApi.setGridOption('columnDefs', viewCols(curView)); setTimeout(() => refitGrid(gridApi), 30); }
+  computeRows();
+});
 $('sortDir').addEventListener('change', () => { curSortDir = $('sortDir').value; computeRows(); });
 $('exportBtn').addEventListener('click', () => gridApi.exportDataAsCsv({ fileName: `screenedge_${curView}.csv` }));
 

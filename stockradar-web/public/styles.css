@@ -256,22 +256,39 @@ input.ctl{min-width:200px}
 .placeholder{align-items:center;justify-content:center}
 
 /* ── Mobile ── */
+.mobonly{display:none}
 @media(max-width:640px){
   .topbar{height:auto;min-height:52px;flex-wrap:wrap;gap:6px 12px;padding:8px 12px}
   .brand{font-size:14px}
   .mainnav{order:3;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
-  .mn{flex-shrink:0}
+  .mn{flex-shrink:0;padding:9px 12px}
   .freshness{margin-left:auto;order:2}
-  .substabs,.viewtabs,.cattabs,.controls{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;scrollbar-width:thin}
+  .substabs,.viewtabs,.cattabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;scrollbar-width:thin}
   .sub,.vt,.cattabs button{flex-shrink:0}
-  .controls{gap:6px;padding:10px 12px 6px}
-  input.ctl{min-width:150px}
+  .sub,.vt{padding:8px 13px}
+  /* touch targets: ~40px tall minimum */
+  .mn,.sub,.vt,.cattabs button,.ctl{min-height:40px}
+  .filtrow .rm{width:36px;height:36px}
+  /* controls WRAP instead of scrolling sideways — nothing ends up off-screen */
+  .controls{gap:6px;padding:10px 12px 6px;flex-wrap:wrap;overflow:visible;align-items:center}
+  .controls>input.ctl{flex:1 1 100%;width:100%;min-width:0}
+  .controls>select.ctl{flex:1 1 130px;min-width:0}
+  .controls>button.ctl{flex:0 1 auto}
+  .ctl{padding:9px 11px}
+  .ctl-btn{margin-left:0}
+  .idxhint{display:none}
+  .mobonly{display:inline-flex}
+  .filtrow .f-col,.filtrow select,.filtrow input{flex:1 1 130px;min-width:0}
   #grid,#idxGrid{margin:0 8px}
+  .sr-grid{--ag-font-size:11px}
   .dashbody,.toolbody,.idxdrill{padding-left:8px;padding-right:8px}
   .drill-cards{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
   .rot-row{grid-template-columns:96px 1fr 44px}.rot-meta{display:none}
   .cmp-chips,.wl-summary,.ev-cards,.cmp-table-wrap{margin-left:8px;margin-right:8px}
-  .panel{width:100vw}
+  #panel{width:100vw}   /* id beats the later .panel rule, which would otherwise win on order */
+  .pulse{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
+  .sip-lab{flex:1 1 100%}
+  .sip-lab input.ctl,.sip-lab select.ctl{flex:1 1 auto;min-width:0}
 }
 .ph{text-align:center;color:var(--text2);max-width:520px}
 .ph h2{color:var(--text);font-size:22px;margin-bottom:8px}

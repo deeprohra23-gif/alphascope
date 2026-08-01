@@ -92,7 +92,7 @@
     const filters = readDrillFilters();
     const rows = curDrillRows.filter(r => filters.every(f => matchF(r, f)));
     drillApi.setGridOption('rowData', sortBy(rows, curDrillSortCol, curDrillSortDir));
-    setTimeout(() => drillApi && drillApi.autoSizeAllColumns(), 30);   // refit after column/row swap
+    setTimeout(() => window.refitGrid(drillApi), 30);   // refit after column/row swap
   }
 
   const IDX_COLS = [
@@ -114,16 +114,21 @@
     window.numCol('1Y CAGR %', 2), window.numCol('SD 1Y %', 2, 100), C('Drawdown Status', { cellRenderer: window.ddRenderer, width: 120 }),
   ];
 
+  // mobile compact column sets (see compactCols in app.js) — pinned Index/Name always kept
+  const IDX_MOBILE = ['Current Price', 'Day Change %', 'Market Regime'];
+  const idxCols = () => window.compactCols(curISub === 'indian' ? IDX_COLS : GLB_COLS, IDX_MOBILE, curIdxSortCol);
+  const drillCols = () => window.compactCols(drillViews()[curDView], window.MOBILE_FIELDS[curDView], curDrillSortCol);
+
   window.initIndex = async function () {
     if (idxApi) return;
     try { [INDICES, GLOBAL] = await Promise.all([fetch('data/indices.json').then(r => r.json()), fetch('data/global.json').then(r => r.json())]); }
     catch (e) { return; }
     try { await ensureData(); } catch (e) { }
     idxApi = agGrid.createGrid($('idxGrid'), {
-      columnDefs: IDX_COLS, defaultColDef: { sortable: false, resizable: true, filter: true },
+      columnDefs: idxCols(), defaultColDef: { sortable: false, resizable: true, filter: true },
       rowSelection: 'single', animateRows: true,
-      autoSizeStrategy: { type: 'fitCellContents' },   // size every column to content + header (no truncated labels)
-      onFirstDataRendered: p => p.api.autoSizeAllColumns(),
+      autoSizeStrategy: window.autoSizeStrategy(),   // fill the viewport on phones, size to content on desktop
+      onFirstDataRendered: p => window.refitGrid(p.api),
       onRowClicked: e => { if (curISub === 'indian') openDrill(e.data); },
     });
     const cats = [...new Set(INDICES.map(r => r.Category).filter(Boolean))].sort();
@@ -142,16 +147,15 @@
 
   function applyIdx() {
     const q = $('idxSearch').value.trim().toLowerCase(), cat = $('idxCat').value;
+    idxApi.setGridOption('columnDefs', idxCols());
     if (curISub === 'indian') {
-      idxApi.setGridOption('columnDefs', IDX_COLS);
       const rows = INDICES.filter(r => (!q || (r.Index || '').toLowerCase().includes(q)) && (!cat || r.Category === cat));
       idxApi.setGridOption('rowData', sortBy(rows, curIdxSortCol, curIdxSortDir));
     } else {
-      idxApi.setGridOption('columnDefs', GLB_COLS);
       const rows = GLOBAL.filter(r => !q || (r.Name || '').toLowerCase().includes(q));
       idxApi.setGridOption('rowData', sortBy(rows, curIdxSortCol, curIdxSortDir));
     }
-    setTimeout(() => idxApi && idxApi.autoSizeAllColumns(), 30);   // refit after column/row swap
+    setTimeout(() => window.refitGrid(idxApi), 30);   // refit after column/row swap
   }
 
   $('idxsub').addEventListener('click', e => {
@@ -200,17 +204,17 @@
     renderGL(+$('glCount').value);
 
     if (!drillApi) drillApi = agGrid.createGrid($('drillGrid'), {
-      columnDefs: drillViews().overview, defaultColDef: { sortable: false, resizable: true, filter: true },
+      columnDefs: drillCols(), defaultColDef: { sortable: false, resizable: true, filter: true },
       rowSelection: 'single', animateRows: true,
-      autoSizeStrategy: { type: 'fitCellContents' },
-      onFirstDataRendered: p => p.api.autoSizeAllColumns(),
+      autoSizeStrategy: window.autoSizeStrategy(),
+      onFirstDataRendered: p => window.refitGrid(p.api),
       onRowClicked: e => window.openPanel && window.openPanel(e.data),
     });
     curDView = 'overview';
     document.querySelectorAll('#drillViewtabs .vt').forEach(x => x.classList.toggle('active', x.dataset.dview === 'overview'));
     $('drillFilterbar').innerHTML = ''; $('drillFilterbar').hidden = true;   // fresh filters per index
     fillDrillSort();
-    drillApi.setGridOption('columnDefs', drillViews().overview);
+    drillApi.setGridOption('columnDefs', drillCols());
     computeDrill();
     $('idxList').hidden = true; $('idxDrill').hidden = false;
   }
@@ -228,11 +232,20 @@
     const b = e.target.closest('.vt'); if (!b) return;
     document.querySelectorAll('#drillViewtabs .vt').forEach(x => x.classList.remove('active'));
     b.classList.add('active'); curDView = b.dataset.dview;
-    drillApi.setGridOption('columnDefs', drillViews()[curDView]);
+    drillApi.setGridOption('columnDefs', drillCols());
     computeDrill();   // row order/filters are preserved across view tabs
   });
+  // compact/full column toggle (mobile) — re-apply to whichever index grid exists
+  window.addEventListener('colsmode', () => {
+    if (idxApi) applyIdx();
+    if (drillApi) { drillApi.setGridOption('columnDefs', drillCols()); computeDrill(); }
+  });
   $('drillAddFilterBtn').addEventListener('click', addDrillFilterRow);
-  $('drillSortCol').addEventListener('change', () => { curDrillSortCol = $('drillSortCol').value; computeDrill(); });
+  $('drillSortCol').addEventListener('change', () => {
+    curDrillSortCol = $('drillSortCol').value;
+    drillApi.setGridOption('columnDefs', drillCols());   // compact mode keeps the sorted column visible
+    computeDrill();
+  });
   $('drillSortDir').addEventListener('change', () => { curDrillSortDir = $('drillSortDir').value; computeDrill(); });
   $('drillExportBtn').addEventListener('click', () => drillApi && drillApi.exportDataAsCsv({ fileName: `screenedge_${(curIndexName || 'index').replace(/[^\w]+/g, '_').toLowerCase()}_constituents.csv` }));
   $('drillBack').addEventListener('click', () => { $('idxDrill').hidden = true; $('idxList').hidden = false; });

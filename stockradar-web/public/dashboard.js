@@ -32,6 +32,7 @@
     ['idx', 'Nifty Bank', 'NIFTY BANK', 'landmark'],
     ['glb', 'India VIX', 'INDIA VIX', 'activity'],
     ['glb', 'USD/INR', 'USD / INR', 'rupee'],
+    ['glb', 'Dollar Index', 'DOLLAR INDEX', 'dollar'],
     ['glb', 'Gold', 'GOLD', 'gem'],
     ['glb', 'Silver', 'SILVER', 'gem'],
     ['glb', 'Crude Oil', 'CRUDE OIL', 'droplet'],

@@ -37,11 +37,15 @@ INSTRUMENTS = {
     "Gold":         {"ticker": "GC=F",     "category": "Commodity"},
     "Silver":       {"ticker": "SI=F",     "category": "Commodity"},
     "Crude Oil":    {"ticker": "CL=F",     "category": "Commodity"},
+    "Brent Crude":  {"ticker": "BZ=F",     "category": "Commodity"},
+    "Copper":       {"ticker": "HG=F",     "category": "Commodity"},
     "Natural Gas":  {"ticker": "NG=F",     "category": "Commodity"},
     # Currencies
     "USD/INR":      {"ticker": "INR=X",    "category": "Currency"},
     "EUR/INR":      {"ticker": "EURINR=X", "category": "Currency"},
     "GBP/INR":      {"ticker": "GBPINR=X", "category": "Currency"},
+    "JPY/INR":      {"ticker": "JPYINR=X", "category": "Currency"},
+    "Dollar Index": {"ticker": "DX-Y.NYB", "category": "Currency"},
     # Global Indices
     "S&P 500":      {"ticker": "^GSPC",    "category": "Global Index"},
     "Nasdaq":       {"ticker": "^IXIC",    "category": "Global Index"},
@@ -49,8 +53,13 @@ INSTRUMENTS = {
     "Nikkei 225":   {"ticker": "^N225",    "category": "Global Index"},
     "Hang Seng":    {"ticker": "^HSI",     "category": "Global Index"},
     "FTSE 100":     {"ticker": "^FTSE",    "category": "Global Index"},
+    "DAX":          {"ticker": "^GDAXI",   "category": "Global Index"},
+    "Shanghai Composite": {"ticker": "000001.SS", "category": "Global Index"},
     "India VIX":    {"ticker": "^INDIAVIX", "category": "Global Index"},
+    "US VIX":       {"ticker": "^VIX",     "category": "Global Index"},
     "US 10Y Yield": {"ticker": "^TNX",     "category": "Global Index"},
+    # Crypto
+    "Bitcoin":      {"ticker": "BTC-USD",  "category": "Crypto"},
 }
 
 # ─────────────────────────────────────────────
@@ -169,7 +178,7 @@ def main():
     out = pd.DataFrame(results)
 
     # Sort by category
-    cat_order = {"Commodity": 0, "Currency": 1, "Global Index": 2}
+    cat_order = {"Commodity": 0, "Currency": 1, "Global Index": 2, "Crypto": 3}
     out["_sort"] = out["Category"].map(cat_order)
     out = out.sort_values(["_sort", "Name"]).drop(columns="_sort").reset_index(drop=True)
 
