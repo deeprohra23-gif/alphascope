@@ -282,7 +282,9 @@ input.ctl{min-width:200px}
   .mobonly{display:inline-flex}
   .filtrow .f-col,.filtrow select,.filtrow input{flex:1 1 130px;min-width:0}
   #grid,#idxGrid,#fundGrid{margin:0 8px}
-  .sr-grid{--ag-font-size:11px}
+  /* quartz defaults to 16px of horizontal cell padding — 32px of a 72px column,
+     which leaves headers like "Chg %" no room to render */
+  .sr-grid{--ag-font-size:11px;--ag-cell-horizontal-padding:6px}
   .dashbody,.toolbody,.idxdrill{padding-left:8px;padding-right:8px}
   .drill-cards{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
   .rot-row{grid-template-columns:96px 1fr 44px}.rot-meta{display:none}

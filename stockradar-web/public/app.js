@@ -72,6 +72,9 @@ const SHORT_H = {
   'Technical Score': 'Tech Sc', 'Fundamental Score': 'Fund Sc', 'Momentum Score': 'Mom',
   'Beta 1Y (Daily)': 'Beta', '1Y Max Drawdown %': 'Max DD', '% from 52W High': '% 52WH',
   'Debt/Equity': 'D/E', 'Market Regime': 'Regime', 'Dividend Yield %': 'Div %',
+  // funds
+  '1Y Return %': '1Y %', '3Y CAGR %': '3Y %', '5Y CAGR %': '5Y %', 'Expense Ratio %': 'Exp %',
+  'SD (Annualised) %': 'SD %', 'Sharpe (3Y)': 'Sharpe', 'Scheme Name': 'Fund',
 };
 let allCols = false;   // user opted out of the compact set
 const compactOn = () => MQ_COMPACT.matches && !allCols;
@@ -84,8 +87,30 @@ const compactCols = (defs, keep, sortCol) => (!compactOn() || !keep) ? defs
                      // the grid scrolls horizontally rather than shrinking to unreadable
                      minWidth: c.pinned ? 108 : 72 }));
 const viewCols = view => compactCols(VIEWS[view], MOBILE_FIELDS[view], curSortCol);
+// Sizing to cell contents can still clip the HEADER when values are short and the
+// label isn't ("Day Change %" over "-0.93"), so widen any column whose label is cut off.
+function fitHeaders(api, gridId) {
+  const root = gridId && document.getElementById(gridId);
+  if (!root) return;
+  const widths = [];
+  root.querySelectorAll('.ag-header-cell').forEach(h => {
+    const label = h.querySelector('.ag-header-cell-text');
+    if (!label) return;
+    const over = label.scrollWidth - label.clientWidth;
+    if (over <= 0) return;
+    const key = h.getAttribute('col-id'), col = api.getColumn(key);
+    if (col) widths.push({ key, newWidth: Math.ceil(col.getActualWidth() + over + 4) });
+  });
+  if (widths.length) api.setColumnWidths(widths);
+}
+
 // compact mode fills the viewport instead of sizing to content (which overflows a phone)
-const refitGrid = api => { if (!api) return; compactOn() ? api.sizeColumnsToFit() : api.autoSizeAllColumns(); };
+const refitGrid = (api, gridId) => {
+  if (!api) return;
+  if (compactOn()) { api.sizeColumnsToFit(); return; }   // headers are shortened on phones instead
+  api.autoSizeAllColumns();
+  fitHeaders(api, gridId);
+};
 const autoSizeStrategy = () => compactOn() ? { type: 'fitGridWidth' } : { type: 'fitCellContents' };
 // modules that own a grid re-apply their columnDefs on this event
 const emitColsMode = () => window.dispatchEvent(new Event('colsmode'));
@@ -103,7 +128,7 @@ const gridOptions = {
   rowSelection: 'single', animateRows: true,
   autoSizeStrategy: { type: 'fitCellContents' },   // size every column to its content
   onRowClicked: e => openPanel(e.data),
-  onFirstDataRendered: p => refitGrid(p.api),
+  onFirstDataRendered: p => refitGrid(p.api, 'grid'),
   onModelUpdated: () => { if (gridApi) document.getElementById('count').textContent = `${gridApi.getDisplayedRowCount()} stocks`; },
 };
 
@@ -346,7 +371,7 @@ document.getElementById('viewtabs').addEventListener('click', e => {
   document.querySelectorAll('.vt').forEach(b => b.classList.remove('active'));
   btn.classList.add('active'); curView = btn.dataset.view;
   gridApi.setGridOption('columnDefs', viewCols(curView));   // row order (sort) is preserved automatically
-  setTimeout(() => refitGrid(gridApi), 30);                 // re-fit widths to the new columns
+  setTimeout(() => refitGrid(gridApi, 'grid'), 30);         // re-fit widths to the new columns
 });
 
 // "All columns" (mobile only) — toggles every grid between the compact and full column set
@@ -358,13 +383,13 @@ document.querySelectorAll('.colsBtn').forEach(b => b.addEventListener('click', (
 window.addEventListener('colsmode', () => {
   if (!gridApi) return;
   gridApi.setGridOption('columnDefs', viewCols(curView));
-  setTimeout(() => refitGrid(gridApi), 30);
+  setTimeout(() => refitGrid(gridApi, 'grid'), 30);
 });
 
 $('search').addEventListener('input', computeRows);
 $('sortCol').addEventListener('change', () => {
   curSortCol = $('sortCol').value;
-  if (compactOn()) { gridApi.setGridOption('columnDefs', viewCols(curView)); setTimeout(() => refitGrid(gridApi), 30); }
+  if (compactOn()) { gridApi.setGridOption('columnDefs', viewCols(curView)); setTimeout(() => refitGrid(gridApi, 'grid'), 30); }
   computeRows();
 });
 $('sortDir').addEventListener('change', () => { curSortDir = $('sortDir').value; computeRows(); });

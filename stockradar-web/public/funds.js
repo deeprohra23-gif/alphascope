@@ -9,15 +9,18 @@
   // shared numeric/colour helpers from app.js so Funds looks identical to Stocks
   const num = (f, d = 2, w) => window.numCol(f, d, w);
 
+  // maxWidth matters here: fund names run to 90+ characters, and sizing to content
+  // would hand one column half the viewport and push the metrics off-screen
   const nameCol = C('Scheme Name', {
-    pinned: 'left', width: 300, cellClass: 'cell-name', filter: 'agTextColumnFilter',
+    pinned: 'left', width: 300, maxWidth: 340, cellClass: 'cell-name', filter: 'agTextColumnFilter',
     // the plan/option suffix is noise in a list — the Plan column carries it
     valueFormatter: p => (p.value || '').replace(/\s*-\s*(direct|regular)\s*(plan)?\s*-?\s*(growth)?\s*(option)?\s*$/i, ''),
     tooltipValueGetter: p => p.value,
   });
 
   const COLS = [
-    nameCol, C('Fund House', { width: 190 }), C('Category', { width: 210 }), C('Plan', { width: 90 }),
+    nameCol, C('Fund House', { width: 190, maxWidth: 220 }), C('Category', { width: 210, maxWidth: 240 }),
+    C('Plan', { width: 90 }),
     num('NAV', 2, 95), num('Expense Ratio %', 2, 125),
     num('1Y Return %', 2, 110), num('3Y CAGR %', 2, 105), num('5Y CAGR %', 2, 105),
     num('SD (Annualised) %', 2, 130), num('Sharpe (3Y)', 2, 105), num('Max Drawdown %', 2, 130),
@@ -121,7 +124,7 @@
     if (curSub === 'screens' && curScreen) rows = rows.filter(curScreen.fn);
     api.setGridOption('rowData', sortBy(rows, curSortCol, curSortDir));
     $('fundCount').textContent = `${rows.length} funds`;
-    setTimeout(() => window.refitGrid(api), 30);
+    setTimeout(() => window.refitGrid(api, 'fundGrid'), 30);
   }
 
   function renderScreens() {
@@ -138,7 +141,7 @@
       columnDefs: cols(), defaultColDef: { sortable: false, resizable: true, filter: true },
       rowSelection: 'single', animateRows: true,
       autoSizeStrategy: window.autoSizeStrategy(),
-      onFirstDataRendered: p => window.refitGrid(p.api),
+      onFirstDataRendered: p => window.refitGrid(p.api, 'fundGrid'),
     });
 
     const cats = [...new Set(FUNDS.map(r => r.Category).filter(Boolean))].sort();

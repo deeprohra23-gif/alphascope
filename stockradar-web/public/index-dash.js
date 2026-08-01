@@ -92,7 +92,7 @@
     const filters = readDrillFilters();
     const rows = curDrillRows.filter(r => filters.every(f => matchF(r, f)));
     drillApi.setGridOption('rowData', sortBy(rows, curDrillSortCol, curDrillSortDir));
-    setTimeout(() => window.refitGrid(drillApi), 30);   // refit after column/row swap
+    setTimeout(() => window.refitGrid(drillApi, 'drillGrid'), 30);   // refit after column/row swap
   }
 
   const IDX_COLS = [
@@ -128,7 +128,7 @@
       columnDefs: idxCols(), defaultColDef: { sortable: false, resizable: true, filter: true },
       rowSelection: 'single', animateRows: true,
       autoSizeStrategy: window.autoSizeStrategy(),   // fill the viewport on phones, size to content on desktop
-      onFirstDataRendered: p => window.refitGrid(p.api),
+      onFirstDataRendered: p => window.refitGrid(p.api, 'idxGrid'),
       onRowClicked: e => { if (curISub === 'indian') openDrill(e.data); },
     });
     const cats = [...new Set(INDICES.map(r => r.Category).filter(Boolean))].sort();
@@ -155,7 +155,7 @@
       const rows = GLOBAL.filter(r => !q || (r.Name || '').toLowerCase().includes(q));
       idxApi.setGridOption('rowData', sortBy(rows, curIdxSortCol, curIdxSortDir));
     }
-    setTimeout(() => window.refitGrid(idxApi), 30);   // refit after column/row swap
+    setTimeout(() => window.refitGrid(idxApi, 'idxGrid'), 30);   // refit after column/row swap
   }
 
   $('idxsub').addEventListener('click', e => {
@@ -207,7 +207,7 @@
       columnDefs: drillCols(), defaultColDef: { sortable: false, resizable: true, filter: true },
       rowSelection: 'single', animateRows: true,
       autoSizeStrategy: window.autoSizeStrategy(),
-      onFirstDataRendered: p => window.refitGrid(p.api),
+      onFirstDataRendered: p => window.refitGrid(p.api, 'drillGrid'),
       onRowClicked: e => window.openPanel && window.openPanel(e.data),
     });
     curDView = 'overview';
