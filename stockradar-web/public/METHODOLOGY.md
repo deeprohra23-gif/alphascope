@@ -347,6 +347,21 @@ Requires accumulated snapshots to populate. Starts showing 1M data after ~30 day
 
 ---
 
+## 📑 Quarterly & Annual Results
+
+The stock card's financial tables come from screener.in — consolidated figures where the company reports them, standalone otherwise (the source is stated under each card).
+
+- **Quarterly Results** — the last 8 reported quarters: Sales, OPM, Net Profit and EPS, with the newest quarter compared against the same quarter a year earlier. Year-on-year is the honest comparison for Indian companies because most have strong seasonality; quarter-on-quarter is also available in the grid but reads more noise.
+- **Earnings Trajectory** — 10 years plus TTM, with a two-year projection extrapolated from the **last five years'** growth (a ten-year CAGR is a poor guide to next year). Projections are labelled (E) and are arithmetic, not analyst estimates.
+- **Key Ratios / Financial Health** — OPM, net margin, ROCE, tax rate, debt/equity, interest coverage, free cash flow, and **CFO / Net Profit**. That last one is the point of the table: profit that never converts to operating cash is the most common warning sign in a set of accounts.
+- **Banks and NBFCs are treated differently.** They report Revenue / Interest / Financing Profit rather than Sales / Operating Profit, so OPM, debt/equity, interest coverage and cash-flow quality are simply not shown for them — screener's "Financing Margin" is revenue minus interest minus expenses and is routinely negative, which is not comparable to an industrial's operating margin. Gross and Net NPA are shown instead where reported.
+
+The **Quarterly** view on the Stocks tab carries the screening columns: Sales and Profit growth (YoY and QoQ), OPM latest versus the year-ago quarter, and the number of consecutive quarters of year-on-year profit growth.
+
+**Limitations:** companies report on different dates, so the "Latest Quarter" column will not be the same period for every stock — check it before comparing. Figures are as filed and are not restated for one-offs, so a single large exceptional item can dominate a growth percentage.
+
+---
+
 ## 🏦 Mutual Funds
 
 Everything on the Funds tab comes from AMFI's public NAV files — no third-party estimates.
@@ -375,6 +390,7 @@ Everything on the Funds tab comes from AMFI's public NAV files — no third-part
 **Data sources:**
 - Technical data (prices, volumes) — Yahoo Finance, daily refresh
 - Fundamental data — screener.in, updated monthly
+- Financial statements (quarterly + annual) — screener.in, updated monthly
 - Index membership — NSE, updated quarterly
 
 **Data limitations:**

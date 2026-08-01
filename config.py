@@ -181,6 +181,16 @@ SCREENS = {
         "rules": ["ROCE > 20%", "ROCE 3Y Avg > 15%", "ROE > 15%", "D/E < 0.5", "Sales Growth 3Y > 10%"],
         "tab": "🏆 Quality"
     },
+    "📑 Results Momentum": {
+        "desc": "Latest quarter beat the same quarter last year on both lines, and it isn't a one-off.",
+        "rules": ["Sales YoY > 10%", "Profit YoY > 20%", "Profit growth streak >= 2 quarters"],
+        "tab": "🏆 Quality"
+    },
+    "⚡ Margin Expansion": {
+        "desc": "Operating margin wider than the same quarter a year ago, with profit growing.",
+        "rules": ["OPM latest >= OPM year-ago + 2pp", "Profit YoY > 0%", "Sales YoY > 0%"],
+        "tab": "🏆 Quality"
+    },
     "💎 Hidden Gems": {
         "desc": "Under-radar small/mid caps with strong fundamentals.",
         "rules": ["Mkt Cap < 20,000 Cr", "ROCE > 15%", "D/E < 0.5", "Sales Growth 3Y > 15%", "Promoter > 50%"],

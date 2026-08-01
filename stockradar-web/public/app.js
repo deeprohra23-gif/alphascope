@@ -52,6 +52,12 @@ const VIEWS = {
     numCol('Sales Growth 3Y %',1,150), numCol('Profit Growth 3Y %',1,150), numCol('EPS Growth 3Y %',1,140),
     numCol('Debt/Equity',2,115), numCol('Interest Coverage',1,140), numCol('Dividend Yield %',2,125), numCol('Dividend Payout %',1,135),
     numCol('Promoter Holding %',1,150), numCol('Pledge %',1,90), numCol('Fundamental Score',1,140) ],
+  quarterly: [ symCol, nameCol, C('Latest Quarter',{width:120}),
+    numCol('Sales YoY %',2,110), numCol('Profit YoY %',2,110),
+    numCol('Sales QoQ %',2,110), numCol('Profit QoQ %',2,110),
+    numCol('OPM Latest %',1,115), numCol('OPM Prev Year %',1,140),
+    numCol('Profit Growth Streak (Qtrs)',0,180),
+    numCol('Sales Growth 1Y %',1,140), numCol('Profit Growth 1Y %',1,145), numCol('Fundamental Score',1,140) ],
 };
 
 // ── mobile: compact default column set ──
@@ -65,6 +71,9 @@ const MOBILE_FIELDS = {
   returns: ['ROC 1M %', 'ROC 3M %', '1Y CAGR %'],
   risk: ['SD 1Y %', '1Y Max Drawdown %', '% from 52W High'],
   fundamentals: ['PE Ratio', 'ROE %', 'Debt/Equity'],
+  // two data columns here, not three: the YoY labels can't shrink further and
+  // still say which comparison they are
+  quarterly: ['Sales YoY %', 'Profit YoY %'],
 };
 // shorter headers so the compact set fits a phone without sideways scrolling
 const SHORT_H = {
@@ -75,6 +84,10 @@ const SHORT_H = {
   // funds
   '1Y Return %': '1Y %', '3Y CAGR %': '3Y %', '5Y CAGR %': '5Y %', 'Expense Ratio %': 'Exp %',
   'SD (Annualised) %': 'SD %', 'Sharpe (3Y)': 'Sharpe', 'Scheme Name': 'Fund',
+  // quarterly results
+  'Sales YoY %': 'Sales YoY', 'Profit YoY %': 'Profit YoY', 'Sales QoQ %': 'Sales QoQ',
+  'Profit QoQ %': 'Profit QoQ', 'OPM Latest %': 'OPM', 'OPM Prev Year %': 'OPM PY',
+  'Profit Growth Streak (Qtrs)': 'Streak', 'Latest Quarter': 'Quarter',
 };
 let allCols = false;   // user opted out of the compact set
 const compactOn = () => MQ_COMPACT.matches && !allCols;
@@ -514,10 +527,153 @@ function renderFinancials(d, S) {
     <div class="pc-fin-h">Financial Health</div>${fh}
     <div class="pc-note">Projections are a simple extrapolation of historical growth. Actual results will vary. Not investment advice.</div>`;
 }
+// ── screener-sourced statements (data/fin/<SYM>.json, built by scrape_screener_financials.py) ──
+// Row labels differ by industry: banks/NBFCs report Revenue / Financing Profit /
+// Financing Margin %, everyone else Sales / Operating Profit / OPM %. Resolve by
+// prefix rather than assuming one schema.
+const finRow = (t, ...names) => {
+  if (!t) return null;
+  for (const n of names) {
+    for (const [label, vals] of Object.entries(t.rows)) {
+      if (label.toLowerCase().startsWith(n)) return vals;
+    }
+  }
+  return null;
+};
+const perLabel = p => /^[A-Za-z]{3} \d{4}$/.test(p) ? 'FY' + p.slice(-2) : p;   // "Mar 2026" → FY26, "TTM" stays
+// values from another table, aligned to the P&L's period list
+const alignTo = (spine, t, ...names) => {
+  const vals = finRow(t, ...names);
+  if (!vals) return spine.map(() => null);
+  const m = {};
+  t.periods.forEach((p, i) => { m[p] = vals[i]; });
+  return spine.map(p => (p in m ? m[p] : null));
+};
+
+function renderScreenerFinancials(d, F) {
+  const A = F.annual, Q = F.quarters, BS = F.balance_sheet, CF = F.cash_flow, RT = F.ratios;
+  if (!A && !Q) return null;
+  const isBank = !!(Q && finRow(Q, 'financing margin'));
+  const crF = v => v == null || isNaN(v) ? '—' : Math.round(v).toLocaleString('en-IN');
+  const n1 = (v, dp = 1) => v == null || isNaN(v) ? '—' : (+v).toFixed(dp);
+  const pctF = v => v == null || isNaN(v) ? '—' : (+v).toFixed(1) + '%';
+  const chg = (a, b) => (a == null || b == null || !b) ? null : (a - b) / Math.abs(b) * 100;
+  let out = '';
+
+  // ── Quarterly Results — the last 8 quarters, plus year-on-year on the newest one ──
+  if (Q) {
+    const keep = 8, from = Math.max(0, Q.periods.length - keep);
+    const cut = a => a ? a.slice(from) : null;
+    const per = Q.periods.slice(from);
+    const sales = cut(finRow(Q, 'sales', 'revenue')), np = cut(finRow(Q, 'net profit'));
+    const opm = cut(finRow(Q, 'opm %')), eps = cut(finRow(Q, 'eps'));
+    const rows = [[isBank ? 'Revenue (Cr)' : 'Sales (Cr)', (sales || []).map(crF)]];
+    // screener's "Financing Margin %" (revenue − interest − expenses) runs negative for
+    // banks and isn't an operating margin, so it's left out rather than mislabelled
+    if (!isBank && opm) rows.push(['OPM', opm.map(pctF)]);
+    rows.push(['Net Profit (Cr)', (np || []).map(crF)], ['EPS', (eps || []).map(v => n1(v, 2))]);
+    if (isBank) {
+      for (const [lab, key] of [['Gross NPA', 'gross npa'], ['Net NPA', 'net npa']]) {
+        const v = cut(finRow(Q, key));
+        if (v && v.some(x => x != null)) rows.push([lab, v.map(pctF)]);
+      }
+    }
+    const i = per.length - 1, y = i - 4;
+    const sYoY = sales && y >= 0 ? chg(sales[i], sales[y]) : null;
+    const pYoY = np && y >= 0 ? chg(np[i], np[y]) : null;
+    const cls = v => v == null ? '' : v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+    out += `<div class="pc-fin-h">Quarterly Results</div>${finTable(per, rows, 0)}
+      <div class="pc-fin-note">${per[i]} vs ${per[y] || '—'}: sales <span class="${cls(sYoY)}">${sYoY == null ? '—' : (sYoY > 0 ? '+' : '') + n1(sYoY)}%</span>
+      · profit <span class="${cls(pYoY)}">${pYoY == null ? '—' : (pYoY > 0 ? '+' : '') + n1(pYoY)}%</span></div>`;
+  }
+
+  // ── Earnings Trajectory — 10 years + TTM, with the same 2-year extrapolation as before ──
+  if (A) {
+    const keep = 11, from = Math.max(0, A.periods.length - keep);
+    const spine = A.periods.slice(from);
+    const cut = a => a ? a.slice(from) : null;
+    const sales = cut(finRow(A, 'sales', 'revenue')) || [], np = cut(finRow(A, 'net profit')) || [],
+      eps = cut(finRow(A, 'eps')) || [], opm = cut(finRow(A, 'opm %')) || [];
+    // project off the last 5 completed years — a 10-year CAGR is a poor guide to next year
+    const real = spine.map((p, i) => p === 'TTM' ? null : i).filter(i => i != null);
+    const cagr = arr => {
+      const x = real.map(i => arr[i]).filter(v => v != null && !isNaN(v)).slice(-5);
+      return (x.length < 2 || x[0] <= 0) ? null : Math.pow(x[x.length - 1] / x[0], 1 / (x.length - 1)) - 1;
+    };
+    const rC = cagr(sales), pC = cagr(np);
+    const cand = [rC, pC].filter(v => v != null);
+    let g = cand.length ? cand.reduce((s, v) => s + v, 0) / cand.length : 0.05;
+    g = Math.max(0.03, Math.min(0.20, g));
+    const lastReal = real[real.length - 1];
+    const fyNum = +String(spine[lastReal]).slice(-2);
+    const eFY = k => 'FY' + String(fyNum + k).padStart(2, '0') + '(E)';
+    const proj = v => v == null ? [null, null] : [v * (1 + g), v * (1 + g) ** 2];
+    const [r1, r2] = proj(sales[lastReal]), [p1, p2] = proj(np[lastReal]), [e1, e2] = proj(eps[lastReal]);
+    const price = d['Current Price'];
+    const pe = e => (price && e) ? n1(price / e) + 'x' : '—';
+    out += `<div class="pc-fin-h">Earnings Trajectory</div>` + finTable(
+      [...spine.map(perLabel), eFY(1), eFY(2)], [
+        [isBank ? 'Revenue (Cr)' : 'Sales (Cr)', [...sales.map(crF), crF(r1), crF(r2)]],
+        ['Net Profit (Cr)', [...np.map(crF), crF(p1), crF(p2)]],
+        ['EPS', [...eps.map(v => n1(v, 2)), n1(e1, 2), n1(e2, 2)]],
+        ['P/E · Fwd', [...eps.map((v, i) => i === lastReal ? pe(v) : '—'), pe(e1), pe(e2)]],
+      ], 2)
+      + `<div class="pc-fin-note">Sales CAGR ${rC == null ? '—' : (rC * 100).toFixed(1) + '%'} · Profit CAGR ${pC == null ? '—' : (pC * 100).toFixed(1) + '%'} (5Y) · projection uses ${(g * 100).toFixed(1)}%</div>`;
+
+    // ── Key Ratios ──
+    const netMargin = spine.map((_, i) => (np[i] != null && sales[i]) ? np[i] / sales[i] * 100 : null);
+    const kr = [];
+    if (!isBank && opm.length) kr.push(['OPM', opm.map(pctF)]);
+    kr.push(['Net Margin', netMargin.map(pctF)]);
+    const roce = alignTo(spine, RT, 'roce'), roe = alignTo(spine, RT, 'roe');
+    if (roce.some(v => v != null)) kr.push(['ROCE', roce.map(pctF)]);
+    if (roe.some(v => v != null)) kr.push(['ROE', roe.map(pctF)]);
+    const tax = cut(finRow(A, 'tax %'));
+    if (tax) kr.push(['Tax Rate', tax.map(pctF)]);
+    out += `<div class="pc-fin-h">Key Ratios</div>` + finTable(spine.map(perLabel), kr, 0);
+
+    // ── Financial Health — leverage plus the cash-quality check ──
+    const fh = [];
+    if (!isBank) {
+      const borrow = alignTo(spine, BS, 'borrowing'), equity = alignTo(spine, BS, 'equity capital'),
+        reserves = alignTo(spine, BS, 'reserves');
+      const de = spine.map((_, i) => {
+        const nw = (equity[i] || 0) + (reserves[i] || 0);
+        return (borrow[i] != null && nw) ? borrow[i] / nw : null;
+      });
+      if (de.some(v => v != null)) fh.push(['Debt/Equity', de.map(v => n1(v, 2))]);
+      const pbt = cut(finRow(A, 'profit before tax')), int = cut(finRow(A, 'interest'));
+      if (pbt && int) fh.push(['Int Coverage', spine.map((_, i) =>
+        (pbt[i] != null && int[i]) ? n1((pbt[i] + int[i]) / int[i]) + 'x' : '—')]);
+    }
+    // Cash-flow quality is only meaningful outside lending: a bank's operating cash flow
+    // swings with deposit and loan flows, so CFO/profit reads as noise (HDFC Bank: -280%).
+    if (!isBank) {
+      const fcf = alignTo(spine, CF, 'free cash flow'), cfo = alignTo(spine, CF, 'cash from operating');
+      if (fcf.some(v => v != null)) fh.push(['FCF (Cr)', fcf.map(crF)]);
+      // profits that never become cash are the thing this row exists to expose
+      if (cfo.some(v => v != null)) fh.push(['CFO / Net Profit', spine.map((_, i) =>
+        (cfo[i] != null && np[i]) ? (cfo[i] / np[i] * 100).toFixed(0) + '%' : '—')]);
+    }
+    if (fh.length) out += `<div class="pc-fin-h">Financial Health</div>` + finTable(spine.map(perLabel), fh, 0);
+  }
+
+  const basis = F.basis === 'standalone' ? 'standalone' : 'consolidated';
+  out += `<div class="pc-note">${basis} figures from screener.in · updated ${F.updated || '—'}. Projections extrapolate past growth and will be wrong; not investment advice.</div>`;
+  return out;
+}
+
 async function loadFinancials(d) {
   const el = document.getElementById('pcFin'); if (!el) return;
+  const sym = tk(d.Symbol);
   try {
-    const j = await fetch(`/api/financials?symbol=${encodeURIComponent(tk(d.Symbol))}`).then(r => r.json());
+    const F = await fetch(`data/fin/${encodeURIComponent(sym)}.json`).then(r => r.ok ? r.json() : null);
+    const html = F && renderScreenerFinancials(d, F);
+    if (html) { el.innerHTML = html; return; }
+  } catch (e) { /* fall through to the live source */ }
+  // newly listed names that haven't been scraped yet still get the Yahoo view
+  try {
+    const j = await fetch(`/api/financials?symbol=${encodeURIComponent(sym)}`).then(r => r.json());
     el.innerHTML = (j && j.series && renderFinancials(d, j.series)) || ratiosSection(d);
   } catch (e) {
     el.innerHTML = ratiosSection(d);

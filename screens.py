@@ -43,6 +43,15 @@ def run_screen(screen_name, base_df):
             (n('Vol ROC 1M %') > 50) & (n('RSI 14') > 50) &
             (s('MACD Signal') == 'Bullish')
         ),
+        # quarterly results (columns come from quarterly_summary.csv via build_data)
+        "📑 Results Momentum": (
+            (n('Sales YoY %') > 10) & (n('Profit YoY %') > 20) &
+            (n('Profit Growth Streak (Qtrs)') >= 2)
+        ),
+        "⚡ Margin Expansion": (
+            (n('OPM Latest %') >= n('OPM Prev Year %') + 2) &
+            (n('Profit YoY %') > 0) & (n('Sales YoY %') > 0)
+        ),
         "🏆 Quality Compounders": (
             (n('ROCE %') > 20) & (n('ROCE 3Y Avg %') > 15) & (n('ROE %') > 15) &
             (n('Debt/Equity') < 0.5) & (n('Sales Growth 3Y %') > 10)
