@@ -106,7 +106,9 @@ input.ctl{min-width:200px}
   --ag-font-family:'JetBrains Mono',monospace; --ag-font-size:12px;
   --ag-selected-row-background-color:#10b98122; --ag-input-focus-border-color:var(--accent);
 }
-#grid{flex:1;margin:0 16px;min-height:0}
+/* grids must claim the leftover column height — without flex/min-height:0 they
+   collapse to nothing and the rows render into a zero-height box */
+#grid,#fundGrid{flex:1;margin:0 16px;min-height:0}
 .statusbar{padding:8px 16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)}
 #count{color:var(--text2);font-weight:600}
 
@@ -279,7 +281,7 @@ input.ctl{min-width:200px}
   .idxhint{display:none}
   .mobonly{display:inline-flex}
   .filtrow .f-col,.filtrow select,.filtrow input{flex:1 1 130px;min-width:0}
-  #grid,#idxGrid{margin:0 8px}
+  #grid,#idxGrid,#fundGrid{margin:0 8px}
   .sr-grid{--ag-font-size:11px}
   .dashbody,.toolbody,.idxdrill{padding-left:8px;padding-right:8px}
   .drill-cards{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
