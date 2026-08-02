@@ -80,13 +80,13 @@ def load_stock_data():
         const = const.rename(columns={"Symbol": sym_col})
         tech = pd.merge(tech, const[[sym_col, "Index Membership"]], on=sym_col, how="left")
 
-    # quarterly results headlines (scrape_screener_financials.py, run manually).
-    # Its Symbol column has no .NS suffix, so match on the stripped ticker.
+    # quarterly results headlines (scrape_screener_financials.py, run manually) —
+    # same Symbol form as fundamentals.csv, so it merges the same way
     qtr = read_csv_safe("quarterly_summary.csv")
     if qtr is not None and "Symbol" in qtr.columns:
         qtr["Symbol"] = qtr["Symbol"].astype(str).str.strip()
-        tech["_tk"] = tech[sym_col].astype(str).str.replace(r"\.(NS|BO)$", "", regex=True)
-        tech = pd.merge(tech, qtr.rename(columns={"Symbol": "_tk"}), on="_tk", how="left").drop(columns=["_tk"])
+        qtr = qtr.rename(columns={"Symbol": sym_col})
+        tech = pd.merge(tech, qtr, on=sym_col, how="left")
 
     tech = tech.loc[:, ~tech.columns.str.contains("^Unnamed")]
     tech = tech.dropna(subset=["Current Price"])
