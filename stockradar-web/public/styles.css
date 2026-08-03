@@ -239,6 +239,11 @@ input.ctl{min-width:200px}
 .cmp-table th{text-align:left;padding:8px 14px;border-bottom:1px solid var(--border);color:var(--text);font-family:Inter;position:sticky;top:0;background:var(--bg)}
 .cmp-table th:first-child{color:var(--muted)}
 .cmp-table td{padding:6px 14px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap}
+/* corporate-action purposes run past 200 characters; wrap them rather than let one
+   row stretch the table and push Ex-Date off the right edge */
+/* needs `td.` — plain .ca-purpose loses to `.cmp-table td{white-space:nowrap}` */
+.cmp-table td.ca-purpose{white-space:normal;max-width:min(520px,46vw);min-width:200px;line-height:1.45}
+.cmp-table td.ca-date{white-space:nowrap}
 .cmp-label{color:var(--text2)!important}
 .cmp-sec td{background:#0f0f11;color:var(--accent)!important;font-family:Inter;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
 .cmp-best{color:var(--green)!important;font-weight:700;background:#10b98114}

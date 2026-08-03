@@ -10,6 +10,7 @@ the pipeline). Run daily from the GitHub Action after the main build.
 
 import json
 import time
+from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -84,10 +85,18 @@ def main():
         except Exception:
             archive = []
 
-    # upsert by date, keep chronological, cap window
+    # upsert by date, keep chronological, cap window.
+    # Sort on the PARSED date: "03-Aug-2026" sorts before "21-Jul-2026" as a string,
+    # which pushed the newest day to the front and made the site show a stale one.
+    def as_date(d):
+        try:
+            return datetime.strptime(d["date"], "%d-%b-%Y")
+        except (ValueError, KeyError):
+            return datetime.min
+
     by_date = {d["date"]: d for d in archive if isinstance(d, dict) and "date" in d}
     by_date[day["date"]] = day
-    merged = sorted(by_date.values(), key=lambda d: d["date"])[-KEEP_DAYS:]
+    merged = sorted(by_date.values(), key=as_date)[-KEEP_DAYS:]
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(merged, ensure_ascii=False))

@@ -81,6 +81,11 @@ def _get(url, tries=3, headers=None):
         try:
             r = requests.get(url, headers=headers or HEADERS, timeout=REQ_TIMEOUT)
             if r.status_code == 200 and r.text:
+                # AMFI serves UTF-8 as "text/plain" with no charset, and the HTTP spec
+                # makes requests fall back to ISO-8859-1 — which turns the curly
+                # apostrophe in "Children's Fund" into "Childrenâ\x80\x99s Fund".
+                if "charset=" not in (r.headers.get("Content-Type") or "").lower():
+                    r.encoding = "utf-8"
                 return r.text
         except Exception as e:
             if i == tries - 1:
@@ -499,7 +504,9 @@ def main():
     OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     with open(OUT_CSV, "w", encoding="utf-8", newline="") as fh:
         import csv
-        w = csv.DictWriter(fh, fieldnames=cols)
+        # force LF: csv defaults to CRLF, and git normalises that differently on
+        # Windows and on the Linux runner, so every other run rewrote all 2,339 lines
+        w = csv.DictWriter(fh, fieldnames=cols, lineterminator="\n")
         w.writeheader()
         for r in rows:
             w.writerow({c: r[c] for c in cols})

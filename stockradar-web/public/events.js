@@ -31,8 +31,11 @@
       <div class="ev-bs"><span>Buy ${money(o.buy)}</span><span>Sell ${money(o.sell)}</span></div></div>`;
   };
   const netCell = v => { const n = parseFloat(v); return `<td class="${n >= 0 ? 'pos' : 'neg'}">${n >= 0 ? '+' : ''}${money(v)}</td>`; };
+  // "03-Aug-2026" → sortable. Don't trust the archive's order: a string sort upstream
+  // once put the newest day first, and slicing the tail then showed a stale day.
+  const fdDate = s => { const d = new Date(String(s).replace(/-/g, ' ')); return isNaN(d) ? 0 : +d; };
   function renderFiiDii(days) {
-    const ordered = days.slice(-6).reverse();          // up to 6 newest-first
+    const ordered = [...days].sort((a, b) => fdDate(a.date) - fdDate(b.date)).slice(-6).reverse();
     const latest = ordered[0];
     const prev = ordered.slice(1);                     // previous days only — latest is already in the cards
     const cards = latest ? `<div class="ev-cards">${fdCard('FII / FPI', latest.date, latest.fii)}${fdCard('DII', latest.date, latest.dii)}</div>` : '';
@@ -89,8 +92,10 @@
     let rows = corpData.filter(r => (!type || r._type === type) && (!uni || UNIV.has(r.symbol)) && (!up || (r._ex && r._ex >= today)));
     rows.sort((a, b) => (a._ex || 0) - (b._ex || 0));
     if (!rows.length) return $('corpOut').innerHTML = '<p class="empty" style="margin:14px 16px">No matching corporate actions.</p>';
-    $('corpOut').innerHTML = `<div class="ev-count">${rows.length} actions</div><div class="cmp-table-wrap"><table class="cmp-table"><thead><tr><th>Symbol</th><th>Company</th><th>Type</th><th>Purpose</th><th>Ex-Date</th></tr></thead><tbody>` +
-      rows.slice(0, 400).map(r => `<tr><td>${r.symbol || '—'}</td><td>${r.comp || '—'}</td><td><span class="ev-tag t-${r._type.toLowerCase()}">${r._type}</span></td><td>${r.subject || '—'}</td><td>${r.exDate || '—'}</td></tr>`).join('') +
+    // Ex-Date sits before Purpose: some purposes run to 200+ characters ("Distribution
+    // - Rs 6.31 Per Unit Consisting Of…") and pushed the date off the right edge.
+    $('corpOut').innerHTML = `<div class="ev-count">${rows.length} actions</div><div class="cmp-table-wrap"><table class="cmp-table"><thead><tr><th>Symbol</th><th>Company</th><th>Type</th><th>Ex-Date</th><th>Purpose</th></tr></thead><tbody>` +
+      rows.slice(0, 400).map(r => `<tr><td>${r.symbol || '—'}</td><td>${r.comp || '—'}</td><td><span class="ev-tag t-${r._type.toLowerCase()}">${r._type}</span></td><td class="ca-date">${r.exDate || '—'}</td><td class="ca-purpose" title="${(r.subject || '').replace(/"/g, '&quot;')}">${r.subject || '—'}</td></tr>`).join('') +
       '</tbody></table></div>';
   }
 
