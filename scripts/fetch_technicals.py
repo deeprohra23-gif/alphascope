@@ -40,6 +40,9 @@ MAX_WORKERS = 5
 SLEEP_BETWEEN = 0.3
 SMALL_CAP = 5_000
 MID_CAP = 20_000
+# below this many trading sessions the indicators are meaningless, so the stock is
+# skipped — recent listings are the usual case, and no exchange fallback fixes it
+MIN_SESSIONS = 30
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SYMBOLS = ROOT / "data" / "nifty500_symbols.csv"
@@ -59,7 +62,7 @@ def get_stock_data(ticker, nifty_close, nifty_daily_ret, nifty_monthly_ret):
         info = stock.info
         hist = stock.history(period="max")
 
-        if hist.empty or len(hist) < 30:
+        if hist.empty or len(hist) < MIN_SESSIONS:
             return None, ticker
 
         close = hist["Close"]
@@ -326,14 +329,16 @@ def main():
                     else:
                         print(f"  – [BSE {k}/{len(retry_failed)}] {ticker}  (already recovered)")
                 else:
-                    print(f"  – [BSE {k}/{len(retry_failed)}] {ticker}  (BSE also failed)")
+                    print(f"  – [BSE {k}/{len(retry_failed)}] {ticker} → tried {bse_ticker}, no usable data")
             except Exception as e:
-                print(f"  ✗ [BSE {k}/{len(retry_failed)}] {ticker}  ERROR: {e}")
+                print(f"  ✗ [BSE {k}/{len(retry_failed)}] {ticker} → {bse_ticker}  ERROR: {e}")
 
             time.sleep(2)
 
-        if bse_recovered > 0:
-            print(f"\n   BSE fallback recovered {bse_recovered} stocks")
+        print(f"\n   BSE fallback recovered {bse_recovered} of {len(retry_failed)}")
+        if bse_recovered < len(retry_failed):
+            print(f"   The rest are usually recent listings with under {MIN_SESSIONS} sessions "
+                  f"of history — they fail on both exchanges, so no fallback helps.")
 
     # Save — merge with previous data + archive snapshot
     if results:
