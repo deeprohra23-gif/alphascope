@@ -34,6 +34,7 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 OUT_CSV = ROOT / "data" / "funds.csv"
 OUT_JSON = ROOT / "stockradar-web" / "public" / "data" / "funds.json"
+NAV_CACHE = ROOT / "data" / "nav_cache"
 
 NAV_ALL = "https://www.amfiindia.com/spages/NAVAll.txt"
 NAV_HIST = "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx?frmdt={d}&todt={d}"
@@ -47,8 +48,13 @@ TER_HEADERS = dict(HEADERS, Referer="https://www.amfiindia.com/ter-of-mf-schemes
                    Accept="application/json, text/plain, */*")
 
 MONTHS_BACK = 63          # 61 completed month-ends: 60 months back plus the base point for 5Y
+# Month-end NAVs never change once published, so they are cached in the repo — one
+# file per month-end. A weekly run then fetches only the month-end it is missing
+# (usually none), instead of re-downloading five years of history every time.
+# Delete the folder to force a full rebuild.
+MAX_FETCH_SECONDS = 600   # stop fetching snapshots past this and use what we have
 RISK_FREE = 6.5           # % — used for Sharpe
-REQ_TIMEOUT = 60
+REQ_TIMEOUT = 25          # AMFI answers in seconds when healthy; a long wait means trouble
 # Liquid/overnight funds publish a NAV every calendar day, equity funds only on
 # business days — so a weekend date still returns ~1,900 schemes. Demand a full
 # business-day file (~8,500) or walk back, otherwise equity series lose months.
@@ -152,6 +158,27 @@ def month_end_dates(anchor, months):
     return out
 
 
+def load_snapshot(d):
+    """Cached NAVs for month-end `d`, or (None, None). Keyed by the nominal
+    month-end so lookups are deterministic; the resolved trading day is inside."""
+    p = NAV_CACHE / f"{d.isoformat()}.json"
+    if not p.exists():
+        return None, None
+    try:
+        j = json.loads(p.read_text(encoding="utf-8"))
+        return date.fromisoformat(j["as_of"]), {int(k): v for k, v in j["navs"].items()}
+    except Exception as e:
+        print(f"    {d}  cache unreadable ({e}) — refetching")
+        return None, None
+
+
+def save_snapshot(d, actual, navs):
+    NAV_CACHE.mkdir(parents=True, exist_ok=True)
+    (NAV_CACHE / f"{d.isoformat()}.json").write_text(
+        json.dumps({"as_of": actual.isoformat(), "navs": navs}, separators=(",", ":")),
+        encoding="utf-8")
+
+
 def fetch_month_end(d, back=6):
     """NAVs for the last reporting day on/before `d` (walks back over weekends/holidays)."""
     for i in range(back):
@@ -192,8 +219,16 @@ def tight_name(n):
     return k[:-4] if k.endswith("fund") else k
 
 
+MIN_TER_SCHEMES = 1500    # a complete month lists ~2,100; anything far below is part-published
+
+
 def fetch_ter():
-    """{normalised name: row} for the most recent month AMFI has published."""
+    """{normalised name: row} for the most recent COMPLETE month AMFI has published.
+
+    The current month is skipped outright: AMCs file through the month, so on the 3rd
+    it listed 808 schemes against July's 2,110 — taking it would have cut expense-ratio
+    coverage from 96% to 38%. A month is only accepted once it looks fully populated.
+    """
     today = date.today()
     fy = f"{today.year}-{today.year + 1}" if today.month >= 4 else f"{today.year - 1}-{today.year}"
     body = _get(TER_MONTHS.format(fy=fy), headers=TER_HEADERS)
@@ -202,7 +237,10 @@ def fetch_ter():
         print("   ! TER: no months listed for FY", fy)
         return {}, {}, None
 
-    for m in months:                        # newest first; the current month is often empty
+    this_month = today.strftime("%m-%Y")
+    months = [m for m in months if m.get("MonthNumber") != this_month]
+    best = None                             # fall back to the fullest month seen
+    for m in months:                        # newest first
         mn = m.get("MonthNumber")
         rows, page = {}, 1
         while True:
@@ -218,15 +256,22 @@ def fetch_ter():
             if page >= meta.get("pageCount", 0):
                 break
             page += 1
-        if len(rows) > 500:
-            by_norm, by_tight = {}, {}
-            for r in rows.values():
-                by_norm.setdefault(norm_name(r["Scheme_Name"]), r)
-                by_tight.setdefault(tight_name(r["Scheme_Name"]), r)
-            print(f"  TER: {len(rows)} schemes for {m.get('MonthYear')}")
-            return by_norm, by_tight, m.get("MonthYear")
-        print(f"   . TER: {m.get('MonthYear')} empty, trying the previous month")
-    return {}, {}, None
+        if best is None or len(rows) > len(best[0]):
+            best = (rows, m.get("MonthYear"))
+        if len(rows) >= MIN_TER_SCHEMES:
+            break
+        print(f"   . TER: {m.get('MonthYear')} has only {len(rows)} schemes "
+              f"(part-published) — trying the previous month")
+
+    if not best or len(best[0]) < 200:
+        return {}, {}, None
+    rows, label = best
+    by_norm, by_tight = {}, {}
+    for r in rows.values():
+        by_norm.setdefault(norm_name(r["Scheme_Name"]), r)
+        by_tight.setdefault(tight_name(r["Scheme_Name"]), r)
+    print(f"  TER: {len(rows)} schemes for {label}")
+    return by_norm, by_tight, label
 
 
 MAX_PLAUSIBLE_TER = 5.0   # SEBI caps the fee near 2.25%; see below
@@ -355,9 +400,23 @@ def main():
 
     history = {}      # code → {date: nav}
     got = []
-    print(f"  Fetching {len(dates)} month-end snapshots…")
+    cached = fetched = 0
+    t0 = time.time()
+    print(f"  {len(dates)} month-end snapshots needed…")
     for d in dates:
-        actual, navs = fetch_month_end(d)
+        actual, navs = load_snapshot(d)
+        if navs:
+            cached += 1
+        else:
+            if time.time() - t0 > MAX_FETCH_SECONDS:
+                print(f"    {d}  SKIPPED — {MAX_FETCH_SECONDS}s fetch budget spent")
+                continue
+            actual, navs = fetch_month_end(d)
+            if navs:
+                fetched += 1
+                # cache only the universe: the whole file is ~14k schemes, most of
+                # which are payout variants and categories we never screen
+                save_snapshot(d, actual, {c: navs[c] for c in universe if c in navs})
         if not navs:
             print(f"    {d}  MISS")
             continue
@@ -366,6 +425,7 @@ def main():
             v = navs.get(code)
             if v:
                 history.setdefault(code, {})[actual] = v
+    print(f"  {cached} from cache, {fetched} fetched ({time.time() - t0:.0f}s)")
     print(f"  Got {len(got)} snapshots: {got[0]} … {got[-1]}" if got else "  No snapshots")
     if len(got) < 13:
         print("FATAL — too little history to compute returns; keeping previous output")
