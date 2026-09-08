@@ -37,6 +37,8 @@ OUT_JSON = ROOT / "stockradar-web" / "public" / "data" / "funds.json"
 NAV_CACHE = ROOT / "data" / "nav_cache"
 
 NAV_ALL = "https://www.amfiindia.com/spages/NAVAll.txt"
+# byte-identical mirror — used when the main host serves a block page to CI
+NAV_ALL_MIRROR = "https://portal.amfiindia.com/spages/NAVAll.txt"
 NAV_HIST = "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx?frmdt={d}&todt={d}"
 # TER (expense ratio) — the JSON API behind amfiindia.com/ter-of-mf-schemes.
 # Rows are daily per scheme and carry BOTH plans: D_TER (Direct) and R_TER (Regular).
@@ -104,8 +106,23 @@ def clean_category(raw):
 
 
 def parse_navall(body):
-    """NAVAll.txt → {code: dict}. Tracks the current category header and AMC line."""
+    """NAVAll.txt → {code: dict}. Tracks the current category header and AMC line.
+
+    AMFI serves two layouts and this handles both. The original packed the plan and
+    option into the scheme name:
+        Scheme Code;ISIN;ISIN;Scheme Name;Net Asset Value;Date
+    The current one splits them into their own columns, which pushes NAV from index
+    4 to index 6 — reading the old positions yields "Direct Plan" where a NAV should
+    be, every row is discarded, and the universe comes out empty:
+        Scheme Code;ISIN;ISIN;Scheme Name;Plan;Option;Net Asset Value;Date
+
+    Where the columns exist, the full name is rebuilt from them so everything
+    downstream (plan detection, the growth-option filter, the TER name join) keeps
+    seeing the shape it was written against.
+    """
     funds, cat, amc = {}, "", ""
+    nav_i, date_i, split_cols = 4, 5, False      # assume the original layout
+
     for line in body.splitlines():
         s = line.strip()
         if not s:
@@ -119,34 +136,55 @@ def parse_navall(body):
             continue
         p = s.split(";")
         if p[0].strip() == "Scheme Code":
+            cols = [c.strip().lower() for c in p]
+            if "net asset value" in cols:        # trust the header when it is there
+                nav_i = cols.index("net asset value")
+                date_i = nav_i + 1
+                split_cols = "plan" in cols and "option" in cols
             continue
         try:
             code = int(p[0])
-        except ValueError:
-            continue
-        try:
-            nav = float(p[4])
+            nav = float(p[nav_i])
         except (ValueError, IndexError):
             continue
+
+        name = " ".join(p[3].split())
+        plan = option = ""
+        if split_cols:
+            plan = " ".join(p[4].split())
+            option = " ".join(p[5].split())
+            # rebuild "Fund - Direct Plan - Growth Option" so name-based logic still works
+            name = " - ".join(x for x in (name, plan, option) if x and x != "-")
         funds[code] = {
-            "code": code, "isin": p[1].strip(), "name": " ".join(p[3].split()),
-            "nav": nav, "nav_date": p[5].strip(), "category": cat, "amc": amc,
+            "code": code, "isin": p[1].strip(), "name": name,
+            "plan": plan, "option": option,
+            "nav": nav, "nav_date": p[date_i].strip(), "category": cat, "amc": amc,
         }
     return funds
 
 
 def parse_hist(body):
-    """Historical report → {code: nav}. Same layout, different column order."""
+    """Historical report → {code: nav}.
+
+    Its columns changed in the same AMFI update that reshaped NAVAll: Plan and
+    Option were inserted after the name, moving NAV from index 4 to 6. The header
+    is read for the position rather than trusting either layout.
+        Scheme Code;NAV Name;Plan;Option;ISIN;ISIN;Net Asset Value;Date
+    """
     out = {}
+    nav_i = 4                                   # the original position
     for line in body.splitlines():
         s = line.strip()
         if not s or ";" not in s:
             continue
         p = s.split(";")
         if p[0].strip() == "Scheme Code":
+            cols = [c.strip().lower() for c in p]
+            if "net asset value" in cols:
+                nav_i = cols.index("net asset value")
             continue
         try:
-            out[int(p[0])] = float(p[4])
+            out[int(p[0])] = float(p[nav_i])
         except (ValueError, IndexError):
             continue
     return out
@@ -161,6 +199,29 @@ def month_end_dates(anchor, months):
         if m == 0:
             y, m = y - 1, 12
     return out
+
+
+def fetch_navall():
+    """The scheme master, trying the mirror if the main host misbehaves.
+
+    A 200 is not proof of success: when AMFI blocks a caller it answers with an
+    HTML page and status 200, which sails through _get and then parses to zero
+    schemes — that is exactly how a CI run reported "NAVAll: 0 schemes" and an
+    empty universe. So the response is only accepted once it actually parses.
+    """
+    for url in (NAV_ALL, NAV_ALL_MIRROR):
+        for attempt in range(3):
+            body = _get(url, tries=1)
+            if body:
+                master = parse_navall(body)
+                if len(master) >= MIN_SCHEMES:
+                    if url != NAV_ALL:
+                        print(f"   . NAVAll came from the mirror ({url})")
+                    return master
+                print(f"   ! {url}: {len(body):,} chars parsed to {len(master)} schemes "
+                      f"(try {attempt + 1}/3) — starts {body[:90]!r}")
+            time.sleep(4 * (attempt + 1))
+    return {}
 
 
 def load_snapshot(d):
@@ -294,7 +355,7 @@ def ter_for(fund, by_norm, by_tight):
     row = by_norm.get(norm_name(fund["name"])) or by_tight.get(tight_name(fund["name"]))
     if not row:
         return None, None
-    p = "D" if plan_of(fund["name"]) == "Direct" else "R"
+    p = "D" if plan_of(fund["name"], fund.get("plan", "")) == "Direct" else "R"
 
     def val(key, ceiling=None):
         try:
@@ -358,8 +419,9 @@ def series_metrics(navs):
     return sd, round(mdd * 100, 2), pos
 
 
-def plan_of(name):
-    n = name.lower()
+def plan_of(name, plan=""):
+    """`plan` is AMFI's own column where the file provides it; the name is the fallback."""
+    n = (plan or name).lower()
     if "direct" in n:
         return "Direct"
     if "regular" in n:
@@ -376,11 +438,14 @@ def main():
     print("Mutual Fund Data Fetch (AMFI)")
     print("=" * 60)
 
-    body = _get(NAV_ALL)
-    if not body:
-        print("FATAL — could not fetch NAVAll.txt; keeping previous output")
+    master = fetch_navall()
+    if not master:
+        # six attempts across two hosts — worth a red X rather than a silent no-op,
+        # since a weekly job failing quietly could go stale for months unnoticed
+        print("FATAL — no usable NAVAll.txt from either AMFI host after 6 attempts.")
+        print("        Existing funds data left untouched. Usually AMFI blocking the")
+        print("        runner IP; re-running the workflow lands on a different one.")
         return 1
-    master = parse_navall(body)
     print(f"  NAVAll: {len(master)} schemes")
 
     universe = {}
@@ -458,7 +523,7 @@ def main():
             "Scheme Name": f["name"],
             "Fund House": f["amc"],
             "Category": f["category"],
-            "Plan": plan_of(f["name"]),
+            "Plan": plan_of(f["name"], f.get("plan", "")),
             "NAV": round(latest, 4),
             "NAV Date": f["nav_date"],
             "Expense Ratio %": expense,
