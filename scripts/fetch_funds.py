@@ -19,6 +19,7 @@ Usage:
     python scripts/fetch_funds.py
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -35,6 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT_CSV = ROOT / "data" / "funds.csv"
 OUT_JSON = ROOT / "stockradar-web" / "public" / "data" / "funds.json"
 NAV_CACHE = ROOT / "data" / "nav_cache"
+TER_CACHE = ROOT / "data" / "ter_cache"
 
 NAV_ALL = "https://www.amfiindia.com/spages/NAVAll.txt"
 # byte-identical mirror — used when the main host serves a block page to CI
@@ -43,8 +45,10 @@ NAV_HIST = "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx?frmdt=
 # TER (expense ratio) — the JSON API behind amfiindia.com/ter-of-mf-schemes.
 # Rows are daily per scheme and carry BOTH plans: D_TER (Direct) and R_TER (Regular).
 TER_MONTHS = "https://www.amfiindia.com/api/populate-ter-month?year={fy}"
+# AMFI caps the response at 100 rows whatever pageSize asks for — it used to honour
+# 2000, which is why a month went from 32 requests to ~640 and the workflow timed out.
 TER_DATA = ("https://www.amfiindia.com/api/populate-te-rdata-revised"
-            "?MF_ID=All&Month={m}&strCat=-1&strType=-1&page={p}&pageSize=2000")
+            "?MF_ID=All&Month={m}&strCat=-1&strType=-1&page={p}&pageSize=100")
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125 Safari/537.36"}
 TER_HEADERS = dict(HEADERS, Referer="https://www.amfiindia.com/ter-of-mf-schemes",
                    Accept="application/json, text/plain, */*")
@@ -286,6 +290,65 @@ def tight_name(n):
 
 
 MIN_TER_SCHEMES = 1500    # a complete month lists ~2,100; anything far below is part-published
+TER_WORKERS = 6           # AMFI's 100-row cap makes a month ~640 requests; fetch them in parallel
+TER_KEEP = ("NSDLSchemeCode", "Scheme_Name", "TER_Date",
+            "D_BER", "D_TER", "R_BER", "R_TER")
+
+
+def _ter_page(mn, page):
+    body = _get(TER_DATA.format(m=mn, p=page), headers=TER_HEADERS)
+    if not body:
+        return None
+    try:
+        return json.loads(body)
+    except ValueError:
+        return None
+
+
+def fetch_ter_month(mn):
+    """{NSDLSchemeCode: row} for month `mn` ("MM-YYYY"), cached in the repo.
+
+    A month's TER is fixed once published, so it is fetched once and read from disk
+    afterwards. That matters now that AMFI caps pages at 100 rows: a month is ~640
+    requests, which run sequentially took longer than the workflow's 30-minute limit.
+    Only the fields actually used are stored, keeping each file a couple of hundred KB.
+    """
+    cached = TER_CACHE / f"{mn}.json"
+    if cached.exists():
+        try:
+            rows = json.loads(cached.read_text(encoding="utf-8"))
+            print(f"   . TER {mn}: {len(rows)} schemes from cache")
+            return rows
+        except Exception as e:
+            print(f"   ! TER cache {mn} unreadable ({e}) — refetching")
+
+    first = _ter_page(mn, 1)
+    if not first:
+        return {}
+    pages = first.get("meta", {}).get("pageCount", 0)
+    rows = {}
+
+    def absorb(j):
+        for r in (j or {}).get("data", []):
+            k = r.get("NSDLSchemeCode")
+            if not k:
+                continue
+            # keep the latest published day within the month
+            if k not in rows or r.get("TER_Date", "") > rows[k].get("TER_Date", ""):
+                rows[k] = {f: r.get(f) for f in TER_KEEP}
+
+    absorb(first)
+    t0 = time.time()
+    if pages > 1:
+        with ThreadPoolExecutor(max_workers=TER_WORKERS) as pool:
+            for j in pool.map(lambda p: _ter_page(mn, p), range(2, pages + 1)):
+                absorb(j)
+    print(f"   . TER {mn}: {len(rows)} schemes from {pages} pages ({time.time() - t0:.0f}s)")
+
+    if rows:
+        TER_CACHE.mkdir(parents=True, exist_ok=True)
+        cached.write_text(json.dumps(rows, separators=(",", ":")), encoding="utf-8")
+    return rows
 
 
 def fetch_ter():
@@ -308,20 +371,7 @@ def fetch_ter():
     best = None                             # fall back to the fullest month seen
     for m in months:                        # newest first
         mn = m.get("MonthNumber")
-        rows, page = {}, 1
-        while True:
-            body = _get(TER_DATA.format(m=mn, p=page), headers=TER_HEADERS)
-            if not body:
-                break
-            j = json.loads(body)
-            for r in j.get("data", []):
-                k = r["NSDLSchemeCode"]     # keep the latest day in the month
-                if k not in rows or r["TER_Date"] > rows[k]["TER_Date"]:
-                    rows[k] = r
-            meta = j.get("meta", {})
-            if page >= meta.get("pageCount", 0):
-                break
-            page += 1
+        rows = fetch_ter_month(mn)
         if best is None or len(rows) > len(best[0]):
             best = (rows, m.get("MonthYear"))
         if len(rows) >= MIN_TER_SCHEMES:
